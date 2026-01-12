@@ -1,0 +1,94 @@
+.wrapper {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--black);
+}
+
+.counterWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0;
+
+  button {
+    padding: 5px 15px;
+    font-size: 22px;
+    cursor: pointer;
+  }
+
+  span {
+    font-size: 22px;
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+  }
+}
+
+.sizeSelectWrapper {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+
+  .sizeBtn {
+    padding: 8px 20px;
+    border: 1px solid #dcdcdc;
+    cursor: pointer;
+    background: transparent;
+    transition: 0.2s ease;
+
+    &.sizeBtnActive {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+  }
+}
+
+.confirmBtn {
+  background: var(--accent);
+  padding: 12px 30px;
+  font-size: 22px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+
+.generatedWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 25px;
+
+  .generatedItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+
+    img {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    h4 {
+      font-size: 20px;
+      margin: 0;
+    }
+    p {
+      margin: 0;
+    }
+  }
+
+  .addAllBtn {
+    margin-top: 20px;
+    padding: 12px 30px;
+    font-size: 22px;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+}

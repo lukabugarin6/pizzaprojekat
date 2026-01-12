@@ -114,7 +114,7 @@ export default function Sidebar({
             <span>Zona dostave</span>
           </div>
           <a
-            href="/cart"
+            href="/korpa"
             data-cart-icon
             className={clsx(
               styles.wrapper__inner__item,
@@ -128,20 +128,18 @@ export default function Sidebar({
                 .split('/')
                 .filter(Boolean);
               const currentPath = pathSegments.slice(1).join('/'); // uklanja lang
-              const targetPath = 'cart';
+              const targetPath = 'korpa';
 
               if (currentPath === targetPath) {
-                // ako smo već na /[lang]/cart
                 window.dispatchEvent(
                   new CustomEvent('start-route-change', {
                     detail: { href: window.location.pathname, forceOpen: true },
                   })
                 );
               } else {
-                // idi na /[lang]/cart
                 window.dispatchEvent(
                   new CustomEvent('start-route-change', {
-                    detail: { href: `/${pathSegments[0]}/cart` },
+                    detail: { href: `/${pathSegments[0]}/korpa` },
                   })
                 );
               }
@@ -162,16 +160,42 @@ export default function Sidebar({
             </div>
             <span>Korpa</span>
           </a>
-          <div
+          <a
+            href="/nasumicna-porudzbina"
             className={clsx(
               styles.wrapper__inner__item,
               styles.wrapper__inner__top__item,
               styles.smaller
             )}
+            onClick={(e) => {
+              e.preventDefault();
+
+              const pathSegments = window.location.pathname
+                .split('/')
+                .filter(Boolean);
+              const currentPath = pathSegments.slice(1).join('/'); // uklanja lang
+              const targetPath = 'nasumicna-porudzbina';
+
+              if (currentPath === targetPath) {
+                window.dispatchEvent(
+                  new CustomEvent('start-route-change', {
+                    detail: { href: window.location.pathname, forceOpen: true },
+                  })
+                );
+              } else {
+                window.dispatchEvent(
+                  new CustomEvent('start-route-change', {
+                    detail: {
+                      href: `/${pathSegments[0]}/nasumicna-porudzbina`,
+                    },
+                  })
+                );
+              }
+            }}
           >
             <RandomDeliverySvg />
             <span>Nasumična porudžbina</span>
-          </div>
+          </a>
         </div>
         <div className={clsx(styles.wrapper__inner__bottom)}>
           <div className={clsx(styles.wrapper__inner__item)}>

@@ -7,7 +7,7 @@ type Locale = (typeof locales)[number];
 
 // regex za statičke fajlove (možeš proširiti po potrebi)
 const PUBLIC_FILE =
-  /\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|css|js|map|txt|pdf|mp4)$/i;
+  /\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|css|js|map|txt|pdf|mp4|json)$/i;
 
 function getLocale(request: NextRequest): Locale {
   const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
