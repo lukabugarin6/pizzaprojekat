@@ -1,0 +1,17 @@
+{
+  "languages": {
+    "en-Us": "En",
+    "sr-Latn": "Sr",
+    "ru": "Ru"
+  },
+  "meta": {
+    "home": {
+      "title": "Pizza Project | Pica za poneti i dostava",
+      "description": "Pizza Project – sveže pečena pica za poneti i dostavu. Brza porudžbina, kvalitetni sastojci i odličan ukus. Poruči odmah!"
+    },
+    "cart": {
+      "title": "Korpa za porudžbinu | Pizza Project",
+      "description": "Tvoja korpa za porudžbinu u Pizza Projectu. Proveri pice, količinu i cenu, pa nastavi na plaćanje i dostavu."
+    }
+  }
+}

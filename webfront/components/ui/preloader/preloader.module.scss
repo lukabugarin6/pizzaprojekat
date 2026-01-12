@@ -1,0 +1,78 @@
+.wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* PANELS */
+.panelTop,
+.panelBottom {
+  position: absolute;
+  width: 100%;
+  height: calc(50% + 1px);
+  background-color: var(--black);
+  transition: transform 1s cubic-bezier(0.77, 0, 0.175, 1);
+  will-change: transform;
+}
+
+/* 🔹 DEFAULT = OTVORENO */
+.panelTop {
+  top: 0;
+  transform: translateY(-100%);
+}
+
+.panelBottom {
+  bottom: 0;
+  transform: translateY(100%);
+}
+
+/* LOGO */
+.logo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+
+  svg {
+    width: 25%;
+    height: auto;
+  }
+}
+
+/* 🔥 OPENING (isto kao default, ali eksplicitno) */
+.loaded {
+  .panelTop {
+    transform: translateY(-100%);
+  }
+
+  .panelBottom {
+    transform: translateY(100%);
+  }
+
+  .logo {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+}
+
+/* 🔒 CLOSING = SKLAPANJE */
+.closing {
+  pointer-events: all;
+
+  .panelTop {
+    transform: translateY(0);
+  }
+
+  .panelBottom {
+    transform: translateY(0);
+  }
+}
+
+/* 🧹 HIDDEN (samo vizuelno) */
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -1,0 +1,8 @@
+services:
+  e-menice-crem-staging:
+    build:
+      context: ../../
+      dockerfile: docker/staging/Dockerfile
+    image: e-menice-crem-staging
+    ports:
+      - '3002:3000'

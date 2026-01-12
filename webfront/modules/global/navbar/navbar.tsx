@@ -1,0 +1,176 @@
+'use client';
+import { useEffect, useRef } from 'react';
+import clsx from 'clsx';
+import styles from './navbar.module.scss';
+import LanguageSwitcher from '@/components/ui/language-switcher';
+import Link from 'next/link';
+import { useHeaderThemeBySection } from '@/hooks/useHeaderThemeBySection';
+import { NavbarDict } from '@/app/[lang]/dictionaries';
+import Container from '@/components/ui/container';
+import GridItem from '@/components/ui/grid-item';
+import Grid from '@/components/ui/grid';
+import { usePathname } from 'next/navigation';
+import NbsLogo from '@/public/svg/sr-Cyrl/NbsLogo';
+import NbsIspis from '@/public/svg/sr-Cyrl/NbsIspis';
+import NbsIspisLatn from '@/public/svg/sr-Latn/NbsIspisLatn';
+
+type Props = {
+  t: NavbarDict;
+  lang: 'sr-Latn' | 'sr-Cyrl';
+};
+
+export default function Navbar({ t, lang }: Props) {
+  const navRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  const headerClass = useHeaderThemeBySection(50);
+  const basePath = `/${lang}`;
+
+  const home =
+    pathname === '/' || pathname === '/sr-Latn' || pathname === '/sr-Cyrl';
+  useEffect(() => {
+    if (!home) return;
+
+    // Daj malo vremena da se DOM renderuje
+    const timer = setTimeout(() => {
+      const footer = document.querySelector('.footer');
+      if (!footer || !navRef.current) return;
+
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (!navRef.current) return;
+
+        if (entry.isIntersecting) {
+          navRef.current.style.opacity = '0';
+          navRef.current.style.pointerEvents = 'none';
+        } else {
+          navRef.current.style.opacity = '1';
+          navRef.current.style.pointerEvents = 'auto';
+        }
+      });
+
+      observer.observe(footer);
+
+      // Cleanup
+      return () => {
+        observer.disconnect();
+      };
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [home]);
+  return (
+    <>
+      <div className={clsx(styles.langSwitcherAndText)}>
+        <Container>
+          <Grid>
+            <GridItem l={1} xl={2}>
+              <Link href={basePath}>
+                <div className={clsx(styles.outerWrapper__logoText)}>
+                  <div>{t.homeTop}</div>
+                  <div>{t.homeBottom}</div>
+                </div>
+              </Link>
+            </GridItem>
+            <GridItem l={1} xl={2}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14.6px',
+                  marginTop: '-9px',
+                  marginLeft: '-20px',
+                }}
+              >
+                {lang === 'sr-Cyrl' ? (
+                  <>
+                    <NbsLogo />
+                    <NbsIspis />
+                  </>
+                ) : (
+                  <>
+                    <NbsIspisLatn />
+                  </>
+                )}
+              </div>
+            </GridItem>
+            <GridItem xl={1} xlColStart={7}>
+              <div className={clsx(styles.langSwitcherWrapperGrid)}>
+                <LanguageSwitcher shorter />
+              </div>
+            </GridItem>
+
+            <div className={clsx(styles.langSwitcherWrapper)}>
+              <LanguageSwitcher shorter />
+            </div>
+          </Grid>
+        </Container>
+      </div>
+      <div
+        ref={navRef}
+        className={clsx(styles.outerWrapper, headerClass, home && styles.home)}
+      >
+        <nav>
+          <Link href={`${basePath}/banke-ucesnici`}>{t.banke}</Link>
+          <Link href={`${basePath}/faq`}>{t.faq}</Link>
+          <Link
+            href={`/docs/${lang}/korisnicko_uputstvo.pdf`}
+            className={clsx(styles.downloadLink)}
+            target="_blank"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="17"
+              viewBox="0 0 16 17"
+              fill="none"
+            >
+              <g clipPath="url(#clip0_4076_2260)">
+                <path
+                  d="M7.46967 12.5303C7.76256 12.8232 8.23744 12.8232 8.53033 12.5303L13.3033 7.75736C13.5962 7.46447 13.5962 6.98959 13.3033 6.6967C13.0104 6.40381 12.5355 6.40381 12.2426 6.6967L8 10.9393L3.75736 6.6967C3.46447 6.40381 2.98959 6.40381 2.6967 6.6967C2.40381 6.98959 2.40381 7.46447 2.6967 7.75736L7.46967 12.5303ZM8 1L7.25 1L7.25 12L8 12L8.75 12L8.75 1L8 1Z"
+                  fill="currentColor"
+                />
+                <path d="M0 16L16 16" stroke="currentColor" strokeWidth="1.5" />
+              </g>
+              <defs>
+                <clipPath id="clip0_4076_2260">
+                  <rect width="16" height="17" fill="white" />
+                </clipPath>
+              </defs>
+            </svg>
+            {t.manual}
+          </Link>
+
+          <Link href={basePath}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="68"
+              height="39"
+              viewBox="0 0 68 39"
+              fill="none"
+            >
+              <path
+                d="M67.9002 1.05469H33.6328L36.738 4.0521H64.9296V23.9875L64.9607 33.0874H36.738L33.6328 36.0356H68.0003L67.9002 1.05469Z"
+                fill="currentColor"
+              />
+              <path
+                d="M40.0842 27.6462L38.3125 30.7177H61.9861L61.9205 6.92676H38.3125L40.0842 9.96034H58.7257L58.8214 27.6427L40.0842 27.6462Z"
+                fill="currentColor"
+              />
+              <path
+                d="M30.9523 16.0154L7.64527 16.0111L5.65625 15.936L6.33417 14.0652L7.6996 14.5602L6.33591 14.06L6.34454 14.0358C7.27367 11.548 8.93907 9.4024 11.1187 7.88523C13.2984 6.36805 15.8888 5.55131 18.5445 5.54395C23.9897 5.54395 29.1159 9.10545 30.734 14.0117L30.7866 14.1704L30.9523 16.0154ZM10.0337 13.1103H27.1217C26.1909 11.6829 24.9193 10.5096 23.4217 9.69647C21.9242 8.8833 20.2477 8.45578 18.5436 8.45249C16.8495 8.45678 15.1833 8.8849 13.697 9.69784C12.2106 10.5108 10.9512 11.6827 10.0337 13.1068V13.1103Z"
+                fill="currentColor"
+              />
+              <path
+                d="M18.5448 37.0899C14.877 37.0899 11.2916 36.0023 8.24187 33.9645C5.19218 31.9268 2.81525 29.0304 1.41164 25.6418C0.00801987 22.2531 -0.359209 18.5244 0.356348 14.927C1.07191 11.3296 2.83814 8.02525 5.43168 5.43169C8.02523 2.83814 11.3296 1.0719 14.927 0.356336C18.5243 -0.359225 22.253 0.00805898 25.6417 1.41168C29.0303 2.8153 31.9266 5.19225 33.9643 8.24195C36.002 11.2916 37.0897 14.8771 37.0897 18.545C37.0897 19.1669 37.0587 19.7948 36.9966 20.4106L36.8724 21.6476L35.5414 21.7183H8.95154C9.46923 23.279 10.36 24.6898 11.5464 25.8283C12.7329 26.9668 14.1792 27.7986 15.76 28.2515C17.3407 28.7044 19.0081 28.7647 20.6174 28.4272C22.2267 28.0898 23.7294 27.3647 24.995 26.3149L26.6649 24.795L28.6212 26.9428L26.8823 28.5238C25.133 29.9853 23.0303 30.9614 20.7849 31.3544C18.5396 31.7473 16.2304 31.5433 14.0887 30.7628C11.9471 29.9822 10.0481 28.6525 8.58217 26.907C7.11621 25.1614 6.13468 23.0613 5.73597 20.8169L5.72129 20.7367L5.59967 18.8132H34.1795C34.1795 18.7269 34.1795 18.6338 34.1795 18.5441C34.1795 15.4508 33.2622 12.427 31.5435 9.85508C29.8249 7.28317 27.3822 5.27866 24.5243 4.09511C21.6664 2.91156 18.5217 2.60213 15.488 3.20592C12.4542 3.8097 9.66758 5.29958 7.48061 7.48716C5.29364 9.67474 3.80454 12.4617 3.2016 15.4957C2.59865 18.5297 2.90898 21.6743 4.09332 24.5318C5.27765 27.3894 7.28278 29.8316 9.85515 31.5495C12.4275 33.2674 15.4516 34.184 18.5448 34.1831C21.0032 34.1839 23.4293 33.6227 25.6376 32.5424C27.8459 31.4622 29.7781 29.8915 31.2865 27.9503C31.4909 27.6656 31.804 27.2162 31.898 27.0739C31.992 26.9316 32.2387 26.4995 32.4251 26.1708L32.5389 25.9716L35.067 27.4017C35.0144 27.4949 34.5495 28.3229 34.3519 28.6291C34.1794 28.8982 33.7232 29.5374 33.6335 29.6642L33.6076 29.6995C31.8276 31.9995 29.5447 33.8614 26.9337 35.1424C24.3228 36.4235 21.4531 37.0897 18.5448 37.0899Z"
+                fill="currentColor"
+              />
+            </svg>
+          </Link>
+        </nav>
+      </div>
+    </>
+  );
+}

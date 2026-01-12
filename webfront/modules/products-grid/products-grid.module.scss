@@ -1,0 +1,17 @@
+.wrapper {
+  max-width: 90%;
+  margin: 0 auto;
+  background-color: var(--white);
+  padding: 60px 0;
+  &__inner {
+    display: flex;
+    flex-wrap: wrap;
+    // grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 80px;
+  }
+  // &.smaller {
+  //   & > div {
+  //     grid-template-columns: repeat(4, minmax(0, 1fr));
+  //   }
+  // }
+}

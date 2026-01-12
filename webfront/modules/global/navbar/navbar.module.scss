@@ -1,0 +1,148 @@
+.langSwitcherAndText {
+  position: absolute;
+  top: 34px;
+  z-index: 10;
+  width: 100%;
+}
+
+.outerWrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 34px 42px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: fit-content;
+  transition: color 0.25s ease-in-out;
+  z-index: 50;
+  &.home {
+    position: fixed;
+    top: 0;
+    right: 0;
+    transition: 0.55s;
+  }
+  &__logoText {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--link-font-size);
+    line-height: var(--link-line-height);
+  }
+
+  &:global(.header-light) {
+    color: var(--light_gray);
+  }
+
+  nav {
+    margin-left: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    .downloadLink {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 4px;
+    }
+    & > * {
+      transition: opacity 0.4s ease-in-out;
+      cursor: pointer;
+    }
+    &:has(> *:hover) > * {
+      opacity: 0.4;
+    }
+
+    > *:hover {
+      opacity: 1;
+    }
+  }
+}
+
+// @media (max-width: 1449px) {
+//   .langSwitcherWrapper {
+//     justify-self: end;
+//     margin-right: 48px;
+//   }
+// }
+
+@media (min-width: 1280px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 44%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1300px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 43.5%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1320px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 43%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1340px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 42.5%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1360px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 42%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1380px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 41.5%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1400px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 41%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (min-width: 1420px) {
+  .langSwitcherWrapper {
+    position: absolute;
+    right: 40.5%;
+    margin-right: 48px;
+    top: 0;
+  }
+}
+@media (max-width: 1440px) {
+  .langSwitcherWrapperGrid {
+    display: none;
+  }
+}
+@media (min-width: 1440px) {
+  .langSwitcherWrapper {
+    display: none;
+  }
+}
+
+@media (max-width: 1279px) {
+  .outerWrapper,
+  .langSwitcherAndText {
+    display: none;
+  }
+}

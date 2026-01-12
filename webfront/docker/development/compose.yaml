@@ -1,0 +1,8 @@
+services:
+  e-menice-crem-development:
+    build:
+      context: ../../
+      dockerfile: docker/development/Dockerfile
+    image: e-menice-crem-development
+    ports:
+      - '3001:3000'

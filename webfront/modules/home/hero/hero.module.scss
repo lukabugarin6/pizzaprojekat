@@ -1,0 +1,93 @@
+.outerWrapper {
+  padding: 2px 2px 1px;
+  position: relative;
+  svg {
+    width: 100%;
+    margin-top: auto;
+    display: flex;
+  }
+  .wrapper {
+    border-radius: 24px;
+    padding: 34px 0 44px;
+    background-color: var(--surface_gray);
+    padding-top: 200px;
+    height: fit-content;
+    min-height: calc(100dvh - 4px);
+    display: flex;
+    align-items: flex-end;
+
+    h1 {
+      margin-bottom: 28px;
+      width: 57%;
+    }
+    .aligner {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100%;
+    }
+  }
+}
+
+@media (max-width: 1499px) {
+  .outerWrapper {
+    .wrapper {
+      h1 {
+        width: 60%;
+      }
+    }
+  }
+}
+
+@media (max-width: 1439px) {
+  .outerWrapper {
+    .wrapper {
+      h1 {
+        margin-top: 46px;
+        width: 57%;
+      }
+      p {
+        padding-right: 40px;
+      }
+    }
+  }
+}
+
+@media (max-width: 1279px) {
+  .outerWrapper {
+    svg {
+      max-width: 494px;
+    }
+    .wrapper {
+      padding-top: 200px;
+      border-radius: 18px;
+    }
+  }
+}
+
+@media (max-width: 1023px) {
+  .outerWrapper {
+    .wrapper {
+      p {
+        padding-right: 0;
+      }
+    }
+  }
+}
+
+@media (max-width: 759px) {
+  .outerWrapper {
+    svg {
+      max-width: 100%;
+      width: 312px;
+      height: 175px;
+      margin-bottom: 44px;
+    }
+    .wrapper {
+      h1 {
+        width: 100%;
+        margin-top: 0;
+      }
+    }
+  }
+}

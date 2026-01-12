@@ -1,0 +1,291 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.product-card {
+  padding: 0 3.36%;
+  width: 50%;
+  position: relative;
+  color: var(--black);
+  font-family: var(--font-pt-sans);
+  opacity: 0;
+
+  &--fade-in {
+    animation-name: fadeIn;
+  }
+
+  &--animated {
+    animation-duration: 1.2s;
+    animation-fill-mode: both;
+  }
+
+  &__inner {
+    display: flex;
+  }
+
+  &__img-wrapper {
+    max-width: 380px;
+    padding-right: 40px;
+
+    img {
+      cursor: pointer;
+      transition: scale 0.45s ease;
+
+      &:hover {
+        scale: 0.95;
+      }
+    }
+  }
+
+  &__content {
+    min-width: 280px;
+    h4 {
+      font-size: 32px;
+      color: #000;
+      letter-spacing: 0.01em;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 19px;
+      line-height: 21px;
+      color: var(--gray-text);
+      letter-spacing: 0.02em;
+      font-family: var(--font-roboto-condensed);
+      margin-bottom: 25px;
+    }
+
+    h5 {
+      color: #a2a2a2;
+      font-size: 21px;
+      letter-spacing: 0.02em;
+      font-family: var(--font-roboto-condensed);
+      font-weight: 400;
+      margin-bottom: 10px;
+    }
+  }
+
+  /* =========================
+     SIZE SELECTOR
+     ========================= */
+  &__sizes {
+    display: flex;
+    margin-bottom: 10px;
+  }
+
+  &__size-btn {
+    min-width: 60px;
+    padding: 8px 14px;
+    border: 1px solid #dcdcdc;
+    background: transparent;
+    font-size: 15px;
+    font-family: var(--font-roboto-condensed);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #000;
+    }
+
+    &--active {
+      background: #000;
+      color: #fff;
+      border-color: #000;
+    }
+  }
+
+  &__price {
+    font-size: 26px;
+    font-weight: 700;
+    color: #000;
+    width: fit-content;
+    margin-left: auto;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    background-color: var(--black);
+    height: 68px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__order-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: transparent;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    flex-grow: 1;
+    font-size: 22px;
+    height: 100%;
+    padding: 0 10px;
+
+    svg {
+      transform: rotate(90deg) translate(0);
+      transition: transform 0.3s ease;
+    }
+    &:hover {
+      svg {
+        transform: rotate(90deg) translateY(-8px);
+      }
+    }
+  }
+
+  &__order-icon {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+
+  &__quantity {
+    display: flex;
+    align-items: stretch;
+    color: var(--white);
+    height: 100%;
+    button {
+      width: 36px;
+      flex: 1;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      &:first-child {
+        border-bottom: 1px solid var(--gray-border);
+      }
+    }
+
+    span {
+      font-size: 22px;
+      border-left: 1px solid var(--gray-border);
+      width: 57px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+  }
+
+  &__quantity-buttons {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--gray-border);
+  }
+
+  &__quantity-btn {
+    width: 36px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--white);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+
+    svg {
+      display: block;
+    }
+
+    &:hover {
+      color: var(--gray-hover);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  &--smaller {
+    width: 25%;
+  }
+
+  &--smaller &__inner {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &--smaller &__price {
+    margin: 0 auto;
+  }
+
+  &--smaller &__content {
+    width: 100%;
+    h4 {
+      text-align: center;
+    }
+  }
+
+  &--smaller &__img-wrapper {
+    width: 100%;
+    padding: 0;
+  }
+
+  /* =========================
+     OVERLAY – uspešno dodato u korpu
+     ========================= */
+  &__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%; /* pun futer */
+    height: 68px; /* isto kao footer */
+    background-color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    z-index: 99; /* iznad futera */
+    pointer-events: all; /* blokira klikove ispod */
+    animation: fadeOverlay 2s forwards;
+
+    span {
+      margin: 0;
+    }
+  }
+  @keyframes fadeOverlay {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    80% {
+      opacity: 1;
+      transform: translateY(0); /* overlay ostaje */
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

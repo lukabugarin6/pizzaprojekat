@@ -1,0 +1,120 @@
+.logoText {
+  position: absolute;
+  top: 78px;
+  right: 22px;
+  z-index: 2;
+  text-align: right;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  display: none;
+}
+
+.outerWrapper {
+  display: none;
+  transition: transform 0.35s ease-in-out;
+  &.hidden {
+    transform: translateY(calc(-100% - 20px));
+  }
+}
+
+@media (max-width: 1449px) {
+  .langSwitcherWrapper {
+    margin-left: auto;
+    margin-right: 48px;
+  }
+}
+
+@media (max-width: 1279px) {
+  .bgOverlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--black);
+    z-index: 1;
+  }
+  .downloadLink {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
+  }
+  .logoText {
+    display: block;
+  }
+  .outerWrapper {
+    display: flex;
+    position: fixed;
+    z-index: 50;
+    width: calc(100% - 4px);
+    padding: 20px;
+    top: 2px;
+    background-color: var(--surface_gray);
+    border-radius: 18px;
+    margin: 0 2px;
+    .header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: fit-content;
+      z-index: 2;
+    }
+    &__logoText {
+      margin-left: auto;
+      margin-bottom: auto;
+      text-align: right;
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+    }
+    nav {
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      border-radius: 18px;
+      // background-color: var(--surface_gray);
+      height: calc(100dvh - 4px);
+      padding: 80px 20px 0;
+      opacity: 0;
+
+      pointer-events: none;
+      ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        margin: 0;
+        padding-bottom: 40px;
+        padding-left: 0;
+        & > * {
+          margin: 0;
+        }
+      }
+    }
+
+    &.opened {
+      height: calc(100vh - 4px);
+      nav {
+        transition: opacity 0.3s ease-in-out;
+        opacity: 1;
+        pointer-events: all;
+      }
+    }
+  }
+}
+.logoNbs {
+  position: absolute;
+  right: 100px;
+  z-index: 1111;
+  top: 18px;
+  @media (min-width: 1280px) {
+    display: none;
+  }
+}
