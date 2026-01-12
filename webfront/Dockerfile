@@ -1,6 +1,5 @@
-# Dockerfile
-# Koristimo Node.js LTS image
-FROM node:20-alpine
+# Koristimo Node.js LTS baziran na Debian-u (bolje kompatibilan sa native modulima)
+FROM node:22-bullseye
 
 # Setujemo working directory
 WORKDIR /app
@@ -8,13 +7,13 @@ WORKDIR /app
 # Kopiramo package.json i package-lock.json
 COPY package*.json ./
 
-# Instaliramo dependencies
-RUN npm install
+# Instaliramo dependencies sa forced build-om (da lightningcss napravi binarku za Ubuntu)
+RUN npm ci --build-from-source
 
 # Kopiramo ceo projekat
 COPY . .
 
-# Build projekta (Next.js)
+# Build Next.js projekta
 RUN npm run build
 
 # Expose port (Next.js default 3000)
