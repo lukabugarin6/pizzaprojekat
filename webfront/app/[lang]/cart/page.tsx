@@ -1,17 +1,4 @@
-import Hero from '@/modules/home/hero';
-import StaSuEMenice from '@/modules/home/sta-su-e-menice';
-import StaJeCRem from '@/modules/home/sta-je-crem';
-import KakoFunkcionisuEMenice from '@/modules/home/kako-funkcionisu-e-menice';
-import PrednostiEMenica from '@/modules/home/prednosti-e-menica';
 import { getDictionary, type Lang } from '../dictionaries';
-import HeroVideo from '@/components/ui/hero-video';
-import PizzaGrid from '@/modules/products-grid';
-import ProductCard from '@/components/ui/product-card';
-import PizzaFilters from '@/components/ui/pizza-filters';
-import styles from '../home.module.scss';
-import Image from 'next/image';
-import clsx from 'clsx';
-import CarouselDemo from '@/components/ui/carousel-demo';
 
 export default async function HomePage({ params }: { params: { lang: Lang } }) {
   const { lang } = await params;

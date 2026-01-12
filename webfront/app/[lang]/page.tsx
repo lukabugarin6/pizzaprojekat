@@ -1,8 +1,3 @@
-import Hero from '@/modules/home/hero';
-import StaSuEMenice from '@/modules/home/sta-su-e-menice';
-import StaJeCRem from '@/modules/home/sta-je-crem';
-import KakoFunkcionisuEMenice from '@/modules/home/kako-funkcionisu-e-menice';
-import PrednostiEMenica from '@/modules/home/prednosti-e-menica';
 import { getDictionary, type Lang } from './dictionaries';
 import HeroVideo from '@/components/ui/hero-video';
 import PizzaGrid from '@/modules/products-grid';

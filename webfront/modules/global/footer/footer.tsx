@@ -3,17 +3,20 @@ import styles from './footer.module.scss';
 import Container from '@/components/ui/container';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import Link from 'next/link';
-import type { FooterDict } from '@/app/[lang]/dictionaries';
+// import type { FooterDict } from '@/app/[lang]/dictionaries';
 import { FaFacebookF } from 'react-icons/fa';
 import { FaInstagram } from 'react-icons/fa6';
 import LogoSvg from '@/components/svg/logo-svg';
 
 type Props = {
-  t: FooterDict;
-  lang: 'sr-Latn' | 'sr-Cyrl';
+  // t: FooterDict;
+  lang?: 'sr-Latn' | 'sr-Cyrl';
 };
 
-export default function Footer({ t, lang }: Props) {
+export default function Footer({
+  // t,
+  lang,
+}: Props) {
   const year = new Date().getFullYear();
 
   return (

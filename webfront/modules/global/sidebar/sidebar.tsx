@@ -5,7 +5,7 @@ import styles from './sidebar.module.scss';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import Link from 'next/link';
 import { useHeaderThemeBySection } from '@/hooks/useHeaderThemeBySection';
-import { NavbarDict } from '@/app/[lang]/dictionaries';
+// import { NavbarDict } from '@/app/[lang]/dictionaries';
 import Container from '@/components/ui/container';
 import GridItem from '@/components/ui/grid-item';
 import Grid from '@/components/ui/grid';
@@ -24,11 +24,14 @@ import { useSmoothScrollToVh } from '@/hooks/useSmoothScrollToVh';
 import { useCart } from '@/context/cart/cart-context';
 
 type Props = {
-  t: NavbarDict;
-  lang: 'sr-Latn' | 'sr-Cyrl';
+  // t?: NavbarDict;
+  lang?: 'sr-Latn' | 'sr-Cyrl';
 };
 
-export default function Sidebar({ t, lang }: Props) {
+export default function Sidebar({
+  // t,
+  lang,
+}: Props) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
   const { totalItems } = useCart();
 
