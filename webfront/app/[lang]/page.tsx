@@ -140,7 +140,7 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
 
   return (
     <main>
-      <HeroVideo src="/videos/output.mp4" overlayOpacity={0.65} />
+      <HeroVideo src="/videos/hero_31s_6mb.mp4" overlayOpacity={0.65} />
       {/* <div
         style={{
           position: 'fixed',
