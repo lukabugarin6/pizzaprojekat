@@ -1,8 +1,18 @@
+version: "3.9"
+
 services:
   webfront:
+    build:
+      context: ./webfront
+      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:3000:3000"
+    restart: unless-stopped
 
   webfront_stage:
+    build:
+      context: ./webfront
+      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:3001:3000"
+    restart: unless-stopped
