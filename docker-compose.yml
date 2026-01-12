@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  webfront:
+    build:
+      context: ./webfront
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
