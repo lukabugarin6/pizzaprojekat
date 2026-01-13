@@ -16,3 +16,13 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:4000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
