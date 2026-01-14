@@ -70,7 +70,7 @@ export default function ProductCard({
 
     // reset quantity i veličinu
     setQuantity(1);
-    setSelectedSize(variants[0]?.size ?? null);
+    // setSelectedSize(variants[0]?.size ?? null);
 
     // koristimo justAdded za prikaz u overlay-u
     setOverlayQuantity(justAdded);

@@ -85,6 +85,7 @@ export default function Sidebar({
               logo: styles.wrapper__inner__top__item,
               nonHoverable: styles.cartWrapper,
             }}
+            data-cart-icon
           >
             <div className={styles.cartIcon}>
               <CartSvg />

@@ -4,7 +4,7 @@ import React, { ReactNode, useMemo } from 'react';
 import clsx from 'clsx';
 import { usePathname } from 'next/navigation';
 
-type Props = {
+type Props = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
 
   // ako hoćeš da automatski prefiksuješ trenutni lang (default true)
@@ -30,13 +30,15 @@ export default function ClientLink({
   className,
   classes,
   children,
+  onClick,
+  ...rest // ✅ data-*, aria-*, id, style, target...
 }: Props) {
   const pathname = usePathname() || '/';
 
   const { lang, currentWithoutLang } = useMemo(() => {
     const segments = pathname.split('/').filter(Boolean);
     return {
-      lang: segments[0], // pretpostavka: prvi segment je lang
+      lang: segments[0],
       currentWithoutLang: segments.slice(1).join('/'),
     };
   }, [pathname]);
@@ -61,6 +63,7 @@ export default function ClientLink({
   return (
     <a
       href={resolvedHref}
+      {...rest} // ✅ sad prolaze data atributi
       className={clsx(
         classes?.item,
         classes?.logo,
@@ -68,6 +71,10 @@ export default function ClientLink({
         className
       )}
       onClick={(e) => {
+        // ✅ pusti da user-ov onClick radi (ako ga ima)
+        onClick?.(e);
+        if (e.defaultPrevented) return;
+
         e.preventDefault();
 
         const isSame =
