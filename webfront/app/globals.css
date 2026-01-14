@@ -3,6 +3,7 @@
 :root {
   --white: #fff;
   --black: #000;
+  --accent-light: rgba(196, 123, 75, 0.1);
   --accent: #c47b4b;
   --accent-hover: red;
   --gray: #615f5b;
@@ -16,6 +17,7 @@
     --white: #fff;
     --black: #000;
     --accent: #c47b4b;
+    --accent-light: rgba(196, 123, 75, 0.1);
     --accent-hover: red;
     --gray: #615f5b;
     --gray-text: #5f5f5f;

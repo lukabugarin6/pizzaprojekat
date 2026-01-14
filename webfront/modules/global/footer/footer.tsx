@@ -17,7 +17,17 @@ export default function Footer({
   // t,
   lang,
 }: Props) {
-  const year = new Date().getFullYear();
+  const lat = 45.26025575066642;
+  const lon = 19.79955594233024;
+
+  // manji brojevi = veći zoom (bliže)
+  // kreni ovde, pa po potrebi još smanji
+  const dLat = 0.00025;
+  const dLon = 0.00035;
+
+  const bbox = `${lon - dLon}%2C${lat - dLat}%2C${lon + dLon}%2C${lat + dLat}`;
+
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
 
   return (
     <footer className={clsx(styles.wrapper)}>
@@ -61,8 +71,18 @@ export default function Footer({
           </div>
         </div>
         <div className={clsx(styles.wrapper__right)}>
-          <div className={clsx(styles.footerLogo)}>
+          {/* <div className={clsx(styles.footerLogo)}>
             <LogoSvg />
+          </div> */}
+          <iframe
+            title="Pizza Project - Lokacija"
+            src={src}
+            className={styles.footerMap__frame}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          <div className={styles.footerMap__label}>
+            Boška Petrovića 6, Novi Sad
           </div>
         </div>
       </div>

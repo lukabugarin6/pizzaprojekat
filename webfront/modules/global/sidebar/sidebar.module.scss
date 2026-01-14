@@ -184,14 +184,14 @@
       }
       svg {
         width: 40px;
-        @media (min-height: 900px) {
+        @media (min-height: 920px) {
           width: 54px;
         }
       }
       &.smaller {
         svg {
           width: 30px;
-          @media (min-height: 900px) {
+          @media (min-height: 920px) {
             width: 44px;
           }
         }

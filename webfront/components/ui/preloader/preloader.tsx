@@ -16,83 +16,118 @@ export default function Preloader() {
   const pendingHref = useRef<string | null>(null);
   const lastPathname = useRef(pathname);
 
-  const closeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
-  const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const waitReadyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 🔒 lock dok preloader nije hidden
+  const isLocked = useRef(true);
+
+  const clearTimers = () => {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+    if (hideTimeout.current) clearTimeout(hideTimeout.current);
+    if (waitReadyTimeout.current) clearTimeout(waitReadyTimeout.current);
+    closeTimeout.current = null;
+    hideTimeout.current = null;
+    waitReadyTimeout.current = null;
+  };
+
+  // ✅ otvori preloader (skloni panele) ali čekaj "page-ready" da ga potpuno skloniš
+  const openButWaitForReady = () => {
+    requestAnimationFrame(() => {
+      setPhase('opening');
+
+      // fallback da se ne zaglavi ako page nikad ne javi ready
+      waitReadyTimeout.current = setTimeout(() => {
+        setPhase('hidden');
+        isLocked.current = false;
+        pendingHref.current = null;
+      }, 1100);
+    });
+  };
 
   /* ======================================
      INITIAL PAGE LOAD
   ====================================== */
   useEffect(() => {
     const onLoad = () => {
-      requestAnimationFrame(() => {
-        setPhase('opening');
-
-        hideTimeout.current = setTimeout(() => {
-          setPhase('hidden');
-        }, 1000);
-      });
+      isLocked.current = true;
+      clearTimers();
+      openButWaitForReady();
     };
 
-    if (document.readyState === 'complete') {
-      onLoad();
-    } else {
-      window.addEventListener('load', onLoad);
-    }
+    if (document.readyState === 'complete') onLoad();
+    else window.addEventListener('load', onLoad);
 
     return () => {
       window.removeEventListener('load', onLoad);
-      clearTimeout(hideTimeout.current);
+      clearTimers();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ======================================
-     ROUTE START → ZATVARANJE PANEL
+     PAGE READY HANDSHAKE
+  ====================================== */
+  useEffect(() => {
+    const onPageReady = () => {
+      // kad stranica kaže da je spremna → skloni preloader
+      if (waitReadyTimeout.current) {
+        clearTimeout(waitReadyTimeout.current);
+        waitReadyTimeout.current = null;
+      }
+      setPhase('hidden');
+      isLocked.current = false;
+      pendingHref.current = null;
+    };
+
+    window.addEventListener('page-ready', onPageReady);
+    return () => window.removeEventListener('page-ready', onPageReady);
+  }, []);
+
+  /* ======================================
+     ROUTE START (custom event)
   ====================================== */
   useEffect(() => {
     const handleRouteStart = (e: Event) => {
       const event = e as CustomEvent<{ href: string; forceOpen?: boolean }>;
-      if (!event.detail?.href) return;
+      const href = event.detail?.href;
+      if (!href) return;
 
-      const href = event.detail.href;
+      // ✅ ako smo u tranziciji / pending-u: IGNORIŠI klik
+      if (isLocked.current) return;
 
-      // normalizuj path bez query
-      const currentPath = pathname.replace(/^\/[^/]+/, ''); // uklanja /sr-Latn
+      // lock odmah na start
+      isLocked.current = true;
+
+      clearTimers();
+
+      const currentPath = pathname.replace(/^\/[^/]+/, '');
       const targetPath = href.replace(/^\/[^/]+/, '');
 
-      // Ako je nova ruta ista kao trenutna ili je forceOpen, samo otvori
-      if (
-        targetPath === currentPath ||
-        (event.detail.forceOpen && targetPath === currentPath)
-      ) {
-        requestAnimationFrame(() => {
-          setPhase('opening');
-          hideTimeout.current = setTimeout(() => {
-            setPhase('hidden');
-          }, 1000);
-        });
+      // ako smo već na istoj ruti → samo “blink”
+      if (targetPath === currentPath) {
+        openButWaitForReady();
         return;
       }
 
-      // normalan flow
       pendingHref.current = href;
       setPhase('closing');
 
       closeTimeout.current = setTimeout(() => {
-        router.push(pendingHref.current!);
+        if (pendingHref.current) router.push(pendingHref.current);
       }, 1000);
     };
 
     window.addEventListener('start-route-change', handleRouteStart);
-
     return () => {
       window.removeEventListener('start-route-change', handleRouteStart);
-      clearTimeout(closeTimeout.current);
-      clearTimeout(hideTimeout.current);
+      clearTimers();
     };
   }, [pathname, router]);
 
   /* ======================================
-     ROUTE CHANGE COMPLETE → OTVARANJE PANEL
+     ROUTE CHANGE COMPLETE
   ====================================== */
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -104,14 +139,8 @@ export default function Preloader() {
     if (lastPathname.current !== pathname) {
       lastPathname.current = pathname;
 
-      requestAnimationFrame(() => {
-        setPhase('opening');
-
-        hideTimeout.current = setTimeout(() => {
-          setPhase('hidden');
-          pendingHref.current = null;
-        }, 1000);
-      });
+      // ✅ umesto da se odmah skloni, čekamo da nova strana javi "page-ready"
+      openButWaitForReady();
     }
   }, [pathname]);
 
@@ -123,6 +152,7 @@ export default function Preloader() {
         phase === 'closing' && styles.closing,
         phase === 'hidden' && styles.hidden
       )}
+      style={{ pointerEvents: phase === 'hidden' ? 'none' : 'all' }}
     >
       <div className={styles.panelTop} />
       <div className={styles.panelBottom} />

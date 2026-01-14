@@ -3,25 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import styles from './sidebar.module.scss';
 import LanguageSwitcher from '@/components/ui/language-switcher';
-import Link from 'next/link';
-import { useHeaderThemeBySection } from '@/hooks/useHeaderThemeBySection';
 // import { NavbarDict } from '@/app/[lang]/dictionaries';
-import Container from '@/components/ui/container';
-import GridItem from '@/components/ui/grid-item';
-import Grid from '@/components/ui/grid';
-import { usePathname } from 'next/navigation';
-import NbsLogo from '@/public/svg/sr-Cyrl/NbsLogo';
-import NbsIspis from '@/public/svg/sr-Cyrl/NbsIspis';
-import NbsIspisLatn from '@/public/svg/sr-Latn/NbsIspisLatn';
 import TimeSvg from '@/components/svg/time-svg';
 import PhoneSvg from '@/components/svg/phone-svg';
 import DeliveryZoneSvg from '@/components/svg/delivery-zone';
 import RandomDeliverySvg from '@/components/svg/random-delivery';
 import CartSvg from '@/components/svg/cart-svg';
-import LogoSvg from '@/components/svg/logo-svg';
 import PizzaSvg from '@/components/svg/pizza-svg';
 import { useSmoothScrollToVh } from '@/hooks/useSmoothScrollToVh';
 import { useCart } from '@/context/cart/cart-context';
+import ClientLink from '@/components/ui/client-link';
 
 type Props = {
   // t?: NavbarDict;
@@ -55,43 +46,17 @@ export default function Sidebar({
   return (
     <div className={clsx(styles.wrapper)}>
       <div className={clsx(styles.wrapper__inner)}>
-        <a
+        <ClientLink
           href="/"
-          className={clsx(
-            styles.wrapper__inner__item,
-            styles.wrapper__inner__logo,
-            styles.nonHoverable
-          )}
-          onClick={(e) => {
-            e.preventDefault();
-
-            // uzmi trenutni path bez prvog segmenta (lang)
-            const pathSegments = window.location.pathname
-              .split('/')
-              .filter(Boolean);
-            const currentPath = pathSegments.slice(1).join('/'); // ukloni lang
-            const targetPath = ''; // home bez lang
-
-            // ako smo već na home unutar trenutnog lang
-            if (currentPath === targetPath) {
-              window.dispatchEvent(
-                new CustomEvent('start-route-change', {
-                  detail: { href: window.location.pathname, forceOpen: true },
-                })
-              );
-            } else {
-              // normalan flow: idi na home
-              window.dispatchEvent(
-                new CustomEvent('start-route-change', {
-                  detail: { href: `/${pathSegments[0]}/` }, // zadrži trenutni lang
-                })
-              );
-            }
+          classes={{
+            item: styles.wrapper__inner__item,
+            logo: styles.wrapper__inner__logo,
+            nonHoverable: styles.nonHoverable,
           }}
         >
           PIZZA <br />
           PROJECT
-        </a>
+        </ClientLink>
         <div className={clsx(styles.wrapper__inner__top)}>
           <div
             className={clsx(
@@ -113,36 +78,12 @@ export default function Sidebar({
             <DeliveryZoneSvg />
             <span>Zona dostave</span>
           </div>
-          <a
+          <ClientLink
             href="/korpa"
-            data-cart-icon
-            className={clsx(
-              styles.wrapper__inner__item,
-              styles.wrapper__inner__top__item,
-              styles.cartWrapper
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-
-              const pathSegments = window.location.pathname
-                .split('/')
-                .filter(Boolean);
-              const currentPath = pathSegments.slice(1).join('/'); // uklanja lang
-              const targetPath = 'korpa';
-
-              if (currentPath === targetPath) {
-                window.dispatchEvent(
-                  new CustomEvent('start-route-change', {
-                    detail: { href: window.location.pathname, forceOpen: true },
-                  })
-                );
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent('start-route-change', {
-                    detail: { href: `/${pathSegments[0]}/korpa` },
-                  })
-                );
-              }
+            classes={{
+              item: styles.wrapper__inner__item,
+              logo: styles.wrapper__inner__top__item,
+              nonHoverable: styles.cartWrapper,
             }}
           >
             <div className={styles.cartIcon}>
@@ -159,43 +100,18 @@ export default function Sidebar({
               )}
             </div>
             <span>Korpa</span>
-          </a>
-          <a
+          </ClientLink>
+          <ClientLink
             href="/nasumicna-porudzbina"
-            className={clsx(
-              styles.wrapper__inner__item,
-              styles.wrapper__inner__top__item,
-              styles.smaller
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-
-              const pathSegments = window.location.pathname
-                .split('/')
-                .filter(Boolean);
-              const currentPath = pathSegments.slice(1).join('/'); // uklanja lang
-              const targetPath = 'nasumicna-porudzbina';
-
-              if (currentPath === targetPath) {
-                window.dispatchEvent(
-                  new CustomEvent('start-route-change', {
-                    detail: { href: window.location.pathname, forceOpen: true },
-                  })
-                );
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent('start-route-change', {
-                    detail: {
-                      href: `/${pathSegments[0]}/nasumicna-porudzbina`,
-                    },
-                  })
-                );
-              }
+            classes={{
+              item: styles.wrapper__inner__item,
+              logo: styles.wrapper__inner__top__item,
+              nonHoverable: styles.smaller,
             }}
           >
             <RandomDeliverySvg />
             <span>Nasumična porudžbina</span>
-          </a>
+          </ClientLink>
         </div>
         <div className={clsx(styles.wrapper__inner__bottom)}>
           <div className={clsx(styles.wrapper__inner__item)}>

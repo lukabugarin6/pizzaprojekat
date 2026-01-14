@@ -28,9 +28,11 @@ export default function ProductCard({
   const variants = item?.variants || [];
   const hasMultipleVariants = variants.length > 1;
 
-  const [selectedSize, setSelectedSize] = useState<number | null>(
-    variants[0]?.size ?? null
-  );
+  const [selectedSize, setSelectedSize] = useState<number | null>(() => {
+    if (!variants?.length) return null;
+    return Math.max(...variants.map((v: any) => Number(v.size) || 0));
+  });
+
   const [quantity, setQuantity] = useState<number>(1);
   const [showOverlay, setShowOverlay] = useState(false);
 
