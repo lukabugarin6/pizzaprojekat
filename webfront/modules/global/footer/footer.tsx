@@ -81,9 +81,6 @@ export default function Footer({
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
-          <div className={styles.footerMap__label}>
-            Boška Petrovića 6, Novi Sad
-          </div>
         </div>
       </div>
     </footer>
