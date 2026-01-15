@@ -15,9 +15,9 @@ export default function CarouselDemo() {
     },
 
     {
-      title: 'Neon Nights',
-      text: '',
-      src: 'https://images.unsplash.com/photo-1590041794748-2d8eb73a571c?q=80&w=3456&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      title: 'Iza svake pice stoji priča',
+      text: 'A kad se setim da je na početku htela da me udari lopatom u glavu... 😊 Strpljenje, podrska i ljubav prema onome sto radimo se oseti u svakoj pici i sendviču koje pojedete. Za piće ne znam sta da vam kažem, to je kupovno.',
+      src: '/images/slider3.jpg',
     },
   ];
   return (

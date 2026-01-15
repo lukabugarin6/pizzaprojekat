@@ -58,7 +58,7 @@ export const pizzas = [
     id: 'pizza-komsijska',
     name: 'Komšijska pizza',
     description: 'Pelat, šunka, sir, pančeta, kulen, čeri paradajz',
-    image: '',
+    image: '/images/komsijska 1.png',
     variants: [
       { size: 24, price: 580 },
       { size: 32, price: 1040 },
@@ -91,7 +91,7 @@ export const pizzas = [
     id: 'pizza-vegetarijana',
     name: 'Vegetarijana',
     description: 'Pelat, sir, šampinjoni, rukola, čeri paradajz, masline',
-    image: '',
+    image: '/images/vegetarijana 1.png',
     variants: [
       { size: 24, price: 460 },
       { size: 32, price: 800 },
@@ -105,14 +105,14 @@ export const sandwiches = [
     id: 'sandwich-sunka',
     name: 'Šunka',
     description: 'Pavlaka, šunka, sir, kečap, majonez, čeri paradajz',
-    image: '',
+    image: '/images/sunkasendvic.png',
     variants: [{ size: 1, price: 460 }],
   },
   {
     id: 'sandwich-kulen',
     name: 'Kulen',
     description: 'Pavlaka, sir, kulen, majonez, kečap, čeri paradajz',
-    image: '',
+    image: '/images/kulensendvic.png',
     variants: [{ size: 1, price: 520 }],
   },
   {

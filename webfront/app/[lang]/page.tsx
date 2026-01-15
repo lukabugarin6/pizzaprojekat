@@ -16,30 +16,13 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
   return (
     <main>
       <HeroVideo src="/videos/hero_31s_6mb.mp4" overlayOpacity={0.65} />
-      {/* <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 175,
-          background: '#000',
-          height: 40,
-          width: 'calc(100% - 175px)',
-          zIndex: 50,
-        }}
-      >
-        Ne dostavljamo male pice i sendvice
-      </div> */}
-      {/* Pizze */}
       <div style={{ position: 'relative' }}>
-        {/* <PizzaFilters /> */}
         <PizzaGrid>
           {pizzas.map((pizza, index) => (
             <ProductCard key={index} item={pizza} />
           ))}
         </PizzaGrid>
       </div>
-
-      {/* Sendviči */}
       <div style={{ position: 'relative' }}>
         <div className={styles.banner}>
           <Image
@@ -61,8 +44,6 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
           ))}
         </PizzaGrid>
       </div>
-
-      {/* Pića */}
       <div style={{ position: 'relative' }}>
         <div className={clsx(styles.banner, styles['banner--smaller'])}>
           <Image
