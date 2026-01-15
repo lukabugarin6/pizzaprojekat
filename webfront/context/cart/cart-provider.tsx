@@ -50,6 +50,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  // 👇 NOVO – update quantity
+  const updateItemQuantity = (
+    productId: string,
+    size: number,
+    quantity: number
+  ) => {
+    setItems((prev) =>
+      prev.map((p) =>
+        p.productId === productId && p.size === size ? { ...p, quantity } : p
+      )
+    );
+  };
+
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
@@ -62,6 +75,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        updateItemQuantity, // 👈 prosleđeno
       }}
     >
       {children}

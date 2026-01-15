@@ -16,3 +16,4 @@ za tablet
 istoriju porudzbina
 moci ce da se ubacuju novi proizvodi
 
+zapisi koji su sirevi

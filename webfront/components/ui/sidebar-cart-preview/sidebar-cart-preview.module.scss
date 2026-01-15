@@ -1,0 +1,456 @@
+.sidebar-cart {
+  font-family: var(--font-roboto-condensed);
+  &__panel {
+    position: fixed;
+    left: 175px;
+    top: 50%;
+    width: 40vw;
+    min-width: 700px;
+    max-height: calc(100vh - 20px);
+    background-color: #fff;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-100%, -50%);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    z-index: 20;
+  }
+
+  &__panel--open {
+    opacity: 1;
+    transform: translate(0, -50%);
+    pointer-events: auto;
+  }
+
+  &__panel--empty {
+    min-width: auto;
+    width: fit-content;
+    max-width: 480px;
+  }
+
+  &__inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px;
+    border-bottom: 1px solid #dcdcdc;
+  }
+
+  &__header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__header-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    color: #000;
+    letter-spacing: 0.01em;
+  }
+
+  &__body {
+    padding: 12px 24px 16px 24px;
+    max-height: 300px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0; // još malo veći padding
+    border-bottom: 1px solid #dcdcdc;
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__item-main {
+    display: flex;
+    align-items: center;
+    gap: 20px; // veći gap slika–naslov
+    max-width: 65%;
+  }
+
+  &__item-image {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__item-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__item-name {
+    font-size: 22px;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
+    color: var(--black);
+  }
+
+  &__item-meta {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 16px;
+    color: #777;
+  }
+
+  &__item-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 20px;
+    min-width: 200px;
+  }
+
+  &__item-counter {
+    display: inline-flex;
+    align-items: stretch;
+    justify-content: center;
+    border: 1px solid #dcdcdc;
+    background: #f3f3f3;
+    overflow: hidden;
+  }
+
+  &__item-counter-btn {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #111;
+
+    &:first-child {
+      border-right: 1px solid #dcdcdc;
+    }
+
+    &:last-child {
+      border-left: 1px solid #dcdcdc;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  &__item-counter-value {
+    width: 46px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 500;
+    color: #111;
+    background: var(--accent-light);
+  }
+
+  &__item-price {
+    font-size: 20px;
+    font-weight: 500;
+    color: #000;
+    text-align: right;
+    min-width: 90px;
+  }
+
+  &__empty {
+    padding: 20px 0;
+    font-size: 16px;
+    color: #777;
+  }
+
+  &__footer {
+    margin-top: 0;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #dcdcdc;
+  }
+
+  &__footer-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  &__footer-label {
+    font-size: 16px;
+    color: #777;
+  }
+
+  &__footer-value {
+    font-size: 22px;
+    font-weight: 500;
+    color: #000;
+  }
+
+  /* FORMA U FOOTERU */
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__form-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__form-field {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__form-field-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+    pointer-events: none; // da klik i fokus i dalje hvata input
+    z-index: 1;
+  }
+
+  &__form-input {
+    width: 100%;
+    height: 46px;
+    border: none;
+    outline: none;
+    padding: 0 12px;
+    font-size: 14px;
+    background: #f5f5f5;
+    color: #111;
+  }
+
+  &__form-input--textarea {
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #f5f5f5;
+    resize: vertical;
+    color: #111;
+    padding-top: 12px;
+  }
+
+  /* NOVO: extra padding levo kad postoji ikonica */
+  &__form-input--with-icon {
+    padding-left: 34px; // fino stane pored ikonice
+  }
+
+  &__form-radios {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+    color: #555;
+  }
+
+  &__form-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+
+  /* sakrij default radio */
+  &__form-radio-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* spoljašnja kockica */
+  &__form-radio-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #999;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* unutrašnja crna kockica */
+  &__form-radio-box::after {
+    content: '';
+    width: 10px; // malo manja da ima "gap" od ivice
+    height: 10px;
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  /* kad je selektovan – prikaži unutrašnju kockicu */
+  &__form-radio-input:checked + &__form-radio-box::after {
+    opacity: 1;
+  }
+
+  /* malo bolji fokus za tastaturu (tab) */
+  &__form-radio-input:focus-visible + &__form-radio-box {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+
+  &__form-radio-label {
+    font-size: 14px;
+  }
+
+  &__submit {
+    height: 46px;
+    padding: 0 26px;
+    border: none;
+    background: #000;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    svg {
+      transform: rotate(90deg) translate(0);
+      transition: transform 0.3s ease;
+    }
+
+    &:hover {
+      svg {
+        transform: rotate(90deg) translateY(-8px);
+      }
+    }
+  }
+
+  &__form-note {
+    margin-top: 2px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #777;
+  }
+
+  &__item-remove {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    padding: 0;
+    margin-left: 8px; // dodatni razmak od cene
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    color: #9a9a9a;
+    // nema hover efekta
+  }
+
+  &__saved {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #dcdcdc;
+  }
+
+  &__saved-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #999;
+    margin-bottom: 6px;
+  }
+
+  &__saved-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__saved-list-item {
+    margin: 0;
+    padding: 0;
+  }
+
+  &__saved-item {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: #f5f5f5;
+    padding: 6px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    &:hover {
+      background: #ececec;
+    }
+  }
+
+  &__saved-line-main {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111;
+  }
+
+  &__saved-line-sub {
+    font-size: 11px;
+    color: #777;
+  }
+}

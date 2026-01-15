@@ -2,8 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import styles from './sidebar.module.scss';
-import LanguageSwitcher from '@/components/ui/language-switcher';
-// import { NavbarDict } from '@/app/[lang]/dictionaries';
 import TimeSvg from '@/components/svg/time-svg';
 import PhoneSvg from '@/components/svg/phone-svg';
 import DeliveryZoneSvg from '@/components/svg/delivery-zone';
@@ -13,21 +11,25 @@ import PizzaSvg from '@/components/svg/pizza-svg';
 import { useSmoothScrollToVh } from '@/hooks/useSmoothScrollToVh';
 import { useCart } from '@/context/cart/cart-context';
 import ClientLink from '@/components/ui/client-link';
+import SidebarCartPreview from '@/components/ui/sidebar-cart-preview';
+import { useDelayedHover } from '@/hooks/useDelayedHover';
 
 type Props = {
-  // t?: NavbarDict;
   lang?: 'sr-Latn' | 'sr-Cyrl';
 };
 
-export default function Sidebar({
-  // t,
-  lang,
-}: Props) {
+export default function Sidebar({ lang }: Props) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
   const { totalItems } = useCart();
 
   const prevTotalRef = useRef(totalItems);
   const [pulse, setPulse] = useState(false);
+
+  const {
+    isOpen: isCartPreviewOpen,
+    handleMouseEnter: handleCartMouseEnter,
+    handleMouseLeave: handleCartMouseLeave,
+  } = useDelayedHover(700);
 
   useEffect(() => {
     if (totalItems > prevTotalRef.current) {
@@ -57,6 +59,7 @@ export default function Sidebar({
           PIZZA <br />
           PROJECT
         </ClientLink>
+
         <div className={clsx(styles.wrapper__inner__top)}>
           <div
             className={clsx(
@@ -68,6 +71,7 @@ export default function Sidebar({
             <PizzaSvg />
             <span>Poruči picu</span>
           </div>
+
           <div
             className={clsx(
               styles.wrapper__inner__item,
@@ -78,6 +82,8 @@ export default function Sidebar({
             <DeliveryZoneSvg />
             <span>Zona dostave</span>
           </div>
+
+          {/* CART LINK + HOVER LOGIKA */}
           <ClientLink
             href="/korpa"
             classes={{
@@ -86,6 +92,8 @@ export default function Sidebar({
               nonHoverable: styles.cartWrapper,
             }}
             data-cart-icon
+            onMouseEnter={handleCartMouseEnter}
+            onMouseLeave={handleCartMouseLeave}
           >
             <div className={styles.cartIcon}>
               <CartSvg />
@@ -102,6 +110,14 @@ export default function Sidebar({
             </div>
             <span>Korpa</span>
           </ClientLink>
+
+          {/* CART PREVIEW PANEL */}
+          <SidebarCartPreview
+            isOpen={isCartPreviewOpen}
+            onMouseEnter={handleCartMouseEnter}
+            onMouseLeave={handleCartMouseLeave}
+          />
+
           <ClientLink
             href="/nasumicna-porudzbina"
             classes={{
@@ -114,6 +130,7 @@ export default function Sidebar({
             <span>Nasumična porudžbina</span>
           </ClientLink>
         </div>
+
         <div className={clsx(styles.wrapper__inner__bottom)}>
           <div className={clsx(styles.wrapper__inner__item)}>
             <PhoneSvg />
