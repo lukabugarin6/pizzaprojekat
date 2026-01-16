@@ -8,6 +8,7 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import CarouselDemo from '@/components/ui/carousel-demo';
 import { drinks, pizzas, sandwiches } from '@/data';
+import ProductsFloatingNav from '@/components/ui/products-floating-nav';
 
 export default async function HomePage({ params }: { params: { lang: Lang } }) {
   const { lang } = await params;
@@ -16,49 +17,37 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
   return (
     <main>
       <HeroVideo src="/videos/hero_31s_6mb.mp4" overlayOpacity={0.65} />
-      <div style={{ position: 'relative' }}>
+      <ProductsFloatingNav selector=".productGridSection" scrollOffsetPx={0} />
+      <div className="productGridSection" data-nav-label="Pizza">
         <PizzaGrid>
           {pizzas.map((pizza, index) => (
             <ProductCard key={index} item={pizza} />
           ))}
         </PizzaGrid>
       </div>
-      <div style={{ position: 'relative' }}>
-        {/* <div className={styles.banner}>
-          <Image
-            src="/images/testsend.webp"
-            alt="sandwiches-banner"
-            width={1000}
-            height={1000}
-            style={{
-              width: '100%',
-              height: 'auto',
-              objectFit: 'cover',
-              aspectRatio: '3 / 1',
-              objectPosition: '50% 50%',
-            }}
-          />
-        </div> */}
+      <div className="productGridSection" data-nav-label="Sendviči">
         <PizzaGrid title="SENDVIČI">
           {sandwiches.map((sandwich, index) => (
             <ProductCard key={index} item={sandwich} />
           ))}
         </PizzaGrid>
       </div>
-      <PizzaGrid smaller title="PIĆE">
-        {drinks.map((drink, index) => (
-          <ProductCard
-            key={index}
-            item={{
-              name: drink.name,
-              description: '',
-              variants: [{ size: 1, price: drink.price }],
-              image: drink?.image,
-            }}
-            smaller
-          />
-        ))}
-      </PizzaGrid>
+      <div className="productGridSection" data-nav-label="Piće">
+        <PizzaGrid smaller title="PIĆE">
+          {drinks.map((drink, index) => (
+            <ProductCard
+              key={index}
+              item={{
+                name: drink.name,
+                description: '',
+                variants: [{ size: 1, price: drink.price }],
+                image: drink?.image,
+              }}
+              smaller
+            />
+          ))}
+        </PizzaGrid>
+      </div>
       <CarouselDemo />
     </main>
   );
