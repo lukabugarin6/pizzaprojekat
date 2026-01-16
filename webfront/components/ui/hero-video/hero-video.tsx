@@ -22,7 +22,7 @@ export default function HeroVideo({
   overlayOpacity = 0.35,
   children,
 }: HeroVideoProps) {
-  const scrollToNextSection = useSmoothScrollToVh(750);
+  const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
   return (
     <section className={clsx(styles.wrapper)}>

@@ -28,7 +28,7 @@ export default function Sidebar({ lang }: Props) {
   const isCartPage = /(^|\/)korpa\/?$/.test(pathname || '');
   const isRandomPage = /(^|\/)nasumicna-porudzbina\/?$/.test(pathname || '');
 
-  const scrollToNextSection = useSmoothScrollToVh(750);
+  const scrollToNextSection = useSmoothScrollToVh(750, 1);
   const { totalItems } = useCart();
   const cartEmpty = totalItems === 0;
 
