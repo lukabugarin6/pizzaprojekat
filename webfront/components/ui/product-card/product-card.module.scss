@@ -102,8 +102,9 @@
       letter-spacing: 0.02em;
       font-family: var(--font-roboto-condensed);
       margin-bottom: 25px;
-      min-height: 40px;
-
+      @media (min-width: 720px) {
+        min-height: 40px;
+      }
       @media (min-width: 1440px) {
         min-height: auto;
       }
