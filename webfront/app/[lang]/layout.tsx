@@ -117,7 +117,6 @@ export default async function RootLayout({
       <body
         data-preloader="true"
         className={`${montserrat.variable} ${ptSans.variable} ${playfair.variable} ${rubik.variable} ${robotoCondensed.variable} ${interTight.variable} antialiased`}
-        style={{ paddingLeft: 175 }}
       >
         <ThemeProvider>
           {/* prosleđujemo samo deo za navbar */}

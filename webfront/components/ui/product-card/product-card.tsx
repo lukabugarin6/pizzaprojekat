@@ -110,8 +110,8 @@ export default function ProductCard({
           {item?.description && <p>{item?.description}</p>}
 
           {hasMultipleVariants && (
-            <>
-              <h5 style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div className={styles['product-card__variants-wrapper']}>
+              <h5>
                 <CiRuler size={34} /> Veličina
               </h5>
               <div className={styles['product-card__sizes']}>
@@ -130,7 +130,7 @@ export default function ProductCard({
                   </button>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           <div className={styles['product-card__price']}>{totalPrice} RSD</div>

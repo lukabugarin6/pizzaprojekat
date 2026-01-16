@@ -39,36 +39,13 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
             }}
           />
         </div> */}
-        <h1
-          style={{
-            color: '#000',
-            fontSize: 102,
-            fontWeight: 900,
-            textAlign: 'center',
-            margin: '60px 0 30px',
-            fontFamily: 'var(--font-roboto-condensed)',
-          }}
-        >
-          SENDVIČI
-        </h1>
-        <PizzaGrid>
+        <PizzaGrid title="SENDVIČI">
           {sandwiches.map((sandwich, index) => (
             <ProductCard key={index} item={sandwich} />
           ))}
         </PizzaGrid>
       </div>
-      <h1
-        style={{
-          color: '#000',
-          fontSize: 102,
-          fontWeight: 900,
-          textAlign: 'center',
-          fontFamily: 'var(--font-roboto-condensed)',
-        }}
-      >
-        PIĆE
-      </h1>
-      <PizzaGrid smaller>
+      <PizzaGrid smaller title="PIĆE">
         {drinks.map((drink, index) => (
           <ProductCard
             key={index}

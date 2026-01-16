@@ -19,14 +19,13 @@ type HeroVideoProps = {
 export default function HeroVideo({
   src,
   poster,
-  minHeight = '100vh',
   overlayOpacity = 0.35,
   children,
 }: HeroVideoProps) {
-  const scrollToNextSection = useSmoothScrollToVh(750, 1); // 100vh, 0.75s
+  const scrollToNextSection = useSmoothScrollToVh(750);
 
   return (
-    <section className={clsx(styles.wrapper)} style={{ minHeight }}>
+    <section className={clsx(styles.wrapper)}>
       <div
         className={clsx(styles.wrapper__logoAndText)}
         onClick={scrollToNextSection}

@@ -111,10 +111,33 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
             current === index ? 'opacity-100 visible' : 'opacity-0 invisible'
           }`}
         >
-          <h2 className="text-lg md:text-2xl lg:text-4xl font-semibold  relative mb-4">
+          <h2
+            className="
+    font-semibold relative mb-4
+    text-[20px]
+    min-[720px]:text-[24px]
+    min-[800px]:text-[26px]
+    min-[1280px]:text-[34px]
+    min-[1440px]:text-[42px]
+    leading-[1.05]
+    tracking-[-0.02em]
+  "
+          >
             {title}
           </h2>
-          <p className="text-xl">{text}</p>
+
+          <p
+            className="
+    text-[14px]
+    min-[720px]:text-[16px]
+    min-[800px]:text-[18px]
+    min-[1280px]:text-[20px]
+    min-[1440px]:text-[22px]
+    leading-[1.25]
+  "
+          >
+            {text}
+          </p>
         </article>
       </li>
     </div>
@@ -172,7 +195,11 @@ export default function Carousel({ slides }: CarouselProps) {
 
   return (
     <div
-      className="relative w-[70vmin] h-[70vmin] mx-auto my-[60px]"
+      className={`relative w-[70vmin] h-[70vmin] mx-auto    my-8
+    min-[720px]:my-10
+    min-[800px]:my-12
+    min-[1280px]:my-14
+    min-[1440px]:my-16`}
       aria-labelledby={`carousel-heading-${id}`}
     >
       <ul

@@ -2,18 +2,42 @@
   max-width: 90%;
   margin: 0 auto;
   background-color: var(--white);
-  padding: 100px 0 60px;
-  .title {
+  padding: 80px 0 40px;
+
+  @media (min-width: 1440px) {
+    padding: 100px 0 60px;
+    max-width: 90%;
+  }
+
+  .title,
+  &:global(.drinksTitle) {
     color: #000;
-    font-size: 102px;
+    font-size: 102px; // desktop fallback
     font-weight: 800;
     text-align: center;
     font-family: var(--font-roboto-condensed);
     margin: 0 0 60px;
-    &:global(.drinksTitle) {
-      margin: 0;
+
+    font-size: calc(42px + (102 - 42) * ((100vw - 320px) / (1920 - 320)));
+    margin-bottom: calc(24px + (60 - 24) * ((100vw - 320px) / (1920 - 320)));
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+
+    @media (min-width: 1920px) {
+      font-size: 102px;
+      margin-bottom: 60px;
+    }
+
+    @media (max-width: 320px) {
+      font-size: 42px;
+      margin-bottom: 24px;
     }
   }
+
+  &:global(.drinksTitle) {
+    margin: 0 !important;
+  }
+
   &__inner {
     display: flex;
     flex-wrap: wrap;

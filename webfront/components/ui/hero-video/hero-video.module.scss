@@ -1,38 +1,74 @@
 .wrapper {
   position: relative;
   width: 100%;
+  min-height: 80vh;
+  @media (min-width: 1280px) {
+    min-height: 100vh;
+  }
   &__logoAndText {
     position: absolute;
-    top: calc(100%);
     left: 50%;
+    top: 100%;
+    transform: translate(-50%, -100%); // sedi polu-ispod wrappera
     z-index: 2;
-    transform: translate(-50%, -100%);
-    // width: 15%;
-    width: fit-content;
+
+    width: max-content; // bolje od fit-content za ovakve slučajeve
+    max-width: min(90vw, 720px);
+    padding: clamp(6px, 1.2vw, 12px);
+
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: color 0.3s ease;
+    gap: 6px;
+
     cursor: pointer;
+    transition: color 0.3s ease;
+
     svg,
     svg path {
       transition: color 0.3s ease;
     }
+
     svg {
-      width: 180px;
+      width: clamp(110px, 18vw, 180px);
       height: auto;
     }
+
     &__text {
       font-weight: 500;
       font-family: var(--font-pt-sans);
-      font-size: 32px;
+      font-size: clamp(18px, 3.2vw, 32px);
+      line-height: 1.1;
       white-space: nowrap;
+
+      // ako baš hoćeš da nikad ne pređe ekran:
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
-    &:hover {
-      color: var(--accent);
+
+    // hover samo na uređajima koji imaju hover (desktop)
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        color: var(--accent);
+
+        :global(.logoSlice) {
+          transform: translate(0, -40px);
+        }
+      }
+    }
+
+    // mali ekrani: smanji hover pomeraj (i generalno “tighten”)
+    @media (max-width: 480px) {
       :global(.logoSlice) {
-        transform: translate(0, -40px);
+        transform: translate(0, 0);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover :global(.logoSlice) {
+          transform: translate(0, -20px);
+        }
       }
     }
   }

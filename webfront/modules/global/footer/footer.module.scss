@@ -1,62 +1,187 @@
 .wrapper {
-  padding: 130px 0 60px;
+  padding: 80px 0 40px;
   background-color: var(--black);
   position: relative;
+
+  @media (min-width: 1440px) {
+    padding: 130px 0 60px;
+  }
+
   .footerLogo {
     position: absolute;
-    // bottom: 60px;
-    bottom: 60px;
-    right: 60px;
-    height: calc(100% - 190px);
+    bottom: 24px;
+    right: 24px;
+    height: auto;
+    max-height: 140px;
+    opacity: 0.35;
+    pointer-events: none;
+
+    @media (min-width: 800px) {
+      bottom: 40px;
+      right: 40px;
+      max-height: 180px;
+    }
+
+    @media (min-width: 1440px) {
+      bottom: 60px;
+      right: 60px;
+      height: calc(100% - 190px);
+      max-height: none;
+      opacity: 1;
+    }
   }
+
   .link {
     cursor: pointer;
     transition: all 0.3s;
+
     &:hover {
       color: var(--accent);
     }
   }
+
   .socialLink {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+
+    @media (min-width: 800px) {
+      gap: 16px;
+    }
   }
+
   &__inner {
     max-width: 90%;
     margin: 0 auto;
+
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 40px;
+
+    @media (min-width: 720px) {
+      gap: 56px;
+    }
+
+    /* ✅ Layout switch sada na 1280px */
+    @media (min-width: 1280px) {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 80px;
+    }
   }
+
   &__left {
     flex: 1;
+    min-width: 0;
+
     &__socials {
-      margin-top: 80px;
+      margin-top: 36px;
       display: flex;
-      gap: 100px;
+      flex-wrap: wrap;
+      gap: 24px;
       align-items: center;
       text-transform: uppercase;
-      font-size: 22px;
-    }
-    &__item {
-      margin-bottom: 35px;
-      &__label {
+      font-size: 16px;
+
+      @media (min-width: 720px) {
+        margin-top: 48px;
+        gap: 40px;
+        font-size: 18px;
+      }
+
+      @media (min-width: 1280px) {
+        margin-top: 60px;
+        gap: 64px;
+        font-size: 20px;
+        flex-wrap: nowrap; /* ✅ pošto je layout već 2-kolonski */
+      }
+
+      @media (min-width: 1440px) {
+        margin-top: 80px;
+        gap: 100px;
         font-size: 22px;
-        line-height: normal;
+      }
+    }
+
+    &__item {
+      margin-bottom: 22px;
+
+      @media (min-width: 720px) {
+        margin-bottom: 28px;
+      }
+
+      @media (min-width: 1440px) {
+        margin-bottom: 35px;
+      }
+
+      &__label {
+        font-size: 14px;
+        line-height: 1.2;
         color: #615f5b;
         letter-spacing: 0.075em;
-        padding-bottom: 10px;
+        padding-bottom: 6px;
+
+        @media (min-width: 720px) {
+          font-size: 16px;
+          padding-bottom: 8px;
+        }
+
+        @media (min-width: 1280px) {
+          font-size: 18px;
+        }
+
+        @media (min-width: 1440px) {
+          font-size: 22px;
+          padding-bottom: 10px;
+        }
       }
+
       &__text {
-        font-size: 22px;
-        line-height: 38px;
+        font-size: 15px;
+        line-height: 26px;
         color: var(--white);
-        letter-spacing: 0.075em;
+        letter-spacing: 0.05em;
         transition: all 0.3s;
+
+        @media (min-width: 720px) {
+          font-size: 17px;
+          line-height: 30px;
+        }
+
+        @media (min-width: 1280px) {
+          font-size: 19px;
+          line-height: 34px;
+        }
+
+        @media (min-width: 1440px) {
+          font-size: 22px;
+          line-height: 38px;
+          letter-spacing: 0.075em;
+        }
       }
     }
   }
+
   &__right {
-    flex: 1;
+    min-width: 0;
+
+    width: 100%;
+    height: 320px;
+    overflow: hidden;
+    position: relative;
+
+    @media (min-width: 720px) {
+      height: 380px;
+    }
+
+    /* ✅ Pošto layout prelazi u 2 kolone na 1280px,
+       ovde možeš da pustiš mapu da se rastegne po visini */
+    @media (min-width: 1280px) {
+      height: auto;
+      overflow: visible;
+      flex: 1;
+    }
   }
 
   .footerMap__frame {
@@ -65,19 +190,28 @@
     border: 0;
     display: block;
 
-    /* crno-belo-sivo look */
     filter: grayscale(100%) contrast(1.15) brightness(0.95);
   }
 
   .footerMap__label {
     position: absolute;
-    left: 12px;
-    bottom: 12px;
+    left: 10px;
+    bottom: 10px;
     background: rgba(255, 255, 255, 0.9);
     color: #111;
-    padding: 8px 10px;
-    font-size: 14px;
+    padding: 7px 9px;
+    font-size: 12px;
     line-height: 1.1;
-    border-radius: 6px;
+
+    @media (min-width: 720px) {
+      left: 12px;
+      bottom: 12px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    @media (min-width: 1440px) {
+      font-size: 14px;
+    }
   }
 }

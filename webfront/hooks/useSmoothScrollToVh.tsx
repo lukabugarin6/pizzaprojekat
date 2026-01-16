@@ -3,9 +3,11 @@ import { useCallback } from 'react';
 
 const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
 
-export function useSmoothScrollToVh(duration = 750, vhMultiplier = 1) {
+export function useSmoothScrollToVh(duration = 750) {
   return useCallback(() => {
     if (typeof window === 'undefined') return;
+
+    const vhMultiplier = window.innerWidth < 1280 ? 0.8 : 1;
 
     const start = window.scrollY;
     const target = window.innerHeight * vhMultiplier;
@@ -22,11 +24,9 @@ export function useSmoothScrollToVh(duration = 750, vhMultiplier = 1) {
 
       window.scrollTo(0, start + distance * eased);
 
-      if (progress < 1) {
-        requestAnimationFrame(animateScroll);
-      }
+      if (progress < 1) requestAnimationFrame(animateScroll);
     };
 
     requestAnimationFrame(animateScroll);
-  }, [duration, vhMultiplier]);
+  }, [duration]);
 }

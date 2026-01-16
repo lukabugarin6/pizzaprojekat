@@ -29,6 +29,21 @@ body {
   color: var(--white);
 
   font-family: var(--font-pt-sans), Arial, Helvetica, sans-serif;
+  padding-left: 0;
+}
+
+@media (min-width: 1280px) {
+  body {
+    padding-left: 130px;
+  }
+
+}
+
+@media (min-width: 1440px) {
+  body {
+    padding-left: 175px;
+  }
+
 }
 
 

@@ -7,13 +7,36 @@
   }
 }
 
+/**
+ * Fluid font helper (320px -> 1920px)
+ * Usage: font-size: fluid(24, 32);
+ */
+@function fluid($min, $max, $minVw: 320, $maxVw: 1920) {
+  $slope: ($max - $min) / ($maxVw - $minVw); // px per px
+  $intercept: $min - ($slope * $minVw); // px
+
+  // returns: calc(intercept + slope * 100vw)
+  @return calc(#{$intercept}px + #{($slope * 100)}vw);
+}
+
 .product-card {
-  padding: 0 3.36%;
-  width: 50%;
   position: relative;
   color: var(--black);
   font-family: var(--font-pt-sans);
   opacity: 0;
+  width: 100%;
+  padding: 0 2%;
+
+  @media (min-width: 720px) {
+    width: 50%;
+  }
+  @media (min-width: 900px) {
+    width: 33%;
+  }
+  @media (min-width: 1440px) {
+    width: 50%;
+    padding: 0 3.36%;
+  }
 
   &--fade-in {
     animation-name: fadeIn;
@@ -26,26 +49,46 @@
 
   &__inner {
     display: flex;
+    flex-direction: column;
+    text-align: center;
+
+    @media (min-width: 1440px) {
+      // width: 50%;
+      flex-direction: row;
+    }
   }
 
   &__img-wrapper {
-    max-width: 380px;
-    padding-right: 40px;
+    width: 100%;
+    img {
+      width: 100%;
+    }
+    @media (min-width: 1440px) {
+      max-width: 380px;
+      padding-right: 40px;
+    }
+  }
 
-    // img {
-    //   cursor: pointer;
-    //   transition: scale 0.45s ease;
+  &__variants-wrapper {
+    h5 {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      justify-content: center;
 
-    //   &:hover {
-    //     scale: 0.95;
-    //   }
-    // }
+      @media (min-width: 1440px) {
+        justify-content: flex-start;
+      }
+    }
   }
 
   &__content {
-    min-width: 280px;
+    @media (min-width: 1440px) {
+      min-width: 280px;
+    }
+
     h4 {
-      font-size: 32px;
+      font-size: fluid(24, 32);
       color: #000;
       letter-spacing: 0.01em;
       font-weight: 700;
@@ -53,17 +96,22 @@
     }
 
     p {
-      font-size: 19px;
-      line-height: 21px;
+      font-size: fluid(15, 19);
+      line-height: 1.25;
       color: var(--gray-text);
       letter-spacing: 0.02em;
       font-family: var(--font-roboto-condensed);
       margin-bottom: 25px;
+      min-height: 40px;
+
+      @media (min-width: 1440px) {
+        min-height: auto;
+      }
     }
 
     h5 {
       color: #a2a2a2;
-      font-size: 21px;
+      font-size: fluid(16, 21);
       letter-spacing: 0.02em;
       font-family: var(--font-roboto-condensed);
       font-weight: 400;
@@ -77,6 +125,11 @@
   &__sizes {
     display: flex;
     margin-bottom: 10px;
+    justify-content: center;
+
+    @media (min-width: 1440px) {
+      justify-content: flex-start;
+    }
   }
 
   &__size-btn {
@@ -84,7 +137,7 @@
     padding: 8px 14px;
     border: 1px solid #dcdcdc;
     background: transparent;
-    font-size: 15px;
+    font-size: fluid(13, 15);
     font-family: var(--font-roboto-condensed);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -101,11 +154,16 @@
   }
 
   &__price {
-    font-size: 26px;
+    font-size: fluid(20, 26);
     font-weight: 700;
     color: #000;
     width: fit-content;
-    margin-left: auto;
+    margin: 0 auto;
+
+    @media (min-width: 1440px) {
+      margin-left: auto;
+      margin-right: 0;
+    }
   }
 
   &__footer {
@@ -114,9 +172,13 @@
     justify-content: space-between;
     margin-top: 10px;
     background-color: var(--black);
-    height: 68px;
+    height: 60px;
     position: relative;
     overflow: hidden;
+
+    @media (min-width: 1440px) {
+      height: 68px;
+    }
   }
 
   &__actions {
@@ -137,7 +199,7 @@
     border: none;
     cursor: pointer;
     flex-grow: 1;
-    font-size: 22px;
+    font-size: fluid(16, 22);
     height: 100%;
     padding: 0 10px;
 
@@ -145,6 +207,7 @@
       transform: rotate(90deg) translate(0);
       transition: transform 0.3s ease;
     }
+
     &:hover {
       svg {
         transform: rotate(90deg) translateY(-8px);
@@ -162,25 +225,27 @@
     align-items: stretch;
     color: var(--white);
     height: 100%;
+
     button {
       width: 36px;
       flex: 1;
       background: transparent;
       border: none;
       cursor: pointer;
-      font-size: 18px;
+      font-size: fluid(14, 18);
 
       &:disabled {
         opacity: 0.4;
         cursor: not-allowed;
       }
+
       &:first-child {
         border-bottom: 1px solid var(--gray-border);
       }
     }
 
     span {
-      font-size: 22px;
+      font-size: fluid(16, 22);
       border-left: 1px solid var(--gray-border);
       width: 57px;
       display: flex;
@@ -223,7 +288,17 @@
   }
 
   &--smaller {
-    width: 25%;
+    width: 100%;
+
+    @media (min-width: 720px) {
+      width: 50%;
+    }
+    @media (min-width: 900px) {
+      width: 33%;
+    }
+    @media (min-width: 1440px) {
+      width: 25%;
+    }
   }
 
   &--smaller &__inner {
@@ -238,6 +313,7 @@
 
   &--smaller &__content {
     width: 100%;
+
     h4 {
       text-align: center;
     }
@@ -255,23 +331,24 @@
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 100%; /* pun futer */
-    height: 68px; /* isto kao footer */
+    width: 100%;
+    height: 68px;
     background-color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 16px;
+    font-size: fluid(14, 16);
     font-weight: 600;
-    z-index: 99; /* iznad futera */
-    pointer-events: all; /* blokira klikove ispod */
+    z-index: 99;
+    pointer-events: all;
     animation: fadeOverlay 2s forwards;
 
     span {
       margin: 0;
     }
   }
+
   @keyframes fadeOverlay {
     0% {
       opacity: 0;
@@ -282,7 +359,7 @@
     }
     80% {
       opacity: 1;
-      transform: translateY(0); /* overlay ostaje */
+      transform: translateY(0);
     }
     100% {
       opacity: 0;
