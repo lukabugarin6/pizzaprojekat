@@ -2,16 +2,21 @@
   max-width: 90%;
   margin: 0 auto;
   background-color: var(--white);
-  padding: 60px 0;
+  padding: 100px 0 60px;
+  .title {
+    color: #000;
+    font-size: 102px;
+    font-weight: 800;
+    text-align: center;
+    font-family: var(--font-roboto-condensed);
+    margin: 0 0 60px;
+    &:global(.drinksTitle) {
+      margin: 0;
+    }
+  }
   &__inner {
     display: flex;
     flex-wrap: wrap;
-    // grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 80px;
   }
-  // &.smaller {
-  //   & > div {
-  //     grid-template-columns: repeat(4, minmax(0, 1fr));
-  //   }
-  // }
 }

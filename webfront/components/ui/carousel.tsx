@@ -172,7 +172,7 @@ export default function Carousel({ slides }: CarouselProps) {
 
   return (
     <div
-      className="relative w-[70vmin] h-[70vmin] mx-auto"
+      className="relative w-[70vmin] h-[70vmin] mx-auto my-[60px]"
       aria-labelledby={`carousel-heading-${id}`}
     >
       <ul

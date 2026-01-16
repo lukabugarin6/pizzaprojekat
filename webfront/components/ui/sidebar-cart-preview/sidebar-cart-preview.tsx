@@ -6,7 +6,13 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import { CiRuler } from 'react-icons/ci';
 import { HiMiniXMark } from 'react-icons/hi2';
-import { FiUser, FiPhone, FiMail, FiMessageSquare } from 'react-icons/fi';
+import {
+  FiUser,
+  FiPhone,
+  FiMail,
+  FiMessageSquare,
+  FiMapPin,
+} from 'react-icons/fi';
 
 import styles from './sidebar-cart-preview.module.scss';
 import { useCart } from '@/context/cart/cart-context';
@@ -495,6 +501,7 @@ export default function SidebarCartPreview({
                       type="text"
                       placeholder="Adresa (ulica, broj, sprat...)"
                       value={address}
+                      leftIcon={<FiMapPin />}
                       onChange={(e) => setAddress(e.target.value)}
                       required
                     />

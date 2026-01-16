@@ -141,64 +141,70 @@
   left: 0;
   border-right: 1px solid var(--gray);
   z-index: 2000;
+
   &__inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     height: 100%;
+
     &__top,
     &__bottom {
       width: 100%;
     }
+
     &__top {
-      margin-bottom: 40px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       flex-grow: 1;
     }
-    &__bottom {
-      border-top: 1px solid var(--gray);
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-    }
+
     &__item {
+      &.phone {
+        border-top: 1px solid var(--gray);
+      }
+
       transition: all 0.3s ease-out;
       display: flex;
       flex-direction: column;
       gap: 10px;
       align-items: center;
-      margin-top: 40px;
+      justify-content: center;
+
       color: var(--white);
       font-size: 17px;
       font-weight: 400;
       line-height: 18px;
       text-align: center;
+
       cursor: pointer;
+      text-decoration: none; // da ClientLink bude identičan
+
       &.langSwitcher {
-        margin-top: auto;
-        padding-top: 20px;
         display: flex;
         margin-bottom: 20px;
       }
+
       svg {
         width: 40px;
-        @media (min-height: 920px) {
+        @media (min-height: 900px) {
           width: 54px;
         }
       }
+
       &.smaller {
         svg {
           width: 30px;
-          @media (min-height: 920px) {
+          @media (min-height: 900px) {
             width: 44px;
           }
         }
       }
+
       &.first {
         margin-top: auto;
       }
+
       & :global(.clock-hand),
       & :global(.phone-top),
       & :global(.leftDice),
@@ -207,70 +213,110 @@
         transform-box: fill-box;
         will-change: transform;
       }
+
       &:not(.wrapper__inner__logo):hover {
         color: var(--accent);
+
         &:has(:global(.slice)) {
           :global(.slice) {
             transform: translate(-14px, 14px);
           }
         }
+
         &:has(:global(.pin)) {
           :global(.pin) {
             transform: translate(0, -8px);
           }
         }
+
         &:has(:global(.cart-icon)) {
           :global(.cart-icon) {
             animation: cartAnimation 0.7s linear 0s 1 forwards;
           }
         }
+
         &:has(:global(.clock-hand)) {
           :global(.clock-hand) {
             animation: clockAnimation 1s linear 0s 1;
           }
         }
+
         &:has(:global(.phone-top)) {
           :global(.phone-top) {
             animation: phoneAnimation 0.5s linear 0s 1 forwards;
           }
         }
+
         &:has(:global(.left-dice)) {
           :global(.left-dice) {
             animation: diceJitterLeft 0.45s linear 0s 1 forwards;
           }
         }
+
         &:has(:global(.right-dice)) {
           :global(.right-dice) {
             animation: diceJitterRight 0.45s linear 0s 1 forwards;
           }
         }
       }
+
       &.nonHoverable {
         cursor: default;
+
         &:hover {
           color: var(--white);
         }
       }
+
       &__subtitle {
         font-size: 16px;
         line-height: 16px;
         text-decoration: underline;
       }
     }
+
+    &__top {
+      .wrapper__inner__item {
+        flex: 1;
+      }
+    }
+
+    &__bottom {
+      border-top: 1px solid var(--gray);
+      display: flex;
+      flex-direction: column;
+
+      .wrapper__inner__item {
+        margin-top: 30px;
+      }
+    }
+
     &__logo {
       margin-top: 0px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--gray);
+
       font-size: 68px;
       line-height: 68px;
       font-weight: 400;
       font-family: var(--font-inter-tight);
+
       width: 100%;
       cursor: pointer !important;
     }
   }
 }
 
+/* === ACTIVE LINK (accent color) ===
+   Dodajemo "active" klasu na item kada je trenutni page.
+   Ne diramo hover animacije (i dalje rade), samo boja bude accent stalno. */
+.active {
+  color: var(--accent) !important;
+
+  /* ako ima badge - ostaje isti */
+}
+
+/* Cart badge */
 .cartIcon {
   position: relative;
 }

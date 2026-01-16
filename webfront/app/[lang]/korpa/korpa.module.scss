@@ -1,67 +1,91 @@
-.sidebar-cart {
+.cart-page {
   font-family: var(--font-roboto-condensed);
-  &__panel {
-    position: fixed;
-    left: 175px;
-    top: 50%;
-    width: 40vw;
-    min-width: 700px;
-    max-height: calc(100vh - 20px);
-    background-color: #fff;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
-    overflow: hidden;
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-100%, -50%);
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-    z-index: 20;
+  position: relative;
+
+  &__back {
+    position: absolute;
+    top: 62px;
+    left: 60px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    text-decoration: none;
+    color: #8a8a8a;
+    font-size: 18px;
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--gray-text);
+
+      .cart-page__back-icon {
+        transform: translate(-6px);
+      }
+    }
   }
 
-  &__panel--open {
-    opacity: 1;
-    transform: translate(0, -50%);
-    pointer-events: auto;
+  &__back-icon {
+    font-size: 20px;
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
   }
 
-  &__panel--empty {
-    min-width: auto;
-    width: fit-content;
-    max-width: 480px;
-  }
-
-  &__inner {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 16px 20px;
-    border-bottom: 1px solid #dcdcdc;
-  }
-
-  &__header-main {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__header-title {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 500;
-    color: #000;
+  &__back-text {
     letter-spacing: 0.01em;
   }
 
-  &__body {
-    padding: 12px 24px 16px 24px;
-    max-height: 300px;
-    overflow-y: auto;
+  &__container {
+    width: min(1400px, calc(92vw - 175px));
+    margin: 0 auto;
+    padding: 24px 0 80px;
+    background: #fff;
+  }
 
+  &__header {
+    padding: 50px 0 18px;
+    margin-bottom: 18px;
+  }
+
+  &__title {
+    font-size: 30px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #000;
+    text-align: center;
+  }
+
+  &__subtitle {
+    margin: 10px 0 0;
+    font-size: 16px;
+    color: #777;
+    text-align: center;
+  }
+
+  /* 2-col layout (items left, sticky right) */
+  &__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 40px;
+    align-items: start;
+  }
+
+  &__main {
+    min-width: 0; // bitno da grid ne gura van viewporta
+  }
+
+  &__aside {
+    min-width: 0;
+  }
+
+  &__sticky {
+    position: sticky;
+    top: 24px; // da ne lepi uz vrh
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+
+    /* subtle scrollbar like before */
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -76,28 +100,52 @@
     scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
   }
 
+  /* sekcije - bez shadow/radius, čista bela */
+  &__section {
+    padding: 16px 0;
+
+    &:first-child {
+      padding-top: 0;
+    }
+  }
+
+  &__section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 0 10px;
+  }
+
+  &__section-meta {
+    font-size: 16px;
+    color: #777;
+    margin-left: auto;
+  }
+
+  /* items list */
   &__items {
     display: flex;
     flex-direction: column;
-    gap: 10px;
   }
 
   &__item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0; // još malo veći padding
-    border-bottom: 1px solid #dcdcdc;
+    padding: 16px 0;
+    border-top: 1px solid #dcdcdc;
+
     &:last-child {
-      border-bottom: none;
+      border-bottom: 1px solid #dcdcdc;
     }
   }
 
   &__item-main {
     display: flex;
     align-items: center;
-    gap: 20px; // veći gap slika–naslov
+    gap: 20px;
     max-width: 65%;
+    min-width: 0;
   }
 
   &__item-image {
@@ -110,12 +158,15 @@
   &__item-text {
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
   &__item-name {
     font-size: 22px;
     font-weight: 500;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     margin-bottom: 2px;
     letter-spacing: 0.02em;
     color: var(--black);
@@ -136,6 +187,7 @@
     justify-content: flex-end;
     gap: 20px;
     min-width: 200px;
+    flex-shrink: 0;
   }
 
   &__item-counter {
@@ -196,192 +248,6 @@
     min-width: 90px;
   }
 
-  &__empty {
-    padding: 20px 0;
-    font-size: 16px;
-    color: #777;
-  }
-
-  &__footer {
-    margin-top: 0;
-    padding: 16px 24px 20px;
-    border-top: 1px solid #dcdcdc;
-  }
-
-  &__footer-row {
-    display: flex;
-    justify-content: flex-start;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-
-  &__footer-label {
-    font-size: 16px;
-    color: #777;
-  }
-
-  &__footer-value {
-    font-size: 22px;
-    font-weight: 500;
-    color: #000;
-  }
-
-  /* FORMA U FOOTERU */
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &__form-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  &__form-field {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  &__form-field-icon {
-    position: absolute;
-    left: 10px;
-    top: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #777;
-    pointer-events: none; // da klik i fokus i dalje hvata input
-    z-index: 1;
-  }
-
-  &__form-input {
-    width: 100%;
-    height: 46px;
-    border: none;
-    outline: none;
-    padding: 0 12px;
-    font-size: 14px;
-    background: #f5f5f5;
-    color: #111;
-  }
-
-  &__form-input--textarea {
-    width: 100%;
-    min-height: 46px;
-    border: none;
-    outline: none;
-    padding: 8px 12px;
-    font-size: 14px;
-    background: #f5f5f5;
-    resize: vertical;
-    color: #111;
-    padding-top: 12px;
-  }
-
-  /* NOVO: extra padding levo kad postoji ikonica */
-  &__form-input--with-icon {
-    padding-left: 34px; // fino stane pored ikonice
-  }
-
-  &__form-radios {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 14px;
-    color: #555;
-  }
-
-  &__form-radio {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    position: relative;
-  }
-
-  /* sakrij default radio */
-  &__form-radio-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* spoljašnja kockica */
-  &__form-radio-box {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #999;
-    background: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-
-  /* unutrašnja crna kockica */
-  &__form-radio-box::after {
-    content: '';
-    width: 10px; // malo manja da ima "gap" od ivice
-    height: 10px;
-    background: #000;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-  }
-
-  /* kad je selektovan – prikaži unutrašnju kockicu */
-  &__form-radio-input:checked + &__form-radio-box::after {
-    opacity: 1;
-  }
-
-  /* malo bolji fokus za tastaturu (tab) */
-  &__form-radio-input:focus-visible + &__form-radio-box {
-    outline: 2px solid #000;
-    outline-offset: 2px;
-  }
-
-  &__form-radio-label {
-    font-size: 14px;
-  }
-
-  &__submit {
-    height: 46px;
-    padding: 0 26px;
-    border: none;
-    background: #000;
-    color: #fff;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 40px;
-    svg {
-      transform: rotate(90deg) translate(0);
-      transition: transform 0.3s ease;
-    }
-
-    &:hover {
-      svg {
-        transform: rotate(90deg) translateY(-8px);
-      }
-    }
-  }
-
-  &__form-note {
-    margin-top: 2px;
-    font-size: 11px;
-    line-height: 1.4;
-    color: #777;
-  }
-
   &__item-remove {
     width: 32px;
     height: 32px;
@@ -390,18 +256,44 @@
     justify-content: center;
     border: none;
     padding: 0;
-    margin-left: 8px; // dodatni razmak od cene
+    margin-left: 8px;
     border-radius: 50%;
     background: transparent;
     cursor: pointer;
     color: #9a9a9a;
-    // nema hover efekta
   }
 
+  &__empty {
+    padding: 20px 0;
+    font-size: 16px;
+    color: #777;
+  }
+
+  /* TOTAL */
+  &__total {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  &__total-label {
+    font-size: 18px;
+    color: #777;
+  }
+
+  &__total-value {
+    font-size: 26px;
+    font-weight: 500;
+    color: #000;
+  }
+
+  /* SAVED */
   &__saved {
-    margin-bottom: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px dashed #dcdcdc;
+    border-top: 1px solid #dcdcdc;
+    padding-top: 16px;
   }
 
   &__saved-title {
@@ -451,5 +343,161 @@
   &__saved-line-sub {
     font-size: 11px;
     color: #777;
+  }
+
+  /* FORM */
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #dcdcdc;
+    padding-top: 16px;
+  }
+
+  &__form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__form-radios {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+    color: #555;
+  }
+
+  &__form-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+
+  &__form-radio-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__form-radio-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #999;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  &__form-radio-box::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  &__form-radio-input:checked + &__form-radio-box::after {
+    opacity: 1;
+  }
+
+  &__form-radio-input:focus-visible + &__form-radio-box {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+
+  &__form-radio-label {
+    font-size: 14px;
+  }
+
+  &__submit {
+    height: 46px;
+    padding: 0 26px;
+    border: none;
+    background: #000;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+
+    svg {
+      transform: rotate(90deg) translate(0);
+      transition: transform 0.3s ease;
+    }
+
+    &:hover {
+      svg {
+        transform: rotate(90deg) translateY(-8px);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__form-note {
+    margin-top: 2px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #777;
+  }
+
+  /* Responsive: preklopi u jednu kolonu da ne ispada desno */
+  @media (max-width: 1360px) {
+    &__body {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    &__sticky {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
+  }
+
+  @media (max-width: 860px) {
+    &__item-main {
+      max-width: 100%;
+    }
+
+    &__item {
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    &__item-right {
+      min-width: auto;
+    }
+
+    &__form-row {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 640px) {
+    &__item-image {
+      width: 110px;
+      height: 110px;
+    }
+
+    &__item-name {
+      font-size: 18px;
+      white-space: normal;
+    }
   }
 }
