@@ -95,13 +95,6 @@ export default function ProductCard({
             width={1000}
             height={1000}
             sizes="100vw"
-            style={{
-              width: '100%',
-              height: 'auto',
-              aspectRatio: '1 / 1',
-              objectFit: 'cover',
-              objectPosition: 'bottom',
-            }}
           />
         </div>
 
