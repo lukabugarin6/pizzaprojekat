@@ -31,6 +31,11 @@ export default function Navbar({}: {}) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    setIsMenuOpen(false);
+  }, [pathname, isMenuOpen]);
+
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
   useEffect(() => {
