@@ -477,6 +477,44 @@
   line-height: 1;
 }
 
+/* ✅ short-height phones: shrink menu tiles */
+@media (max-height: 740px) {
+  .menuTile,
+  .menuTileStatic,
+  .menuTileLink {
+    font-size: 16px;
+    padding: 14px 12px;
+    gap: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .menuIcon svg {
+    width: 40px;
+  }
+
+  .menuPanel__inner {
+    padding: 72px 18px 18px;
+  }
+}
+
+@media (max-height: 660px) {
+  .menuTile,
+  .menuTileStatic,
+  .menuTileLink {
+    font-size: 15px;
+    padding: 12px 10px;
+    gap: 8px;
+  }
+
+  .menuIcon svg {
+    width: 36px;
+  }
+
+  .menuDividerWide {
+    width: calc(100vw - 32px);
+  }
+}
+
 /* Reduced motion */
 // @media (prefers-reduced-motion: reduce) {
 //   .navbar--fixed {

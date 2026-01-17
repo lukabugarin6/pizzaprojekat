@@ -1,205 +1,293 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-type SectionItem = {
+type SectionNavItem = {
   id: string;
   label: string;
   el: HTMLElement;
   isActive: boolean;
 };
 
-type Options = {
-  selector: string;
-  labelAttr?: string;
-  idPrefix?: string;
-  rootMargin?: string;
-  threshold?: number | number[];
-  scrollOffsetPx?: number;
-  autoHideMs?: number; // default 2000
+type UseSectionNavArgs = {
+  selector: string; // npr ".productGridSection"
+  scrollOffsetPx?: number; // sticky header offset
+  rootMargin?: string; // IntersectionObserver rootMargin
+  autoHideMs?: number; // ms posle poslednje aktivnosti
 };
+
+type UseSectionNavResult = {
+  sections: Array<{ id: string; label: string; isActive: boolean }>;
+  hasAnyActive: boolean;
+  isNavVisible: boolean;
+  scrollTo: (id: string) => void;
+};
+
+function stableIdFromElement(el: HTMLElement, index: number) {
+  // 1) ako postoji id, koristi ga
+  const existing = el.getAttribute('id');
+  if (existing) return existing;
+
+  // 2) probaj data-nav-id (ako ti ikad zatreba)
+  const dataId = el.getAttribute('data-nav-id');
+  if (dataId) return dataId;
+
+  // 3) fallback: deterministicki id po label + index
+  const label = (el.getAttribute('data-nav-label') || 'section')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '');
+
+  return `section-${label || 'x'}-${index}`;
+}
 
 export function useSectionNav({
   selector,
-  labelAttr = 'data-nav-label',
-  idPrefix = 'section-',
-  rootMargin = '-40% 0px -50% 0px',
-  threshold = 0,
   scrollOffsetPx = 0,
+  rootMargin = '-40% 0px -50% 0px',
   autoHideMs = 2000,
-}: Options) {
-  const [sections, setSections] = useState<SectionItem[]>([]);
-  const visibleIdsRef = useRef<Set<string>>(new Set());
-
-  // ✅ nav visibility
+}: UseSectionNavArgs): UseSectionNavResult {
+  const [items, setItems] = useState<SectionNavItem[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [isNavVisible, setIsNavVisible] = useState(true);
+
+  const ioRef = useRef<IntersectionObserver | null>(null);
+  const moRef = useRef<MutationObserver | null>(null);
   const hideTimerRef = useRef<number | null>(null);
+  const lastActiveIdRef = useRef<string | null>(null);
 
-  const scheduleHide = useCallback(() => {
-    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = window.setTimeout(() => {
-      setIsNavVisible(false);
-    }, autoHideMs);
-  }, [autoHideMs]);
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
 
-  // ✅ init: pokupi elemente (dedupe + reset)
-  useEffect(() => {
-    let raf = 0;
+  const showAndScheduleHide = useCallback(() => {
+    setIsNavVisible(true);
+    clearHideTimer();
 
-    const scan = () => {
-      const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    if (autoHideMs > 0) {
+      hideTimerRef.current = window.setTimeout(() => {
+        setIsNavVisible(false);
+      }, autoHideMs);
+    }
+  }, [autoHideMs, clearHideTimer]);
 
-      // reset visible set on each scan
-      visibleIdsRef.current = new Set();
+  const buildItemsFromDom = useCallback((): SectionNavItem[] => {
+    const els = Array.from(
+      document.querySelectorAll(selector)
+    ) as HTMLElement[];
 
-      const seenIds = new Set<string>();
-      const seenEls = new Set<HTMLElement>();
-
-      const mapped: SectionItem[] = [];
-
-      els.forEach((el, idx) => {
-        // dedupe by element reference (paranoia)
-        if (seenEls.has(el)) return;
-        seenEls.add(el);
-
+    const next: SectionNavItem[] = els
+      .map((el, index) => {
         const label =
-          el.getAttribute(labelAttr) ||
-          el.getAttribute('aria-label') ||
-          el.getAttribute('data-title') ||
-          `Section ${idx + 1}`;
+          (
+            el.getAttribute('data-nav-label') ||
+            el.getAttribute('aria-label') ||
+            el.textContent ||
+            ''
+          ).trim() || `Section ${index + 1}`;
 
-        let id = el.id;
+        const id = stableIdFromElement(el, index);
 
-        // assign stable id if missing
-        if (!id) {
-          id = `${idPrefix}${idx + 1}`;
-          el.id = id;
+        // Ako element nema id, setuj ga JEDNOM deterministicki
+        if (!el.getAttribute('id')) {
+          el.setAttribute('id', id);
         }
 
-        // dedupe by id
-        if (!id || seenIds.has(id)) return;
-        seenIds.add(id);
+        return {
+          id,
+          label,
+          el,
+          isActive: false,
+        };
+      })
+      .filter((s) => !!s.el && !!s.id);
 
-        mapped.push({ id, label, el, isActive: false });
-      });
+    // Dedupe po id (u slucaju da DOM vrati “duplo” ili hook re-scan)
+    const map = new Map<string, SectionNavItem>();
+    for (const s of next) map.set(s.id, s);
 
-      setSections(mapped);
-    };
+    return Array.from(map.values());
+  }, [selector]);
 
-    // defer one tick to avoid hydration/DOM timing issues
-    raf = window.requestAnimationFrame(scan);
+  const setupIntersectionObserver = useCallback(
+    (nextItems: SectionNavItem[]) => {
+      // cleanup prethodni IO
+      if (ioRef.current) {
+        ioRef.current.disconnect();
+        ioRef.current = null;
+      }
 
-    return () => {
-      if (raf) window.cancelAnimationFrame(raf);
-    };
-  }, [selector, labelAttr, idPrefix]);
+      if (!nextItems.length) return;
 
-  // ✅ observer: koji je u viewportu
-  useEffect(() => {
-    if (!sections.length) return;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          // biramo “najboljeg” kandidata: najveci intersectionRatio, pa fallback na nearest top
+          let best: { id: string; ratio: number; top: number } | null = null;
 
-    const obs = new IntersectionObserver(
-      (entries) => {
-        let changed = false;
+          for (const e of entries) {
+            if (!e.target || !(e.target instanceof HTMLElement)) continue;
+            const id = e.target.id;
+            if (!id) continue;
 
-        for (const entry of entries) {
-          const el = entry.target as HTMLElement;
-          const id = el.id;
+            const ratio = e.isIntersecting ? e.intersectionRatio : 0;
+            const top = e.boundingClientRect.top;
 
-          if (entry.isIntersecting) {
-            if (!visibleIdsRef.current.has(id)) {
-              visibleIdsRef.current.add(id);
-              changed = true;
+            if (!best) {
+              best = { id, ratio, top };
+              continue;
             }
-          } else {
-            if (visibleIdsRef.current.delete(id)) {
-              changed = true;
+
+            if (ratio > best.ratio) best = { id, ratio, top };
+            else if (ratio === best.ratio && Math.abs(top) < Math.abs(best.top))
+              best = { id, ratio, top };
+          }
+
+          if (best && best.id) {
+            // spreci “thrash” setovanja istog id-a
+            if (lastActiveIdRef.current !== best.id) {
+              lastActiveIdRef.current = best.id;
+              setActiveId(best.id);
+              showAndScheduleHide();
             }
           }
+        },
+        {
+          root: null,
+          rootMargin,
+          threshold: [0, 0.01, 0.1, 0.25, 0.5, 0.75, 1],
         }
+      );
 
-        if (changed) {
-          setSections((prev) => {
-            const visible = visibleIdsRef.current;
+      for (const s of nextItems) observer.observe(s.el);
 
-            const next = prev.map((s) => ({
-              ...s,
-              isActive: visible.has(s.id),
-            }));
-
-            const activeId = pickTopMostVisible(next);
-
-            return next.map((s) => ({
-              ...s,
-              isActive: s.id === activeId,
-            }));
-          });
-        }
-      },
-      { root: null, rootMargin, threshold }
-    );
-
-    sections.forEach((s) => obs.observe(s.el));
-
-    return () => {
-      obs.disconnect();
-    };
-  }, [sections, rootMargin, threshold]);
-
-  const hasAnyActive = useMemo(
-    () => sections.some((s) => s.isActive),
-    [sections]
+      ioRef.current = observer;
+    },
+    [rootMargin, showAndScheduleHide]
   );
 
-  // ✅ show/hide on scroll idle
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const rescanAndRewire = useCallback(() => {
+    const nextItems = buildItemsFromDom();
 
-    const onScroll = () => {
-      setIsNavVisible(true);
-      scheduleHide();
+    // ✅ replace (ne append) + očuvaj active flag iz activeId
+    setItems(() => {
+      const currentActive = lastActiveIdRef.current || activeId;
+      return nextItems.map((s) => ({
+        ...s,
+        isActive: currentActive === s.id,
+      }));
+    });
+
+    setupIntersectionObserver(nextItems);
+  }, [activeId, buildItemsFromDom, setupIntersectionObserver]);
+
+  // inicijalni scan + posle hydrate/layout promena
+  useEffect(() => {
+    rescanAndRewire();
+
+    // posle fonts/images/layout shift na mobile ume da se promeni presek -> rescan jednom
+    const raf = window.requestAnimationFrame(() => rescanAndRewire());
+
+    return () => {
+      window.cancelAnimationFrame(raf);
     };
+  }, [rescanAndRewire]);
+
+  // mutation observer: ako se sekcije dodaju/uklanjaju (npr. filters, lazy content)
+  useEffect(() => {
+    if (moRef.current) {
+      moRef.current.disconnect();
+      moRef.current = null;
+    }
+
+    const mo = new MutationObserver(() => {
+      // debounce microtask/raf (da ne radi 100x)
+      window.requestAnimationFrame(() => rescanAndRewire());
+    });
+
+    mo.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+    moRef.current = mo;
+
+    return () => {
+      mo.disconnect();
+      moRef.current = null;
+    };
+  }, [rescanAndRewire]);
+
+  // show on user activity (scroll/resize) + auto hide
+  useEffect(() => {
+    const onScroll = () => showAndScheduleHide();
+    const onResize = () => showAndScheduleHide();
 
     window.addEventListener('scroll', onScroll, { passive: true });
-
-    // init hide
-    scheduleHide();
+    window.addEventListener('resize', onResize);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
-      if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+      window.removeEventListener('resize', onResize);
     };
-  }, [scheduleHide]);
+  }, [showAndScheduleHide]);
+
+  // cleanup timers/observers on unmount
+  useEffect(() => {
+    return () => {
+      clearHideTimer();
+      if (ioRef.current) ioRef.current.disconnect();
+      if (moRef.current) moRef.current.disconnect();
+      ioRef.current = null;
+      moRef.current = null;
+    };
+  }, [clearHideTimer]);
+
+  // sync isActive flags whenever activeId changes
+  useEffect(() => {
+    if (!activeId) return;
+    lastActiveIdRef.current = activeId;
+
+    setItems((prev) =>
+      prev.map((s) =>
+        s.id === activeId
+          ? { ...s, isActive: true }
+          : s.isActive
+          ? { ...s, isActive: false }
+          : s
+      )
+    );
+  }, [activeId]);
 
   const scrollTo = useCallback(
     (id: string) => {
-      const s = sections.find((x) => x.id === id);
-      if (!s) return;
+      const el = document.getElementById(id);
+      if (!el) return;
 
-      setIsNavVisible(true);
-      scheduleHide();
+      showAndScheduleHide();
 
-      const y =
-        s.el.getBoundingClientRect().top + window.scrollY - scrollOffsetPx;
+      const top =
+        el.getBoundingClientRect().top + window.scrollY - scrollOffsetPx;
+      window.scrollTo({ top, behavior: 'smooth' });
 
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      // optimistic update (da odmah bolduje)
+      if (lastActiveIdRef.current !== id) {
+        lastActiveIdRef.current = id;
+        setActiveId(id);
+      }
     },
-    [sections, scrollOffsetPx, scheduleHide]
+    [scrollOffsetPx, showAndScheduleHide]
   );
+
+  const sections = useMemo(
+    () => items.map(({ id, label, isActive }) => ({ id, label, isActive })),
+    [items]
+  );
+
+  const hasAnyActive = !!activeId && sections.some((s) => s.isActive);
 
   return { sections, hasAnyActive, scrollTo, isNavVisible };
-}
-
-function pickTopMostVisible(
-  items: { id: string; el: HTMLElement; isActive: boolean }[]
-) {
-  const visible = items.filter((x) => x.isActive);
-  if (!visible.length) return '';
-
-  visible.sort(
-    (a, b) =>
-      a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top
-  );
-
-  return visible[0].id;
 }
