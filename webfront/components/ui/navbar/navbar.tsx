@@ -22,7 +22,7 @@ export default function Navbar({}: {}) {
   const { totalItems } = useCart();
 
   // sticky posle 0.99vh (za home)
-  const stickyAfterVh = useStickyAfterVh(0.99);
+  const stickyAfterVh = useStickyAfterVh(1);
 
   // locale-aware: /, /en, /en/, /ru, /ru/ su home
   const { lang, currentWithoutLang } = useMemo(() => {

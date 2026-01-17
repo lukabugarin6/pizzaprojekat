@@ -29,7 +29,7 @@ export default function ProductsFloatingNav({
         // ✅ samo 1280+
         'flex',
         'fixed bottom-6 right-1 xl:right-2 z-50 flex-col items-center gap-14',
-        'transition-opacity duration-300',
+        'transition-opacity duration-300 z-[9999]',
         isNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
         className
       )}

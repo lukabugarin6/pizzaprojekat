@@ -6,8 +6,16 @@
   min-height: 700px;
   position: relative;
   font-family: var(--font-roboto-condensed);
+
+  /* ✅ da ne “lepi” sadržaj uz ivice na velikim ekranima */
+  &__container {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+  }
+
   &__back {
     position: absolute;
+    z-index: 99;
     top: 62px;
     left: 60px;
 
@@ -74,6 +82,7 @@
     background: #f3f3f3;
     overflow: hidden;
     margin: 20px 0 20px 0;
+    border-radius: 0; /* ako hoćeš može i 10px */
   }
 
   &__counter-btn {
@@ -119,6 +128,9 @@
     margin: 0 auto 30px auto;
     justify-content: center;
     gap: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    width: min(520px, 100%);
   }
 
   &__size-btn {
@@ -211,6 +223,7 @@
     width: 150px;
     height: 150px;
     object-fit: cover;
+    max-width: 100%;
   }
 
   &__row-info {
@@ -231,6 +244,7 @@
     align-items: center;
     font-size: 16px;
     color: #777;
+    flex-wrap: wrap;
   }
 
   &__row-meta-icon {
@@ -275,6 +289,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 18px;
+    flex-wrap: nowrap;
   }
 
   /* counter desno (kao segmented) */
@@ -331,6 +346,7 @@
     color: #000;
     min-width: 120px;
     text-align: right;
+    white-space: nowrap;
   }
 
   &__summary {
@@ -341,6 +357,7 @@
     padding: 22px 0 6px 0;
     border-top: 1px solid #eee;
     font-size: 20px;
+    flex-wrap: wrap;
 
     strong {
       font-size: 26px;
@@ -380,14 +397,41 @@
     }
   }
 
-  /* Responsive */
+  /* ✅ Responsive improvements */
+
   @media (max-width: 980px) {
+    padding: 32px 16px;
+
+    &__back {
+      position: absolute; /* ✅ da ne beži van ekrana */
+      justify-content: center;
+      font-size: 16px;
+      left: 20px;
+      top: 70px;
+    }
+
+    &__lottie {
+      width: 260px;
+      height: 260px;
+    }
+
+    &__title {
+      font-size: 26px;
+    }
+
+    &__subtitle {
+      font-size: 18px;
+      line-height: 22px;
+      margin-bottom: 18px;
+    }
+
     &__row {
       grid-template-columns: 150px 1fr;
       grid-template-areas:
         'img info'
         'img right';
-      gap: 22px;
+      gap: 18px;
+      padding: 26px 0;
     }
 
     &__row-media {
@@ -399,13 +443,65 @@
     &__row-right {
       grid-area: right;
       justify-content: flex-start;
+      flex-wrap: wrap; /* ✅ da counter + total mogu u novi red */
+      gap: 12px;
     }
+
+    &__row-title {
+      font-size: 22px;
+    }
+
+    &__row-desc {
+      font-size: 15px;
+      line-height: 19px;
+    }
+
     &__row-total {
       text-align: left;
+      min-width: 0;
     }
   }
 
   @media (max-width: 560px) {
+    padding: 40px 14px;
+    margin-top: 0; /* ✅ negativan margin ume da pravi čudne skokove */
+
+    &__lottie {
+      width: 210px;
+      height: 210px;
+    }
+
+    &__title {
+      font-size: 22px;
+    }
+
+    &__subtitle {
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    &__counter-btn,
+    &__counter-value {
+      width: 48px;
+      height: 48px;
+    }
+
+    &__sizes {
+      width: 100%;
+    }
+
+    &__size-btn {
+      padding: 12px 10px;
+      font-size: 16px;
+    }
+
+    &__confirm,
+    &__add-all {
+      width: 100%;
+      font-size: 18px;
+      height: 54px;
+    }
+
     &__row {
       grid-template-columns: 1fr;
       grid-template-areas:
@@ -413,25 +509,63 @@
         'info'
         'right';
       text-align: center;
+      gap: 14px;
+      padding: 22px 0;
     }
 
     &__row-info {
       text-align: center;
     }
 
+    &__row-image {
+      width: 130px;
+      height: 130px;
+    }
+
     &__row-right {
       justify-content: center;
-      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    &__row-counter-btn,
+    &__row-counter-value {
+      width: 46px;
+      height: 46px;
+      font-size: 16px;
     }
 
     &__row-total {
+      font-size: 20px;
       text-align: center;
+      width: 100%;
     }
 
-    &__sizes,
-    &__confirm,
-    &__add-all {
-      width: 100%;
+    &__summary {
+      font-size: 18px;
+
+      strong {
+        font-size: 22px;
+      }
+    }
+
+    &__row-meta {
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 360px) {
+    &__lottie {
+      width: 180px;
+      height: 180px;
+    }
+
+    &__row-image {
+      width: 110px;
+      height: 110px;
+    }
+
+    &__size-btn {
+      font-size: 15px;
     }
   }
 }
