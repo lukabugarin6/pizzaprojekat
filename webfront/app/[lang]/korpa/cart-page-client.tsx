@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { CiRuler } from 'react-icons/ci';
 import { HiMiniXMark, HiOutlineArrowLongLeft } from 'react-icons/hi2';
-import { FiUser, FiPhone, FiMail, FiMessageSquare } from 'react-icons/fi';
+import {
+  FiUser,
+  FiPhone,
+  FiMail,
+  FiMessageSquare,
+  FiMapPin,
+} from 'react-icons/fi';
 
 import styles from './korpa.module.scss';
 import { useCart } from '@/context/cart/cart-context';
 import SidebarCartFormField from '@/components/ui/sidebar-cart-preview/sidebar-cart-form-field';
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import ClientLink from '@/components/ui/client-link';
-import { FiMapPin } from 'react-icons/fi';
 
 type Props = {
   title: string;
@@ -331,161 +336,172 @@ export default function CartPageClient({ title, subtitle }: Props) {
           {/* RIGHT: STICKY */}
           <aside className={styles['cart-page__aside']}>
             <div className={styles['cart-page__sticky']}>
-              {/* TOTAL */}
-              <section className={styles['cart-page__section']}>
-                <div className={styles['cart-page__total']}>
-                  <span className={styles['cart-page__total-label']}>
-                    Ukupno za plaćanje:
-                  </span>
-                  <span className={styles['cart-page__total-value']}>
-                    {totalPrice} RSD
-                  </span>
-                </div>
-              </section>
-
-              {/* SAVED */}
-              {savedCustomers.length > 0 && (
+              {/* ✅ IMPORTANT: scroll goes inside stickyInner */}
+              <div className={styles['cart-page__stickyInner']}>
+                {/* TOTAL */}
                 <section className={styles['cart-page__section']}>
-                  <div className={styles['cart-page__saved']}>
-                    <div className={styles['cart-page__saved-title']}>
-                      Sačuvani kupci
-                    </div>
-                    <ul className={styles['cart-page__saved-list']}>
-                      {savedCustomers.map((c, idx) => (
-                        <li
-                          key={`${c.email}-${idx}`}
-                          className={styles['cart-page__saved-list-item']}
-                        >
-                          <button
-                            type="button"
-                            className={styles['cart-page__saved-item']}
-                            onClick={() => handleSelectSavedCustomer(c)}
-                          >
-                            <span
-                              className={styles['cart-page__saved-line-main']}
-                            >
-                              {c.fullName || 'Nepoznat korisnik'} • {c.email}
-                            </span>
-                            <span
-                              className={styles['cart-page__saved-line-sub']}
-                            >
-                              {c.address && `${c.address} • `}
-                              {c.phone || 'bez broja'}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                  <div className={styles['cart-page__total']}>
+                    <span className={styles['cart-page__total-label']}>
+                      Ukupno za plaćanje:
+                    </span>
+                    <span className={styles['cart-page__total-value']}>
+                      {totalPrice} RSD
+                    </span>
                   </div>
                 </section>
-              )}
 
-              {/* FORM */}
-              <section className={styles['cart-page__section']}>
-                <form
-                  className={styles['cart-page__form']}
-                  onSubmit={handleSubmit}
-                >
-                  <div className={styles['cart-page__form-row']}>
-                    <SidebarCartFormField
-                      type="text"
-                      placeholder="Ime i prezime"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      leftIcon={<FiUser size={16} />}
-                    />
-
-                    <SidebarCartFormField
-                      type="tel"
-                      placeholder="Broj telefona"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                      leftIcon={<FiPhone size={16} />}
-                    />
-                  </div>
-
-                  <div className={styles['cart-page__form-row']}>
-                    <SidebarCartFormField
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      leftIcon={<FiMail size={16} />}
-                    />
-
-                    <SidebarCartFormField
-                      as="textarea"
-                      placeholder="Napomena"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      leftIcon={<FiMessageSquare size={16} />}
-                    />
-                  </div>
-
-                  <div className={styles['cart-page__form-row']}>
-                    <div className={styles['cart-page__form-radios']}>
-                      <label className={styles['cart-page__form-radio']}>
-                        <input
-                          type="radio"
-                          name="orderType"
-                          value="delivery"
-                          checked={orderType === 'delivery'}
-                          onChange={() => setOrderType('delivery')}
-                          className={styles['cart-page__form-radio-input']}
-                        />
-                        <span className={styles['cart-page__form-radio-box']} />
-                        <span className={styles['cart-page__form-radio-label']}>
-                          Dostava
-                        </span>
-                      </label>
-
-                      <label className={styles['cart-page__form-radio']}>
-                        <input
-                          type="radio"
-                          name="orderType"
-                          value="pickup"
-                          checked={orderType === 'pickup'}
-                          onChange={() => setOrderType('pickup')}
-                          className={styles['cart-page__form-radio-input']}
-                        />
-                        <span className={styles['cart-page__form-radio-box']} />
-                        <span className={styles['cart-page__form-radio-label']}>
-                          Preuzimanje
-                        </span>
-                      </label>
+                {/* SAVED */}
+                {savedCustomers.length > 0 && (
+                  <section className={styles['cart-page__section']}>
+                    <div className={styles['cart-page__saved']}>
+                      <div className={styles['cart-page__saved-title']}>
+                        Sačuvani kupci
+                      </div>
+                      <ul className={styles['cart-page__saved-list']}>
+                        {savedCustomers.map((c, idx) => (
+                          <li
+                            key={`${c.email}-${idx}`}
+                            className={styles['cart-page__saved-list-item']}
+                          >
+                            <button
+                              type="button"
+                              className={styles['cart-page__saved-item']}
+                              onClick={() => handleSelectSavedCustomer(c)}
+                            >
+                              <span
+                                className={styles['cart-page__saved-line-main']}
+                              >
+                                {c.fullName || 'Nepoznat korisnik'} • {c.email}
+                              </span>
+                              <span
+                                className={styles['cart-page__saved-line-sub']}
+                              >
+                                {c.address && `${c.address} • `}
+                                {c.phone || 'bez broja'}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
+                  </section>
+                )}
 
-                  {orderType === 'delivery' && (
+                {/* FORM */}
+                <section className={styles['cart-page__section']}>
+                  <form
+                    className={styles['cart-page__form']}
+                    onSubmit={handleSubmit}
+                  >
                     <div className={styles['cart-page__form-row']}>
                       <SidebarCartFormField
                         type="text"
-                        placeholder="Adresa (ulica, broj, sprat...)"
-                        value={address}
-                        leftIcon={<FiMapPin />}
-                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Ime i prezime"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
                         required
+                        leftIcon={<FiUser size={16} />}
+                      />
+
+                      <SidebarCartFormField
+                        type="tel"
+                        placeholder="Broj telefona"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                        leftIcon={<FiPhone size={16} />}
                       />
                     </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    className={styles['cart-page__submit']}
-                    disabled={!hasItems}
-                  >
-                    Naruči
-                    <HandPointerSvg />
-                  </button>
+                    <div className={styles['cart-page__form-row']}>
+                      <SidebarCartFormField
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        leftIcon={<FiMail size={16} />}
+                      />
 
-                  <p className={styles['cart-page__form-note']}>
-                    Slanjem porudžbine potvrđujete tačnost podataka i dajete
-                    saglasnost za obradu ličnih podataka.
-                  </p>
-                </form>
-              </section>
+                      <SidebarCartFormField
+                        as="textarea"
+                        placeholder="Napomena"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        leftIcon={<FiMessageSquare size={16} />}
+                      />
+                    </div>
+
+                    <div className={styles['cart-page__form-row']}>
+                      <div className={styles['cart-page__form-radios']}>
+                        <label className={styles['cart-page__form-radio']}>
+                          <input
+                            type="radio"
+                            name="orderType"
+                            value="delivery"
+                            checked={orderType === 'delivery'}
+                            onChange={() => setOrderType('delivery')}
+                            className={styles['cart-page__form-radio-input']}
+                          />
+                          <span
+                            className={styles['cart-page__form-radio-box']}
+                          />
+                          <span
+                            className={styles['cart-page__form-radio-label']}
+                          >
+                            Dostava
+                          </span>
+                        </label>
+
+                        <label className={styles['cart-page__form-radio']}>
+                          <input
+                            type="radio"
+                            name="orderType"
+                            value="pickup"
+                            checked={orderType === 'pickup'}
+                            onChange={() => setOrderType('pickup')}
+                            className={styles['cart-page__form-radio-input']}
+                          />
+                          <span
+                            className={styles['cart-page__form-radio-box']}
+                          />
+                          <span
+                            className={styles['cart-page__form-radio-label']}
+                          >
+                            Preuzimanje
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {orderType === 'delivery' && (
+                      <div className={styles['cart-page__form-row']}>
+                        <SidebarCartFormField
+                          type="text"
+                          placeholder="Adresa (ulica, broj, sprat...)"
+                          value={address}
+                          leftIcon={<FiMapPin />}
+                          onChange={(e) => setAddress(e.target.value)}
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className={styles['cart-page__submit']}
+                      disabled={!hasItems}
+                    >
+                      Poruči
+                      <HandPointerSvg />
+                    </button>
+
+                    <p className={styles['cart-page__form-note']}>
+                      Slanjem porudžbine potvrđujete tačnost podataka i dajete
+                      saglasnost za obradu ličnih podataka.
+                    </p>
+                  </form>
+                </section>
+              </div>
             </div>
           </aside>
         </div>

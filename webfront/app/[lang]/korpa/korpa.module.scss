@@ -77,11 +77,20 @@
 
   &__aside {
     min-width: 0;
+    position: sticky;
+    top: 24px;
   }
 
+  /* ✅ STICKY wrapper (no overflow here!) */
   &__sticky {
     position: sticky;
-    top: 24px; // da ne lepi uz vrh
+    top: 24px;
+    max-height: calc(100vh - 24px);
+    overflow: visible; /* ✅ important */
+  }
+
+  /* ✅ Scroll container inside sticky */
+  &__stickyInner {
     max-height: calc(100vh - 24px);
     overflow: auto;
 
@@ -465,6 +474,10 @@
 
     &__sticky {
       position: static;
+      max-height: none;
+    }
+
+    &__stickyInner {
       max-height: none;
       overflow: visible;
     }

@@ -48,7 +48,7 @@
   stroke-dasharray: var(--length) var(--total-length);
   stroke-dashoffset: var(--offset);
 
-  transition: all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1), color 0s;
+  transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1), color 0s;
 }
 
 .line1,

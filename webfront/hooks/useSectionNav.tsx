@@ -16,8 +16,6 @@ type Options = {
   rootMargin?: string;
   threshold?: number | number[];
   scrollOffsetPx?: number;
-
-  // ✅ new
   autoHideMs?: number; // default 2000
 };
 
@@ -44,30 +42,59 @@ export function useSectionNav({
     }, autoHideMs);
   }, [autoHideMs]);
 
-  // init: pokupi elemente
+  // ✅ init: pokupi elemente (dedupe + reset)
   useEffect(() => {
-    const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    let raf = 0;
 
-    const mapped: SectionItem[] = els.map((el, idx) => {
-      const label =
-        el.getAttribute(labelAttr) ||
-        el.getAttribute('aria-label') ||
-        el.getAttribute('data-title') ||
-        `Section ${idx + 1}`;
+    const scan = () => {
+      const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
 
-      let id = el.id;
-      if (!id) {
-        id = `${idPrefix}${idx + 1}`;
-        el.id = id;
-      }
+      // reset visible set on each scan
+      visibleIdsRef.current = new Set();
 
-      return { id, label, el, isActive: false };
-    });
+      const seenIds = new Set<string>();
+      const seenEls = new Set<HTMLElement>();
 
-    setSections(mapped);
+      const mapped: SectionItem[] = [];
+
+      els.forEach((el, idx) => {
+        // dedupe by element reference (paranoia)
+        if (seenEls.has(el)) return;
+        seenEls.add(el);
+
+        const label =
+          el.getAttribute(labelAttr) ||
+          el.getAttribute('aria-label') ||
+          el.getAttribute('data-title') ||
+          `Section ${idx + 1}`;
+
+        let id = el.id;
+
+        // assign stable id if missing
+        if (!id) {
+          id = `${idPrefix}${idx + 1}`;
+          el.id = id;
+        }
+
+        // dedupe by id
+        if (!id || seenIds.has(id)) return;
+        seenIds.add(id);
+
+        mapped.push({ id, label, el, isActive: false });
+      });
+
+      setSections(mapped);
+    };
+
+    // defer one tick to avoid hydration/DOM timing issues
+    raf = window.requestAnimationFrame(scan);
+
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+    };
   }, [selector, labelAttr, idPrefix]);
 
-  // observer: koji je u viewportu
+  // ✅ observer: koji je u viewportu
   useEffect(() => {
     if (!sections.length) return;
 
@@ -94,13 +121,18 @@ export function useSectionNav({
         if (changed) {
           setSections((prev) => {
             const visible = visibleIdsRef.current;
+
             const next = prev.map((s) => ({
               ...s,
               isActive: visible.has(s.id),
             }));
 
             const activeId = pickTopMostVisible(next);
-            return next.map((s) => ({ ...s, isActive: s.id === activeId }));
+
+            return next.map((s) => ({
+              ...s,
+              isActive: s.id === activeId,
+            }));
           });
         }
       },
@@ -108,7 +140,10 @@ export function useSectionNav({
     );
 
     sections.forEach((s) => obs.observe(s.el));
-    return () => obs.disconnect();
+
+    return () => {
+      obs.disconnect();
+    };
   }, [sections, rootMargin, threshold]);
 
   const hasAnyActive = useMemo(
@@ -121,15 +156,13 @@ export function useSectionNav({
     if (typeof window === 'undefined') return;
 
     const onScroll = () => {
-      // čim skroluje -> pokaži
       setIsNavVisible(true);
-      // i zakazi hide 2s posle poslednjeg scroll eventa
       scheduleHide();
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // init: ako je već na strani, zakazi hide
+    // init hide
     scheduleHide();
 
     return () => {
@@ -143,12 +176,12 @@ export function useSectionNav({
       const s = sections.find((x) => x.id === id);
       if (!s) return;
 
-      // na klik -> pokaži, pa zakazi hide posle
       setIsNavVisible(true);
       scheduleHide();
 
       const y =
         s.el.getBoundingClientRect().top + window.scrollY - scrollOffsetPx;
+
       window.scrollTo({ top: y, behavior: 'smooth' });
     },
     [sections, scrollOffsetPx, scheduleHide]
@@ -167,5 +200,6 @@ function pickTopMostVisible(
     (a, b) =>
       a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top
   );
+
   return visible[0].id;
 }

@@ -28,6 +28,8 @@ export function useFlyToCart() {
     clone.style.opacity = '0.5';
     clone.style.transform = 'scale(0.6)';
     clone.style.transformOrigin = 'top left';
+    clone.style.objectFit = 'cover';
+    clone.style.aspectRatio = '1 / 1';
 
     // ✨ Beli background
     clone.style.background = 'white';
