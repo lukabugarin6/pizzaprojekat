@@ -108,13 +108,15 @@ export default function Navbar({}: {}) {
             <div className={styles.navbar__cartIcon}>
               <CartSvg />
               {totalItems > 0 && (
-                <span
-                  className={clsx(
-                    styles.navbar__badge,
-                    pulse && styles.navbar__badgePulse
-                  )}
-                >
-                  {totalItems}
+                <span className={styles.navbar__badge}>
+                  <span
+                    className={clsx(
+                      styles.navbar__badgeInner,
+                      pulse && styles.navbar__badgePulse
+                    )}
+                  >
+                    {totalItems}
+                  </span>
                 </span>
               )}
             </div>

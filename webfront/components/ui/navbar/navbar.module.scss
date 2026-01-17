@@ -44,7 +44,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 0 20px;
   height: 56px;
   width: 100%;
@@ -56,7 +55,7 @@
   background-color: var(--black);
   border-bottom: 1px solid #42403d;
 
-  z-index: 22;
+  z-index: 9999;
 
   @media (min-width: 1280px) {
     display: none;
@@ -127,12 +126,6 @@
     user-select: none;
   }
 
-  &__cartWrapper:hover {
-    .navbar__badge {
-      transform: scale(1.08);
-    }
-  }
-
   &__cartIcon {
     position: relative;
     display: inline-flex;
@@ -140,17 +133,39 @@
     justify-content: center;
   }
 
+  /**
+   * ✅ FIX: badge koristi translate za poziciju,
+   * a scale/animacije idu na inner element
+   *
+   * Ovo zahteva da u JSX imaš:
+   * <span className={styles.navbar__badge}>
+   *   <span className={clsx(styles.navbar__badgeInner, pulse && styles.navbar__badgePulse)}>{totalItems}</span>
+   * </span>
+   */
   &__badge {
     position: absolute;
     top: 0;
     right: 0;
+
+    /* translate ostaje OVDE i nikad se ne prepisuje */
     transform: translate(45%, -25%);
 
+    /* samo pozicioniranje wrapper-a */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    transform-origin: top right;
+    will-change: transform;
+    pointer-events: none; /* da tap/focus ne hvata badge */
+  }
+
+  &__badgeInner {
     min-width: 22px;
     height: 22px;
     padding: 0 6px;
 
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 
@@ -161,12 +176,18 @@
     background-color: var(--accent);
     border-radius: 999px;
 
-    transform-origin: top right;
     will-change: transform;
+    transform-origin: center center;
+  }
+
+  /* hover sada skalira inner, ne wrapper (translate ostaje) */
+  &__cartWrapper:hover {
+    .navbar__badgeInner {
+      transform: scale(1.08);
+    }
   }
 
   &__badgePulse {
-    transform-origin: center center;
     animation: badgePulse 1000ms ease-in-out 0s 2;
   }
 
@@ -175,8 +196,6 @@
     top: 0;
     left: 0;
     width: 100%;
-
-    z-index: 9999;
 
     animation: navbarIn 280ms ease-out both;
     will-change: transform, opacity;
@@ -460,15 +479,15 @@
 }
 
 /* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .navbar--fixed {
-    animation: none;
-  }
-  .menuOverlay,
-  .menuPanel {
-    transition: none;
-  }
-  .navbar__badgePulse {
-    animation: none;
-  }
-}
+// @media (prefers-reduced-motion: reduce) {
+//   .navbar--fixed {
+//     animation: none;
+//   }
+//   .menuOverlay,
+//   .menuPanel {
+//     transition: none;
+//   }
+//   .navbar__badgePulse {
+//     animation: none;
+//   }
+// }
