@@ -10,18 +10,24 @@ export function useStickyAfterVh(vh = 1) {
 
     let ticking = false;
 
+    const compute = () => {
+      const threshold = window.innerHeight * vh;
+      const next = window.scrollY >= threshold;
+
+      setIsFixed((prev) => (prev === next ? prev : next));
+    };
+
     const onScroll = () => {
       if (ticking) return;
       ticking = true;
 
       requestAnimationFrame(() => {
-        const threshold = window.innerHeight * vh;
-        setIsFixed(window.scrollY >= threshold);
+        compute();
         ticking = false;
       });
     };
 
-    onScroll();
+    compute();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
 
