@@ -33,7 +33,7 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
         </PizzaGrid>
       </div>
       <div className="productGridSection" data-nav-label="Piće">
-        <PizzaGrid smaller title="PIĆE">
+        <PizzaGrid smaller title="PIĆE" titleClassName="drinksTitle">
           {drinks.map((drink, index) => (
             <ProductCard
               key={index}

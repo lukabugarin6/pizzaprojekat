@@ -1,0 +1,90 @@
+.button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  scale: 1.5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+
+  svg {
+    width: 40px;
+    height: 40px;
+    display: block;
+  }
+}
+
+.circle {
+  fill: rgba(255, 255, 255, 0.18);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+// .button:hover .circle {
+//   opacity: 1;
+// }
+
+.line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  --length: 24;
+  --offset: -38;
+  stroke-dasharray: var(--length) var(--total-length);
+  stroke-dashoffset: var(--offset);
+
+  transition: all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1), color 0s;
+}
+
+.line1,
+.line3 {
+  --total-length: 126.64183044433594;
+}
+
+.line2 {
+  --total-length: 70;
+}
+
+/* state hook */
+.state {
+  display: none;
+}
+
+.stateOpen {
+  /* marker class */
+}
+
+/* ✅ sada radi: stateOpen je odmah pre .icon */
+.stateOpen + .icon {
+  .line1,
+  .line3 {
+    --length: 22.627416998;
+    --offset: -94.1149185097;
+  }
+
+  .line2 {
+    --length: 0;
+    --offset: -50;
+  }
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}

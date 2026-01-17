@@ -59,6 +59,10 @@ p {
   display: block;
 }
 
+main {
+  position: relative;
+}
+
 a {
   font-size: var(--link-font-size);
   line-height: var(--link-line-height);

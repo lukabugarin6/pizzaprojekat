@@ -78,8 +78,6 @@ export default function Sidebar({ lang }: Props) {
     if (cartEmpty) {
       e.preventDefault();
       e.stopPropagation();
-      // ako hoćeš: možeš i da ostaviš preview otvoren odmah na klik
-      // handleCartMouseEnter();
     }
   };
 

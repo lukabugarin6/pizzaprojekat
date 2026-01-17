@@ -1,0 +1,222 @@
+@keyframes cartAnimation {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  33% {
+    transform: rotate(-7deg) translateY(-3px);
+  }
+  66% {
+    transform: rotate(20deg) translateY(-6px);
+  }
+}
+
+@keyframes badgePulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes navbarIn {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* =========================
+   NAVBAR (BEM)
+   ========================= */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 20px;
+
+  height: 56px;
+  width: 100%;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  background-color: var(--black);
+  border-bottom: 1px solid #42403d;
+
+  z-index: 22;
+
+  @media (min-width: 1280px) {
+    display: none;
+  }
+
+  &__langSwitcherAndCartWrapper {
+    position: relative;
+    .langSwitcher {
+      width: fit-content;
+      position: absolute;
+      top: 50%;
+      right: -18px;
+      translate: 100% -55%;
+      display: flex;
+      width: max-content;
+      font-size: 14px;
+      letter-spacing: -0.03em;
+    }
+  }
+
+  &__item {
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    text-decoration: none;
+    cursor: pointer;
+
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1;
+
+    color: var(--white);
+    transition: color 0.25s ease;
+
+    svg {
+      width: 26px;
+      height: auto;
+    }
+
+    &:hover {
+      color: var(--accent);
+
+      &:has(:global(.cart-icon)) {
+        :global(.cart-icon) {
+          animation: cartAnimation 0.7s linear 0s 1 forwards;
+        }
+      }
+    }
+  }
+
+  &__logo {
+    margin-top: 0;
+    font-size: 17px;
+    line-height: 17px;
+    font-weight: 700;
+    color: var(--white);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  &__cartIcon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    translate: 45% -25%;
+
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: #fff;
+    background-color: var(--accent);
+    border-radius: 999px;
+
+    transform-origin: top right;
+  }
+
+  &__cartWrapper:hover {
+    .navbar__badge {
+      transform: scale(1.08);
+    }
+  }
+
+  &__badgePulse {
+    transform-origin: center center;
+    animation-name: badgePulse;
+    animation-duration: 1000ms;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: 2;
+  }
+
+  /* =========================
+     MODIFIER: fixed state
+     ========================= */
+  &--fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+
+    z-index: 9999;
+
+    /* ✅ animacija ulaska */
+    animation: navbarIn 280ms ease-out both;
+    will-change: transform, opacity;
+
+    /* ✅ fixed skin */
+    background-color: var(--white);
+    border-bottom: 1px solid #000;
+
+    color: var(--black);
+
+    /* svi tekstovi crni */
+    .navbar__item {
+      color: #000;
+
+      &:hover {
+        color: var(--accent);
+      }
+    }
+
+    .navbar__logo {
+      color: #000;
+    }
+  }
+}
+
+.is-active {
+  color: var(--accent) !important;
+}
+
+.is-disabled {
+  // opacity: 0.45;
+  cursor: default !important;
+  pointer-events: auto;
+
+  &:hover {
+    color: inherit !important;
+
+    &:has(:global(.cart-icon)) {
+      :global(.cart-icon) {
+        animation: none !important;
+      }
+    }
+  }
+}

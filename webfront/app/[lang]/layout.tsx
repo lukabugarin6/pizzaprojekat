@@ -7,6 +7,7 @@ import localFont from 'next/font/local';
 import Sidebar from '@/modules/global/sidebar';
 import Preloader from '@/components/ui/preloader';
 import { CartProvider } from '@/context/cart/cart-provider';
+import Navbar from '@/components/ui/navbar';
 
 const montserrat = localFont({
   src: [
@@ -125,6 +126,7 @@ export default async function RootLayout({
 
           <CartProvider>
             <Sidebar />
+            <Navbar />
             <div style={{ flexGrow: 1 }}>{children}</div>
             <Footer />
             <Preloader />

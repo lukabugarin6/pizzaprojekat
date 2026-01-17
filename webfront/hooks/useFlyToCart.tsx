@@ -12,6 +12,8 @@ export function useFlyToCart() {
 
     if (!cartEl) return;
 
+    if (window.innerWidth < 1280) return;
+
     const imageRect = imageEl.getBoundingClientRect();
     const cartRect = cartEl.getBoundingClientRect();
 

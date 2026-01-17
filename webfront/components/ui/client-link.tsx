@@ -6,12 +6,11 @@ import { usePathname } from 'next/navigation';
 
 type Props = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
-
-  // ako hoćeš da automatski prefiksuješ trenutni lang (default true)
   preserveLang?: boolean;
-
-  // ako klikneš na istu rutu, pošalji forceOpen (default true)
   forceOpenWhenSame?: boolean;
+
+  // ✅ NEW: blokiraj klik ako je ista ruta
+  blockWhenSame?: boolean;
 
   className?: string;
   classes?: {
@@ -19,7 +18,6 @@ type Props = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     logo?: string;
     nonHoverable?: string;
   };
-
   children: ReactNode;
 };
 
@@ -27,11 +25,12 @@ export default function ClientLink({
   href,
   preserveLang = true,
   forceOpenWhenSame = true,
+  blockWhenSame = true, // ✅ default false
   className,
   classes,
   children,
   onClick,
-  ...rest // ✅ data-*, aria-*, id, style, target...
+  ...rest
 }: Props) {
   const pathname = usePathname() || '/';
 
@@ -49,7 +48,6 @@ export default function ClientLink({
 
     const targetSegments = clean.split('/').filter(Boolean);
     const hasLangAlready = targetSegments[0] === lang;
-
     if (hasLangAlready) return clean;
 
     return clean === '/' ? `/${lang}/` : `/${lang}${clean}`;
@@ -63,7 +61,7 @@ export default function ClientLink({
   return (
     <a
       href={resolvedHref}
-      {...rest} // ✅ sad prolaze data atributi
+      {...rest}
       className={clsx(
         classes?.item,
         classes?.logo,
@@ -71,15 +69,21 @@ export default function ClientLink({
         className
       )}
       onClick={(e) => {
-        // ✅ pusti da user-ov onClick radi (ako ga ima)
         onClick?.(e);
         if (e.defaultPrevented) return;
-
-        e.preventDefault();
 
         const isSame =
           currentWithoutLang === targetWithoutLang ||
           (currentWithoutLang === '' && targetWithoutLang === '');
+
+        // ✅ GUARD: ako je ista ruta i user hoće da blokira -> ne radi ništa
+        if (blockWhenSame && isSame) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        e.preventDefault();
 
         window.dispatchEvent(
           new CustomEvent('start-route-change', {

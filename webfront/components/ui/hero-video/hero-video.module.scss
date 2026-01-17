@@ -46,27 +46,27 @@
     }
 
     // hover samo na uređajima koji imaju hover (desktop)
-    @media (hover: hover) and (pointer: fine) {
-      &:hover {
-        color: var(--accent);
+    // @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: var(--accent);
 
-        :global(.logoSlice) {
-          transform: translate(0, -40px);
-        }
+      :global(.logoSlice) {
+        transform: translate(0, -40px);
       }
     }
+    // }
 
     // mali ekrani: smanji hover pomeraj (i generalno “tighten”)
-    @media (max-width: 480px) {
-      :global(.logoSlice) {
-        transform: translate(0, 0);
-      }
+    // @media (max-width: 480px) {
+    //   :global(.logoSlice) {
+    //     transform: translate(0, 0);
+    //   }
 
-      @media (hover: hover) and (pointer: fine) {
-        &:hover :global(.logoSlice) {
-          transform: translate(0, -20px);
-        }
-      }
-    }
+    //   @media (hover: hover) and (pointer: fine) {
+    //     &:hover :global(.logoSlice) {
+    //       transform: translate(0, -20px);
+    //     }
+    //   }
+    // }
   }
 }

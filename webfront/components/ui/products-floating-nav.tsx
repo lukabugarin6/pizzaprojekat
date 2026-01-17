@@ -27,8 +27,8 @@ export default function ProductsFloatingNav({
     <div
       className={clsx(
         // ✅ samo 1280+
-        'hidden min-[1280px]:flex',
-        'fixed bottom-6 right-2 z-50 flex-col items-center gap-14',
+        'flex',
+        'fixed bottom-6 right-1 xl:right-2 z-50 flex-col items-center gap-14',
         'transition-opacity duration-300',
         isNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
         className
