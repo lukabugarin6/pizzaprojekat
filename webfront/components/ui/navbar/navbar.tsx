@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import styles from './navbar.module.scss';
 import { useCart } from '@/context/cart/cart-context';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import CartSvg from '@/components/svg/cart-svg';
 import ClientLink from '../client-link';
 import { usePathname } from 'next/navigation';
@@ -18,23 +18,37 @@ import PhoneSvg from '@/components/svg/phone-svg';
 import TimeSvg from '@/components/svg/time-svg';
 
 export default function Navbar({}: {}) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '/';
   const { totalItems } = useCart();
 
-  const isFixed = useStickyAfterVh(0.99);
+  // sticky posle 0.99vh (za home)
+  const stickyAfterVh = useStickyAfterVh(0.99);
+
+  // locale-aware: /, /en, /en/, /ru, /ru/ su home
+  const { lang, currentWithoutLang } = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    return {
+      lang: segments[0] || '',
+      currentWithoutLang: segments.slice(1).join('/'), // '' znaci home (posle lang-a)
+    };
+  }, [pathname]);
+
+  const isHomePage = currentWithoutLang === '';
+  const isCartPage = currentWithoutLang === 'korpa';
+
+  // ✅ ako nisi na home-u -> uvek fixed
+  const isFixed = !isHomePage ? true : stickyAfterVh;
 
   const prevTotalRef = useRef(totalItems);
   const [pulse, setPulse] = useState(false);
 
-  const isCartPage = /(^|\/)korpa\/?$/.test(pathname || '');
-  const isHomePage = /^(\/)?$/.test(pathname || '');
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // ✅ close menu on route change
   useEffect(() => {
     if (!isMenuOpen) return;
     setIsMenuOpen(false);
-  }, [pathname, isMenuOpen]);
+  }, [pathname]);
 
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
@@ -97,6 +111,7 @@ export default function Navbar({}: {}) {
         <div className={clsx(styles.navbar__langSwitcherAndCartWrapper)}>
           <ClientLink
             href="/korpa"
+            preserveLang
             classes={{
               item: styles.navbar__item,
               logo: clsx(
@@ -132,6 +147,7 @@ export default function Navbar({}: {}) {
 
         <ClientLink
           href="/"
+          preserveLang
           classes={{
             logo: clsx(
               styles.navbar__logo,
@@ -172,6 +188,21 @@ export default function Navbar({}: {}) {
               className={styles.menuTile}
               onClick={() => {
                 closeMenu();
+
+                // ako nisi na home-u, samo idi na home (pa onda user scroll-a tamo)
+                // ako jesi na home-u, uradi smooth scroll
+                if (!isHomePage) {
+                  // koristi ClientLink mehanizam? ovde je button, pa samo dispatch
+                  // ako ti je bitno preserveLang:
+                  const target = lang ? `/${lang}/` : '/';
+                  window.dispatchEvent(
+                    new CustomEvent('start-route-change', {
+                      detail: { href: target },
+                    })
+                  );
+                  return;
+                }
+
                 scrollToNextSection();
               }}
             >
@@ -218,7 +249,6 @@ export default function Navbar({}: {}) {
           <div className={styles.menuBottomContent}>
             <div className={styles.menuDividerWide} />
 
-            {/* ✅ working time row, smaller icon + text */}
             <div className={styles.workingTimeRow}>
               <span className={styles.workingTimeIcon}>
                 <TimeSvg />
