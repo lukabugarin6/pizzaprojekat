@@ -21,7 +21,7 @@ export default function Navbar({}: {}) {
   const pathname = usePathname();
   const { totalItems } = useCart();
 
-  const isFixed = useStickyAfterVh(1);
+  const isFixed = useStickyAfterVh(0.99);
 
   const prevTotalRef = useRef(totalItems);
   const [pulse, setPulse] = useState(false);
