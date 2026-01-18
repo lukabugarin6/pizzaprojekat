@@ -2,6 +2,8 @@
   position: relative;
   width: 100%;
   min-height: 100dvh;
+  overflow: hidden;
+  z-index: 999;
   &__logoAndText {
     position: absolute;
     left: 50%;

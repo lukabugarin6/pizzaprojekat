@@ -4,7 +4,7 @@
 
   &__back {
     position: absolute;
-    top: 62px;
+    top: 42px;
     left: 60px;
 
     display: inline-flex;
@@ -118,17 +118,54 @@
     }
   }
 
+  &__form-radio--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &__form-radio--disabled * {
+    cursor: not-allowed;
+  }
+  /* Poruka ispod radio-a (uvek), razmak 10px */
+  &__delivery-message {
+    margin-top: 10px; // ✅ TAČNO 10px ispod radio dugmadi
+    font-size: 13px;
+    line-height: 1.2;
+    color: #2a2a2a;
+  }
+
+  /* Kad nije dozvoljena dostava (crveno / warning vibe) */
+  &__delivery-message--error {
+    color: #d10000;
+    font-weight: 700;
+    width: 100%;
+  }
+
+  /* Poruka o gotovini (ispod warning poruke) */
+  &__cash-message {
+    color: var(--black);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
   &__section-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: 0 0 10px;
+    padding: 0 0 4px;
+    @media (min-width: 1359) {
+      padding: 0 0 10px;
+    }
   }
 
   &__section-meta {
-    font-size: 16px;
+    font-size: 12px;
     color: #777;
     margin-left: auto;
+    @media (min-width: 1359) {
+      font-size: 16px;
+    }
   }
 
   /* items list */
@@ -144,6 +181,7 @@
     padding: 16px 0;
     border-top: 1px solid #dcdcdc;
     position: relative;
+
     &:last-child {
       border-bottom: 1px solid #dcdcdc;
     }
@@ -179,6 +217,7 @@
     margin-bottom: 2px;
     letter-spacing: 0.02em;
     color: var(--black);
+    font-weight: 700;
   }
 
   &__item-meta {
@@ -189,13 +228,40 @@
     color: #777;
   }
 
+  /* ✅ NEW: description */
+  &__item-desc {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: #777;
+    max-width: 520px;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ✅ NEW: unit price */
+  &__item-unitprice {
+    margin-top: 8px;
+    font-size: 16px;
+    color: #111;
+    font-weight: 700;
+    span {
+      color: #777;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+  }
+
   &__item-right {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
     gap: 20px;
-    min-width: 200px;
+    min-width: 240px;
     flex-shrink: 0;
   }
 
@@ -249,12 +315,25 @@
     background: var(--accent-light);
   }
 
+  /* ✅ UPDATED: line total + small breakdown */
   &__item-price {
     font-size: 20px;
-    font-weight: 500;
+    font-weight: 800;
     color: #000;
     text-align: right;
-    min-width: 90px;
+    min-width: 110px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.1;
+  }
+
+  &__item-price-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #777;
   }
 
   &__item-remove {
@@ -299,7 +378,7 @@
 
   &__total-value {
     font-size: 26px;
-    font-weight: 500;
+    font-weight: 900;
     color: #000;
   }
 
@@ -465,13 +544,6 @@
     }
   }
 
-  &__form-note {
-    margin-top: 2px;
-    font-size: 11px;
-    line-height: 1.4;
-    color: #777;
-  }
-
   /* =========================================================
    * BREAKPOINTS PO TVOM: 0-1280, 1280-1920, 1920+
    * ========================================================= */
@@ -480,16 +552,19 @@
   @media (max-width: 1359px) {
     &__container {
       width: min(980px, 92vw);
-      padding: 70px 0 60px;
+      padding: 100px 0 60px;
     }
 
     /* back link ide u flow da ne seče header */
     &__back {
-      position: static;
-      top: auto;
-      left: auto;
-      margin: 10px 0 0;
+      // position: static;
+      // top: auto;
+      // left: auto;
+      // margin: 10px 0 0;
+      // font-size: 16px;
       font-size: 16px;
+      left: 20px;
+      top: 70px;
     }
 
     &__header {
@@ -523,6 +598,14 @@
     &__stickyInner {
       max-height: none;
       overflow: visible;
+    }
+
+    &__item-main {
+      max-width: 100%;
+    }
+
+    &__item-desc {
+      max-width: 100%;
     }
   }
 
@@ -559,6 +642,14 @@
       text-align: center;
     }
 
+    &__item-desc {
+      text-align: center;
+    }
+
+    &__item-unitprice {
+      text-align: center;
+    }
+
     /* ✅ ključno: desna strana postaje grid da counter + price + remove budu vidljivi */
     &__item-right {
       width: 100%;
@@ -581,6 +672,7 @@
       grid-area: price;
       min-width: 0;
       text-align: center;
+      align-items: center;
     }
 
     &__item-remove {

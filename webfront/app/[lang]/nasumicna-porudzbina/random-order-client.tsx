@@ -122,6 +122,7 @@ export default function RandomOrderClient({
         size: pizza.selectedVariant.size,
         price: pizza.selectedVariant.price,
         quantity: pizza.rowQty,
+        description: pizza.description,
       });
     });
 

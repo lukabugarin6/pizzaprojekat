@@ -46,6 +46,7 @@ export default function SidebarCartPreview({
     totalPrice,
     updateItemQuantity,
     removeFromCart,
+    delivery,
   } = useCart();
 
   const [mounted, setMounted] = useState(false);
@@ -89,6 +90,13 @@ export default function SidebarCartPreview({
       console.error('Failed to load saved customers', err);
     }
   }, []);
+
+  useEffect(() => {
+    if (orderType === 'delivery' && !delivery.allowed) {
+      setOrderType('pickup');
+      setAddress(''); // opcionalno: očisti adresu kad nije dostava
+    }
+  }, [orderType, delivery.allowed]);
 
   if (!mounted) return null;
 
@@ -147,9 +155,15 @@ export default function SidebarCartPreview({
     setFullName(customer.fullName || '');
     setEmail(customer.email || '');
     setPhone(customer.phone || '');
-    setOrderType(customer.orderType || 'pickup');
-    setAddress(customer.address || '');
-    // 👇 sada prepopunjava i napomenu ako je sačuvana
+
+    const nextOrderType =
+      customer.orderType === 'delivery' && !delivery.allowed
+        ? 'pickup'
+        : customer.orderType || 'pickup';
+
+    setOrderType(nextOrderType);
+
+    setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
   };
 
@@ -165,6 +179,7 @@ export default function SidebarCartPreview({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!items.length) return;
+    if (orderType === 'delivery' && !delivery.allowed) return;
 
     const trimmedFullName = fullName.trim();
     const trimmedEmail = email.trim();
@@ -211,7 +226,7 @@ export default function SidebarCartPreview({
         className={clsx(
           styles['sidebar-cart__panel'],
           isOpen && styles['sidebar-cart__panel--open'],
-          !hasItems && styles['sidebar-cart__panel--empty']
+          !hasItems && styles['sidebar-cart__panel--empty'],
         )}
       >
         <div className={styles['sidebar-cart__inner']}>
@@ -253,21 +268,25 @@ export default function SidebarCartPreview({
                           <div className={styles['sidebar-cart__item-name']}>
                             {item.name}
                           </div>
-                          <div className={styles['sidebar-cart__item-meta']}>
-                            <span className={styles['sidebar-cart__meta-icon']}>
-                              <CiRuler size={20} />
-                            </span>
-                            <span
-                              className={styles['sidebar-cart__meta-label']}
-                            >
-                              Veličina
-                            </span>
-                            <span
-                              className={styles['sidebar-cart__meta-value']}
-                            >
-                              — {item?.size} cm
-                            </span>
-                          </div>
+                          {item?.size && (
+                            <div className={styles['sidebar-cart__item-meta']}>
+                              <span
+                                className={styles['sidebar-cart__meta-icon']}
+                              >
+                                <CiRuler size={20} />
+                              </span>
+                              <span
+                                className={styles['sidebar-cart__meta-label']}
+                              >
+                                Veličina
+                              </span>
+                              <span
+                                className={styles['sidebar-cart__meta-value']}
+                              >
+                                — {item?.size} cm
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -357,12 +376,15 @@ export default function SidebarCartPreview({
               <div className={styles['sidebar-cart__footer-row']}>
                 <span className={styles['sidebar-cart__footer-label']}>
                   Ukupno za plaćanje:
+                  <span className={styles['sidebar-cart__cash-badge']}>
+                    Gotovina
+                  </span>
                 </span>
+
                 <span className={styles['sidebar-cart__footer-value']}>
                   {totalPrice} RSD
                 </span>
               </div>
-
               {savedCustomers.length > 0 && (
                 <div className={styles['sidebar-cart__saved']}>
                   <div className={styles['sidebar-cart__saved-title']}>
@@ -405,7 +427,7 @@ export default function SidebarCartPreview({
                 <div
                   className={clsx(
                     styles['sidebar-cart__form-row'],
-                    styles['sidebar-cart__form-row--inputs']
+                    styles['sidebar-cart__form-row--inputs'],
                   )}
                 >
                   <SidebarCartFormField
@@ -431,7 +453,7 @@ export default function SidebarCartPreview({
                 <div
                   className={clsx(
                     styles['sidebar-cart__form-row'],
-                    styles['sidebar-cart__form-row--inputs']
+                    styles['sidebar-cart__form-row--inputs'],
                   )}
                 >
                   <SidebarCartFormField
@@ -452,15 +474,27 @@ export default function SidebarCartPreview({
                 </div>
 
                 {/* red 3: radio dugmad */}
-                <div className={styles['sidebar-cart__form-row']}>
+                <div
+                  className={clsx(
+                    styles['sidebar-cart__form-row'],
+                    styles['radioBtnWrapper'],
+                  )}
+                >
                   <div className={styles['sidebar-cart__form-radios']}>
-                    <label className={styles['sidebar-cart__form-radio']}>
+                    <label
+                      className={clsx(
+                        styles['sidebar-cart__form-radio'],
+                        !delivery.allowed &&
+                          styles['sidebar-cart__form-radio--disabled'],
+                      )}
+                    >
                       <input
                         type="radio"
                         name="orderType"
                         value="delivery"
                         checked={orderType === 'delivery'}
                         onChange={() => setOrderType('delivery')}
+                        disabled={!delivery.allowed}
                         className={styles['sidebar-cart__form-radio-input']}
                       />
                       <span
@@ -491,6 +525,28 @@ export default function SidebarCartPreview({
                         Preuzimanje
                       </span>
                     </label>
+                  </div>
+
+                  {/* poruka UVEK ispod, razmak 10px */}
+                  <div
+                    className={clsx(
+                      styles['sidebar-cart__delivery-message'],
+                      !delivery.allowed &&
+                        styles['sidebar-cart__delivery-message--error'],
+                    )}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {delivery.allowed
+                      ? 'Dostava je dostupna za sadržaj korpe.'
+                      : (delivery.reason ??
+                        'Dostava nije dostupna za sadržaj korpe.')}
+                  </div>
+                  <div
+                    className={styles['sidebar-cart__cash-message']}
+                    role="note"
+                  >
+                    Plaćanje prihvatamo samo u gotovini.
                   </div>
                 </div>
 
@@ -527,6 +583,6 @@ export default function SidebarCartPreview({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

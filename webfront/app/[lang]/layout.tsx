@@ -125,11 +125,19 @@ export default async function RootLayout({
           {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
 
           <CartProvider>
-            <Sidebar />
-            <Navbar />
-            <div style={{ flexGrow: 1 }}>{children}</div>
-            <Footer />
-            <Preloader />
+            <div
+              style={{
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Sidebar />
+              <Navbar />
+              <div style={{ flexGrow: 1 }}>{children}</div>
+              <Footer />
+              <Preloader />
+            </div>
           </CartProvider>
         </ThemeProvider>
       </body>

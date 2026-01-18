@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { usePathname } from 'next/navigation';
 
@@ -27,6 +27,7 @@ export default function Sidebar({ lang }: Props) {
   // /korpa, /sr-Latn/korpa, /sr-Cyrl/korpa, /en/korpa, /ru/korpa
   const isCartPage = /(^|\/)korpa\/?$/.test(pathname || '');
   const isRandomPage = /(^|\/)nasumicna-porudzbina\/?$/.test(pathname || '');
+  const isDeliveryPage = /(^|\/)cenovnik-dostave\/?$/.test(pathname || '');
 
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
   const { totalItems } = useCart();
@@ -40,6 +41,31 @@ export default function Sidebar({ lang }: Props) {
     handleMouseEnter: handleCartMouseEnter,
     handleMouseLeave: handleCartMouseLeave,
   } = useDelayedHover(700);
+
+  // ✅ WORKING HOURS: 15:00–23:00 (local time)
+  const [isOpenNow, setIsOpenNow] = useState(true);
+
+  useEffect(() => {
+    const compute = () => {
+      const now = new Date();
+
+      const day = now.getDay(); // 0=Sunday ... 6=Saturday
+      const isSunday = day === 0;
+
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const start = 15 * 60; // 15:00
+      const end = 23 * 60; // 23:00
+
+      const openToday = !isSunday && minutes >= start && minutes < end;
+
+      setIsOpenNow(openToday);
+    };
+
+    compute();
+
+    const t = window.setInterval(compute, 30_000);
+    return () => window.clearInterval(t);
+  }, []);
 
   // if we navigate to cart page, force-close preview
   useEffect(() => {
@@ -81,8 +107,14 @@ export default function Sidebar({ lang }: Props) {
     }
   };
 
+  const isHomePage = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    // "/" ili "/en" ili "/sr-Latn" itd.
+    return segments.length <= 1;
+  }, [pathname]);
+
   return (
-    <div className={clsx(styles.wrapper)}>
+    <div className={clsx(styles.wrapper, !isOpenNow && styles.closed)}>
       <div className={clsx(styles.wrapper__inner)}>
         <ClientLink
           href="/"
@@ -97,27 +129,36 @@ export default function Sidebar({ lang }: Props) {
         </ClientLink>
 
         <div className={clsx(styles.wrapper__inner__top)}>
-          <div
-            className={clsx(
-              styles.wrapper__inner__item,
-              styles.wrapper__inner__top__item
-            )}
-            onClick={scrollToNextSection}
+          <ClientLink
+            href="/"
+            preserveLang
+            classes={{
+              item: styles.wrapper__inner__item,
+              logo: styles.wrapper__inner__top__item,
+            }}
+            onClick={(e) => {
+              if (!isHomePage) return;
+              scrollToNextSection();
+            }}
           >
             <PizzaSvg />
             <span>Poruči picu</span>
-          </div>
+          </ClientLink>
 
-          <div
-            className={clsx(
-              styles.wrapper__inner__item,
-              styles.wrapper__inner__top__item,
-              styles.smaller
-            )}
+          <ClientLink
+            classes={{
+              item: styles.wrapper__inner__item,
+              logo: clsx(
+                styles.wrapper__inner__top__item,
+                isDeliveryPage && styles.active,
+              ),
+              nonHoverable: styles.smaller,
+            }}
+            href="/cenovnik-dostave"
           >
             <DeliveryZoneSvg />
-            <span>Zona dostave</span>
-          </div>
+            <span>Cenovnik dostave</span>
+          </ClientLink>
 
           {/* CART LINK (preview radi i kad je prazno; samo klik blokiran) */}
           <ClientLink
@@ -127,7 +168,7 @@ export default function Sidebar({ lang }: Props) {
               logo: clsx(
                 styles.wrapper__inner__top__item,
                 isCartPage && styles.active,
-                cartEmpty && styles.disabled
+                cartEmpty && styles.disabled,
               ),
               nonHoverable: styles.cartWrapper,
             }}
@@ -143,7 +184,7 @@ export default function Sidebar({ lang }: Props) {
                 <span
                   className={clsx(
                     styles.cartBadge,
-                    pulse && styles.cartBadgePulse
+                    pulse && styles.cartBadgePulse,
                   )}
                 >
                   {totalItems}
@@ -167,7 +208,7 @@ export default function Sidebar({ lang }: Props) {
               logo: clsx(
                 styles.wrapper__inner__top__item,
                 styles.smaller,
-                isRandomPage && styles.active
+                isRandomPage && styles.active,
               ),
               nonHoverable: styles.smaller,
             }}
@@ -188,15 +229,16 @@ export default function Sidebar({ lang }: Props) {
             className={clsx(
               styles.wrapper__inner__item,
               styles.smaller,
-              styles.nonHoverable
+              styles.nonHoverable,
+              !isOpenNow && styles.workingHoursClosed,
             )}
           >
             <TimeSvg />
-            <span>15:00—22:00</span>
+            <span>15:00—23:00</span>
           </div>
         </div>
 
-        <div className={clsx(styles.langSwitcher)}>RS | EN | RU</div>
+        <div className={clsx(styles.langSwitcher)}>EN | RU</div>
       </div>
     </div>
   );

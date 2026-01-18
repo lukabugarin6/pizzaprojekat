@@ -106,21 +106,21 @@ export const sandwiches = [
     name: 'Šunka',
     description: 'Pavlaka, šunka, sir, kečap, majonez, čeri paradajz',
     image: '/images/sunkasendvicfinal.png',
-    variants: [{ size: 1, price: 460 }],
+    variants: [{ price: 460 }],
   },
   {
     id: 'sandwich-kulen',
     name: 'Kulen',
     description: 'Pavlaka, sir, kulen, majonez, kečap, čeri paradajz',
     image: '/images/kulensendvicfinal.png',
-    variants: [{ size: 1, price: 520 }],
+    variants: [{ price: 520 }],
   },
   {
     id: 'sandwich-prsuta',
     name: 'Pršuta',
     description: 'Pavlaka, sir, pršuta, majonez, kečap, čeri paradajz',
     image: '/images/prsutasendvic.png',
-    variants: [{ size: 1, price: 540 }],
+    variants: [{ price: 540 }],
   },
 ];
 

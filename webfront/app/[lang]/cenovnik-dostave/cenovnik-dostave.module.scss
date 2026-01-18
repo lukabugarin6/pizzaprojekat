@@ -1,0 +1,273 @@
+.zones-page {
+  position: relative;
+  padding: 90px 20px 50px;
+  font-family: var(--font-roboto-condensed);
+  color: var(--black);
+  position: relative;
+
+  &__container {
+    width: min(980px, 100%);
+    margin: 0 auto;
+  }
+
+  &__back {
+    position: absolute;
+    top: 62px;
+    left: 60px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #8a8a8a;
+    font-size: 18px;
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--gray-text);
+
+      .zones-page__back-icon {
+        transform: translate(-6px);
+      }
+    }
+  }
+
+  &__back-icon {
+    font-size: 20px;
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+
+  &__back-text {
+    letter-spacing: 0.01em;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  &__title {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #000;
+    letter-spacing: 0.01em;
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 18px;
+    line-height: 22px;
+    color: var(--gray);
+  }
+
+  &__controls {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 18px 0 18px 0;
+  }
+
+  &__searchWrap {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+  }
+
+  &__search {
+    width: 100%;
+    height: 50px;
+    padding: 0 44px 0 14px;
+    border: 1px solid #dcdcdc;
+    background: #fff;
+    font-size: 16px;
+    outline: none;
+
+    &:focus {
+      border-color: #000;
+    }
+  }
+
+  &__clear {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    opacity: 0.65;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  &__sort {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  &__icon {
+    font-size: 22px;
+    display: block;
+  }
+
+  &__icon--flip {
+    transform: rotate(180deg);
+  }
+
+  &__iconBtn {
+    height: 50px;
+    width: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #dcdcdc;
+    background: #f3f3f3;
+    cursor: pointer;
+
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+      transform 0.12s ease;
+
+    &:hover {
+      border-color: #000;
+      background: #eee;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0px);
+    }
+
+    &--active {
+      background: #000;
+      color: #fff;
+      border-color: #000;
+
+      &:hover {
+        background: #000;
+      }
+    }
+
+    svg {
+      display: block;
+    }
+  }
+
+  &__table {
+    border: 1px solid #e7e7e7;
+    background: #fff;
+  }
+
+  &__thead {
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 14px;
+    padding: 14px 14px;
+    background: #000;
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  &__tr {
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 14px;
+    padding: 14px 14px;
+    border-top: 1px solid #eee;
+    align-items: center;
+
+    &:nth-child(even) {
+      background: #fafafa;
+    }
+  }
+
+  &__zone {
+    font-size: 17px;
+    color: #111;
+  }
+
+  &__price {
+    font-size: 17px;
+    font-weight: 800;
+    color: #111;
+    white-space: nowrap;
+  }
+
+  &__right {
+    text-align: right;
+  }
+
+  &__empty {
+    padding: 18px 14px;
+    color: #777;
+    text-align: center;
+  }
+
+  &__notes {
+    margin-top: 18px;
+    border-top: 1px solid #e7e7e7;
+    background: #fff;
+    padding: 16px 14px;
+  }
+
+  &__noteTitle {
+    font-weight: 900;
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: #111;
+  }
+
+  &__noteList {
+    margin: 0;
+    padding-left: 18px;
+    color: #666;
+
+    li {
+      margin: 6px 0;
+      line-height: 1.35;
+    }
+
+    strong {
+      color: #000;
+    }
+  }
+
+  @media (max-width: 980px) {
+    padding: 130px 14px 40px;
+
+    &__back {
+      left: 20px;
+      top: 70px;
+    }
+
+    &__title {
+      font-size: 24px;
+    }
+
+    &__subtitle {
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    &__thead,
+    &__tr {
+      grid-template-columns: 1fr 120px;
+    }
+
+    &__zone,
+    &__price {
+      font-size: 15px;
+    }
+  }
+}

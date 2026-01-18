@@ -17,6 +17,7 @@ import { useCart } from '@/context/cart/cart-context';
 import SidebarCartFormField from '@/components/ui/sidebar-cart-preview/sidebar-cart-form-field';
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import ClientLink from '@/components/ui/client-link';
+import clsx from 'clsx';
 
 type Props = {
   title: string;
@@ -40,6 +41,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
     totalPrice,
     updateItemQuantity,
     removeFromCart,
+    delivery,
   } = useCart();
 
   const hasItems = items.length > 0;
@@ -74,9 +76,17 @@ export default function CartPageClient({ title, subtitle }: Props) {
     }
   }, []);
 
+  // ✅ ako user prebaci na dostavu, a dostava nije dozvoljena – vrati na pickup
+  useEffect(() => {
+    if (orderType === 'delivery' && !delivery.allowed) {
+      setOrderType('pickup');
+      setAddress('');
+    }
+  }, [orderType, delivery.allowed]);
+
   const totalItems = useMemo(
     () => items.reduce((acc: number, it: any) => acc + (it.quantity ?? 1), 0),
-    [items]
+    [items],
   );
 
   const handleIncrease = (item: any) => {
@@ -123,8 +133,17 @@ export default function CartPageClient({ title, subtitle }: Props) {
     setFullName(customer.fullName || '');
     setEmail(customer.email || '');
     setPhone(customer.phone || '');
-    setOrderType(customer.orderType || 'pickup');
-    setAddress(customer.address || '');
+
+    // ✅ uzmi u obzir delivery.allowed
+    const nextOrderType =
+      customer.orderType === 'delivery' && !delivery.allowed
+        ? 'pickup'
+        : customer.orderType || 'pickup';
+
+    setOrderType(nextOrderType);
+
+    // ✅ adresa samo ako je dostava
+    setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
   };
 
@@ -140,6 +159,9 @@ export default function CartPageClient({ title, subtitle }: Props) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!items.length) return;
+
+    // ✅ hard-block ako je dostava “na silu”
+    if (orderType === 'delivery' && !delivery.allowed) return;
 
     const trimmedFullName = fullName.trim();
     const trimmedEmail = email.trim();
@@ -172,6 +194,8 @@ export default function CartPageClient({ title, subtitle }: Props) {
     resetForm();
   };
 
+  const itemLabel = totalItems === 1 ? 'proizvod' : 'proizvoda';
+
   return (
     <div className={styles['cart-page']}>
       <div className={styles['cart-page__container']}>
@@ -203,7 +227,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
             <section className={styles['cart-page__section']}>
               <div className={styles['cart-page__section-head']}>
                 <div className={styles['cart-page__section-meta']}>
-                  {totalItems} {totalItems === 1 ? 'stavka' : 'stavki'}
+                  {totalItems} {itemLabel} u korpi
                 </div>
               </div>
 
@@ -211,7 +235,8 @@ export default function CartPageClient({ title, subtitle }: Props) {
                 <div className={styles['cart-page__items']}>
                   {items.map((item: any) => {
                     const qty = item.quantity ?? 1;
-                    const lineTotal = (item.price ?? 0) * qty;
+                    const unitPrice = item.price ?? 0;
+                    const lineTotal = unitPrice * qty;
 
                     const imageSrc =
                       item.image && item.image.trim() !== ''
@@ -247,6 +272,18 @@ export default function CartPageClient({ title, subtitle }: Props) {
                               <span className={styles['cart-page__meta-value']}>
                                 — {item?.size} cm
                               </span>
+                            </div>
+
+                            {item?.description && (
+                              <p className={styles['cart-page__item-desc']}>
+                                {item.description}
+                              </p>
+                            )}
+
+                            <div
+                              className={styles['cart-page__item-unitprice']}
+                            >
+                              {unitPrice} RSD <span>(cena po komadu)</span>
                             </div>
                           </div>
                         </div>
@@ -336,7 +373,6 @@ export default function CartPageClient({ title, subtitle }: Props) {
           {/* RIGHT: STICKY */}
           <aside className={styles['cart-page__aside']}>
             <div className={styles['cart-page__sticky']}>
-              {/* ✅ IMPORTANT: scroll goes inside stickyInner */}
               <div className={styles['cart-page__stickyInner']}>
                 {/* TOTAL */}
                 <section className={styles['cart-page__section']}>
@@ -431,15 +467,23 @@ export default function CartPageClient({ title, subtitle }: Props) {
                       />
                     </div>
 
+                    {/* RADIOs + MESSAGES (isto kao u SidebarCartPreview) */}
                     <div className={styles['cart-page__form-row']}>
                       <div className={styles['cart-page__form-radios']}>
-                        <label className={styles['cart-page__form-radio']}>
+                        <label
+                          className={clsx(
+                            styles['cart-page__form-radio'],
+                            !delivery.allowed &&
+                              styles['cart-page__form-radio--disabled'],
+                          )}
+                        >
                           <input
                             type="radio"
                             name="orderType"
                             value="delivery"
                             checked={orderType === 'delivery'}
                             onChange={() => setOrderType('delivery')}
+                            disabled={!delivery.allowed}
                             className={styles['cart-page__form-radio-input']}
                           />
                           <span
@@ -471,6 +515,29 @@ export default function CartPageClient({ title, subtitle }: Props) {
                           </span>
                         </label>
                       </div>
+
+                      {/* poruka UVEK ispod (10px) */}
+                      <div
+                        className={clsx(
+                          styles['cart-page__delivery-message'],
+                          !delivery.allowed &&
+                            styles['cart-page__delivery-message--error'],
+                        )}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {delivery.allowed
+                          ? 'Dostava je dostupna za sadržaj korpe.'
+                          : (delivery.reason ??
+                            'Dostava nije dostupna za sadržaj korpe.')}
+                      </div>
+
+                      <div
+                        className={styles['cart-page__cash-message']}
+                        role="note"
+                      >
+                        Plaćanje prihvatamo samo u gotovini.
+                      </div>
                     </div>
 
                     {orderType === 'delivery' && (
@@ -489,7 +556,10 @@ export default function CartPageClient({ title, subtitle }: Props) {
                     <button
                       type="submit"
                       className={styles['cart-page__submit']}
-                      disabled={!hasItems}
+                      disabled={
+                        !hasItems ||
+                        (orderType === 'delivery' && !delivery.allowed)
+                      }
                     >
                       Poruči
                       <HandPointerSvg />

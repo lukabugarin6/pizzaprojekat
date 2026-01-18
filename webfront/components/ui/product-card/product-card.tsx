@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import styles from './product-card.module.scss';
 import Image from 'next/image';
@@ -18,7 +18,7 @@ export default function ProductCard({
   smaller?: boolean;
 }) {
   const [overlayQuantity, setOverlayQuantity] = useState(0);
-  const { addToCart, totalItems } = useCart();
+  const { addToCart } = useCart();
 
   const imageRef = useRef<HTMLImageElement | null>(null);
   const { flyToCart } = useFlyToCart();
@@ -26,27 +26,60 @@ export default function ProductCard({
   const { ref, isVisible } = useFadeInOnView({ threshold: 0.25 });
 
   const variants = item?.variants || [];
-  const hasMultipleVariants = variants.length > 1;
 
+  // ima li varijanti uopšte
+  const hasVariants = variants.length > 0;
+
+  // da li varijante imaju "size" (pizze), ili nemaju (sendviči)
+  const variantsHaveSize = useMemo(() => {
+    return variants.some((v: any) => v?.size != null);
+  }, [variants]);
+
+  const hasMultipleVariants = variantsHaveSize && variants.length > 1;
+
+  // init selectedSize samo ako varijante imaju size
   const [selectedSize, setSelectedSize] = useState<number | null>(() => {
-    if (!variants?.length) return null;
-    return Math.max(...variants.map((v: any) => Number(v.size) || 0));
+    if (!hasVariants) return null;
+    if (!variants.some((v: any) => v?.size != null)) return null;
+
+    const sizes = variants
+      .map((v: any) => Number(v.size))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+
+    return sizes.length ? Math.max(...sizes) : null;
   });
 
   const [quantity, setQuantity] = useState<number>(1);
   const [showOverlay, setShowOverlay] = useState(false);
 
-  const selectedVariant = variants.find((v: any) => v.size === selectedSize);
+  const selectedVariant = useMemo(() => {
+    if (!hasVariants) return null;
 
-  const totalPrice = selectedVariant?.price
-    ? selectedVariant.price * quantity
-    : 0;
+    // pizze: biramo po size
+    if (variantsHaveSize) {
+      return variants.find((v: any) => v.size === selectedSize) ?? null;
+    }
+
+    // sendviči: prva (jedina) varijanta
+    return variants[0] ?? null;
+  }, [hasVariants, variants, variantsHaveSize, selectedSize]);
+
+  // ✅ cena: prioritet variant.price, fallback item.price (pića)
+  const unitPrice = useMemo(() => {
+    if (selectedVariant?.price != null)
+      return Number(selectedVariant.price) || 0;
+    if (item?.price != null) return Number(item.price) || 0;
+    return 0;
+  }, [selectedVariant, item]);
+
+  const totalPrice = unitPrice * quantity;
 
   const increaseQty = () => setQuantity((prev) => Math.min(prev + 1, 10));
   const decreaseQty = () => setQuantity((prev) => Math.max(prev - 1, 1));
 
   const handleAddToCart = () => {
-    if (!selectedVariant) return;
+    // mora da ima cenu (bar 1 din) da bi imalo smisla
+    if (!unitPrice) return;
 
     flyToCart(imageRef.current);
 
@@ -54,25 +87,27 @@ export default function ProductCard({
       productId: item.id,
       name: item.name,
       image: item.image,
-      size: selectedVariant.size,
-      price: selectedVariant.price,
+      description: item.description,
+
+      // ✅ size samo kad postoji (pizze)
+      ...(variantsHaveSize && selectedVariant?.size != null
+        ? { size: selectedVariant.size }
+        : {}),
+
+      price: unitPrice,
       quantity,
     });
 
-    // čuvamo koliko je upravo dodato
     const justAdded = quantity;
 
-    // pokaži overlay sa tim brojem
     setShowOverlay(true);
-
-    // hide overlay nakon 1.5s
     setTimeout(() => setShowOverlay(false), 2000);
 
-    // reset quantity i veličinu
     setQuantity(1);
-    // setSelectedSize(variants[0]?.size ?? null);
 
-    // koristimo justAdded za prikaz u overlay-u
+    // reset size samo kod pizza (da ostane na najvećoj ili kako želiš)
+    // setSelectedSize(variantsHaveSize ? selectedSize : null);
+
     setOverlayQuantity(justAdded);
   };
 
@@ -128,9 +163,9 @@ export default function ProductCard({
 
           <div className={styles['product-card__price']}>{totalPrice} RSD</div>
 
-          {selectedVariant && (
+          {/* ✅ prikazuj footer ako ima cenu (sendviči i pića rade) */}
+          {unitPrice > 0 && (
             <div className={styles['product-card__footer']}>
-              {/* overlay kada se doda u korpu */}
               {showOverlay && (
                 <div className={styles['product-card__overlay']}>
                   <span>Uspešno ste dodali u korpu! (+{overlayQuantity})</span>
@@ -155,6 +190,7 @@ export default function ProductCard({
                       disabled={quantity === 10}
                       aria-label="Increase quantity"
                       className={styles['product-card__quantity-btn']}
+                      type="button"
                     >
                       <svg
                         width="20"
@@ -177,6 +213,7 @@ export default function ProductCard({
                       disabled={quantity === 1}
                       aria-label="Decrease quantity"
                       className={styles['product-card__quantity-btn']}
+                      type="button"
                     >
                       <svg
                         width="20"

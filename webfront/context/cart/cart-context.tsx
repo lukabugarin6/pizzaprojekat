@@ -3,6 +3,16 @@
 import { createContext, useContext } from 'react';
 import { CartItem } from '@/types/cart';
 
+export type DeliveryInfo = {
+  allowed: boolean;
+  reason: string | null;
+  flags: {
+    hasAllowedPizza: boolean;
+    hasForbiddenItems: boolean;
+    hasOnlyDrinks: boolean;
+  };
+};
+
 export type CartContextType = {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -15,6 +25,9 @@ export type CartContextType = {
     size: number,
     quantity: number
   ) => void;
+
+  // ✅ novo
+  delivery: DeliveryInfo;
 };
 
 export const CartContext = createContext<CartContextType | null>(null);

@@ -44,6 +44,31 @@ export default function Navbar({}: {}) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // ✅ WORKING HOURS: Mon–Sat 15:00–23:00 (local time), Sunday closed
+  const [isOpenNow, setIsOpenNow] = useState(true);
+
+  useEffect(() => {
+    const compute = () => {
+      const now = new Date();
+
+      const day = now.getDay(); // 0=Sunday ... 6=Saturday
+      const isSunday = day === 0;
+
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const start = 15 * 60; // 15:00
+      const end = 23 * 60; // 23:00
+
+      const openToday = !isSunday && minutes >= start && minutes < end;
+      setIsOpenNow(openToday);
+    };
+
+    compute();
+
+    // re-check every 30s (good enough)
+    const t = window.setInterval(compute, 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+
   // ✅ close menu on route change
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -105,7 +130,7 @@ export default function Navbar({}: {}) {
         className={clsx(
           styles.navbar,
           isFixed && styles['navbar--fixed'],
-          isMenuOpen && styles['navbar--menuOpen']
+          isMenuOpen && styles['navbar--menuOpen'],
         )}
       >
         <div className={clsx(styles.navbar__langSwitcherAndCartWrapper)}>
@@ -117,7 +142,7 @@ export default function Navbar({}: {}) {
               logo: clsx(
                 styles.navbar__item,
                 isCartPage && styles['is-active'],
-                cartEmpty && styles['is-disabled']
+                cartEmpty && styles['is-disabled'],
               ),
               nonHoverable: styles.navbar__cartWrapper,
             }}
@@ -132,7 +157,7 @@ export default function Navbar({}: {}) {
                   <span
                     className={clsx(
                       styles.navbar__badgeInner,
-                      pulse && styles.navbar__badgePulse
+                      pulse && styles.navbar__badgePulse,
                     )}
                   >
                     {totalItems}
@@ -151,7 +176,7 @@ export default function Navbar({}: {}) {
           classes={{
             logo: clsx(
               styles.navbar__logo,
-              isHomePage && styles['is-disabled']
+              isHomePage && styles['is-disabled'],
             ),
           }}
           aria-disabled={isHomePage ? 'true' : undefined}
@@ -166,7 +191,7 @@ export default function Navbar({}: {}) {
       <div
         className={clsx(
           styles.menuOverlay,
-          isMenuOpen && styles['menuOverlay--open']
+          isMenuOpen && styles['menuOverlay--open'],
         )}
         onClick={closeMenu}
       />
@@ -174,7 +199,7 @@ export default function Navbar({}: {}) {
       <aside
         className={clsx(
           styles.menuPanel,
-          isMenuOpen && styles['menuPanel--open']
+          isMenuOpen && styles['menuPanel--open'],
         )}
         aria-hidden={!isMenuOpen}
       >
@@ -192,13 +217,11 @@ export default function Navbar({}: {}) {
                 // ako nisi na home-u, samo idi na home (pa onda user scroll-a tamo)
                 // ako jesi na home-u, uradi smooth scroll
                 if (!isHomePage) {
-                  // koristi ClientLink mehanizam? ovde je button, pa samo dispatch
-                  // ako ti je bitno preserveLang:
                   const target = lang ? `/${lang}/` : '/';
                   window.dispatchEvent(
                     new CustomEvent('start-route-change', {
                       detail: { href: target },
-                    })
+                    }),
                   );
                   return;
                 }
@@ -211,13 +234,17 @@ export default function Navbar({}: {}) {
               </span>
               <span className={styles.menuText}>Poruči picu</span>
             </button>
-
-            <div className={styles.menuTileStatic}>
+            <ClientLink
+              href="/cenovnik-dostave"
+              preserveLang
+              className={styles.menuTileLink}
+              onClick={closeMenu}
+            >
               <span className={styles.menuIcon}>
                 <DeliveryZoneSvg />
               </span>
-              <span className={styles.menuText}>Zona dostave</span>
-            </div>
+              <span className={styles.menuText}>Cenovnik dostave</span>
+            </ClientLink>
 
             <ClientLink
               href="/nasumicna-porudzbina"
@@ -249,11 +276,16 @@ export default function Navbar({}: {}) {
           <div className={styles.menuBottomContent}>
             <div className={styles.menuDividerWide} />
 
-            <div className={styles.workingTimeRow}>
+            <div
+              className={clsx(
+                styles.workingTimeRow,
+                !isOpenNow && styles.workingTimeRowClosed,
+              )}
+            >
               <span className={styles.workingTimeIcon}>
                 <TimeSvg />
               </span>
-              <span className={styles.workingTimeText}>15:00—22:00</span>
+              <span className={styles.workingTimeText}>15:00—23:00</span>
             </div>
           </div>
         </div>

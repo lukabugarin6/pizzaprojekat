@@ -120,7 +120,7 @@
     font-weight: 700;
     color: #111;
     border-left: 1px solid #dcdcdc;
-    background: #f3f3f3;
+    background-color: var(--accent-light);
   }
 
   /* Size select */
@@ -130,7 +130,7 @@
     gap: 0;
     display: flex;
     flex-wrap: nowrap;
-    width: min(520px, 100%);
+    width: min(300px, 100%);
   }
 
   &__size-btn {
@@ -200,7 +200,9 @@
     margin: 10px auto 0 auto;
     display: flex;
     flex-direction: column;
-    transition: opacity 220ms ease, transform 220ms ease;
+    transition:
+      opacity 220ms ease,
+      transform 220ms ease;
     opacity: 1;
   }
 
@@ -337,7 +339,7 @@
     font-weight: 800;
     color: #111;
     border-left: 1px solid #dcdcdc;
-    background: #f3f3f3;
+    background-color: var(--accent-light);
   }
 
   &__row-total {
@@ -393,6 +395,142 @@
     &:hover {
       svg {
         transform: rotate(90deg) translateY(-8px);
+      }
+    }
+  }
+
+  @media (max-width: 1359px) {
+    .random-order {
+      padding: 28px 16px; /* manje “air” */
+      margin-top: 0; /* izbaci negativan vibe na laptopu */
+
+      &__lottie {
+        width: 260px;
+        height: 260px;
+        margin-bottom: 2px;
+      }
+
+      /* H1 + subtitle dolaze iz children, ali ti imaš class-eve */
+      &__title {
+        font-size: 24px; /* cart: 24 */
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      &__subtitle {
+        font-size: 14px; /* cart: 14 */
+        line-height: 20px;
+        margin: 0 0 18px 0;
+        color: #777;
+      }
+
+      /* top counter */
+      &__counter {
+        margin: 16px 0 16px 0;
+      }
+
+      &__counter-btn {
+        width: 48px;
+        height: 48px;
+      }
+
+      &__counter-value {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+        font-weight: 800;
+      }
+
+      /* size buttons */
+      &__sizes {
+        margin: 0 auto 22px auto;
+        width: min(280px, 100%);
+      }
+
+      &__size-btn {
+        padding: 12px 12px;
+        font-size: 16px;
+      }
+
+      /* confirm / add-all */
+      &__confirm,
+      &__add-all {
+        width: min(380px, 100%);
+        font-size: 16px; /* cart submit: 16 */
+        height: 46px; /* cart submit: 46 */
+        margin-bottom: 26px;
+      }
+
+      &__generated {
+        margin-top: 6px;
+      }
+
+      &__row {
+        padding: 26px 0; /* manje od 34 */
+        gap: 22px; /* manje od 34 */
+        grid-template-columns: 150px 1fr 240px; /* malo kompaktnije */
+      }
+
+      &__row-image {
+        width: 140px;
+        height: 140px;
+      }
+
+      &__row-title {
+        font-size: 22px; /* cart item name: 22 */
+        margin: 0 0 8px 0;
+        font-weight: 800;
+      }
+
+      &__row-meta {
+        font-size: 16px; /* cart meta: 16 */
+      }
+
+      &__row-desc {
+        font-size: 14px; /* cart desc: 14 */
+        line-height: 19px;
+        margin-top: 8px;
+        max-width: 520px; /* cart desc max */
+      }
+
+      &__row-unitprice {
+        margin-top: 8px;
+        font-size: 16px; /* cart unit price: 16 */
+        font-weight: 800;
+
+        span {
+          font-size: 12px;
+        }
+      }
+
+      &__row-right {
+        gap: 14px;
+      }
+
+      &__row-counter-btn {
+        width: 40px; /* kao cart */
+        height: 40px;
+      }
+
+      &__row-counter-value {
+        width: 46px; /* kao cart */
+        height: 40px;
+        font-size: 17px;
+        font-weight: 800;
+      }
+
+      &__row-total {
+        font-size: 20px; /* cart line total: 20 */
+        min-width: 110px;
+      }
+
+      &__summary {
+        font-size: 18px; /* cart total label: 18 vibe */
+        padding: 18px 0 4px 0;
+
+        strong {
+          font-size: 24px; /* cart total value: 26, ali ovde malo manje */
+        }
       }
     }
   }
@@ -462,8 +600,8 @@
     }
   }
 
-  @media (max-width: 560px) {
-    padding: 40px 14px;
+  @media (max-width: 720px) {
+    padding: 100px 14px 40px;
     margin-top: 0; /* ✅ negativan margin ume da pravi čudne skokove */
 
     &__lottie {
@@ -486,6 +624,10 @@
       height: 48px;
     }
 
+    &__counter-value {
+      background-color: var(--accent-light);
+    }
+
     &__sizes {
       width: 100%;
     }
@@ -498,8 +640,8 @@
     &__confirm,
     &__add-all {
       width: 100%;
-      font-size: 18px;
-      height: 54px;
+      font-size: 16px;
+      height: 46px;
     }
 
     &__row {
@@ -532,6 +674,10 @@
       width: 46px;
       height: 46px;
       font-size: 16px;
+    }
+
+    &__row-counter-value {
+      background-color: var(--accent-light);
     }
 
     &__row-total {

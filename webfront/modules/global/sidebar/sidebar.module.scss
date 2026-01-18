@@ -142,13 +142,16 @@
   border-right: 1px solid var(--gray);
   z-index: 2000;
   display: none;
+
   @media (min-width: 1280px) {
     display: block;
     width: 130px;
   }
+
   @media (min-width: 1440px) {
     width: 175px;
   }
+
   &__inner {
     display: flex;
     flex-direction: column;
@@ -187,7 +190,6 @@
 
       cursor: pointer;
       text-decoration: none; // da ClientLink bude identičan
-      // padding: 0 2px;
 
       @media (min-width: 1440px) {
         font-size: 17px;
@@ -283,6 +285,7 @@
         font-size: 14px;
         line-height: 14px;
         text-decoration: underline;
+
         @media (min-width: 1440px) {
           font-size: 16px;
           line-height: 16px;
@@ -327,13 +330,9 @@
   }
 }
 
-/* === ACTIVE LINK (accent color) ===
-   Dodajemo "active" klasu na item kada je trenutni page.
-   Ne diramo hover animacije (i dalje rade), samo boja bude accent stalno. */
+/* === ACTIVE LINK (accent color) === */
 .active {
   color: var(--accent) !important;
-
-  /* ako ima badge - ostaje isti */
 }
 
 /* Cart badge */
@@ -382,7 +381,31 @@
 
 .langSwitcher {
   font-size: 13px;
+
   @media (min-width: 1440px) {
     font-size: 15px;
   }
+}
+
+/* ✅ WORKING HOURS CLOSED:
+   - smanjen opacity
+   - nema hover boje/animacija
+   - cursor default
+*/
+.workingHoursClosed {
+  opacity: 0.45;
+  cursor: default !important;
+
+  /* bitno: iako je parent hover, mi gasimo sve animacije u ovom item-u */
+  &,
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* da ne povuče accent na hover */
+  color: var(--white) !important;
+
+  /* spreči hover evente na ovom item-u (opciono) */
+  pointer-events: none;
 }

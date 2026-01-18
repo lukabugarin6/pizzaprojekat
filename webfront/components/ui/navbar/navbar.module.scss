@@ -55,7 +55,7 @@
   background-color: var(--black);
   border-bottom: 1px solid #42403d;
 
-  z-index: 9999;
+  z-index: 99999;
 
   @media (min-width: 1280px) {
     display: none;
@@ -305,7 +305,7 @@
   transition: transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 
-  z-index: 70;
+  z-index: 9999;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 
   padding-top: env(safe-area-inset-top);
@@ -332,7 +332,8 @@
   flex-direction: column;
 
   flex-grow: 1;
-  justify-content: space-between;
+  justify-content: space-evenly;
+  position: relative;
 }
 
 .menuBottomContent {
@@ -347,6 +348,10 @@
   width: 120px;
   background: #42403d;
   margin: 6px auto 2px;
+  position: absolute;
+  bottom: 25%;
+  left: 50%;
+  translate: -50%;
 }
 
 .menuDividerWide {
@@ -387,7 +392,9 @@
   border: 0;
   cursor: pointer;
 
-  transition: background-color 160ms ease, opacity 160ms ease;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -402,7 +409,9 @@
   text-decoration: none;
   opacity: 0.95;
 
-  transition: background-color 160ms ease, opacity 160ms ease;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -515,16 +524,17 @@
   }
 }
 
-/* Reduced motion */
-// @media (prefers-reduced-motion: reduce) {
-//   .navbar--fixed {
-//     animation: none;
-//   }
-//   .menuOverlay,
-//   .menuPanel {
-//     transition: none;
-//   }
-//   .navbar__badgePulse {
-//     animation: none;
-//   }
-// }
+.workingTimeRowClosed {
+  opacity: 0.45;
+  cursor: default;
+
+  /* ugasi animacije/transitione unutar row-a */
+  &,
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* opciono: ako ti TimeSvg ima delove koji se pomeraju na hover negde drugde */
+  pointer-events: none;
+}
