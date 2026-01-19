@@ -1,8 +1,7 @@
 'use client';
 
-import HeroLogoSvg from '@/components/svg/hero-logo-svg';
 import LogoSvg from '@/components/svg/logo-svg';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from './hero-video.module.scss';
 import clsx from 'clsx';
 import { useSmoothScrollToVh } from '@/hooks/useSmoothScrollToVh';
@@ -24,6 +23,32 @@ export default function HeroVideo({
 }: HeroVideoProps) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    const seek = () => {
+      try {
+        // tiny offset to avoid black first frame / ensure first painted frame
+        if (v.currentTime < 0.0001) v.currentTime = 0.0001;
+      } catch {
+        // ignore (some browsers throw if not seekable yet)
+      }
+    };
+
+    // try immediately
+    seek();
+
+    // try again when metadata is ready
+    v.addEventListener('loadedmetadata', seek);
+
+    return () => {
+      v.removeEventListener('loadedmetadata', seek);
+    };
+  }, [src]);
+
   return (
     <section className={clsx(styles.wrapper)}>
       <div
@@ -44,6 +69,7 @@ export default function HeroVideo({
       {/* Background video */}
       <div>
         <video
+          ref={videoRef}
           autoPlay
           muted
           loop
