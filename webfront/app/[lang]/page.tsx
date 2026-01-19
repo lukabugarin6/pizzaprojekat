@@ -27,6 +27,7 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
       <div
         className="productGridSection"
         data-nav-label={dict.home.sections.pizza}
+        data-nav-id="pizza"
       >
         <PizzaGrid>
           {pizzas.map((pizza, index) => (
@@ -38,6 +39,7 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
       <div
         className="productGridSection"
         data-nav-label={dict.home.sections.sandwiches}
+        data-nav-id="sandwiches"
       >
         <PizzaGrid title={dict.home.titles.sandwiches}>
           {sandwiches.map((sandwich, index) => (
@@ -49,6 +51,7 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
       <div
         className="productGridSection"
         data-nav-label={dict.home.sections.drinks}
+        data-nav-id="drinks"
       >
         <PizzaGrid
           smaller

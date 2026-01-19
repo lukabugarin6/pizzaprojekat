@@ -13,6 +13,11 @@ type Options = {
   selector: string;
   labelAttr?: string;
   idPrefix?: string;
+  /**
+   * Optional stable id attr you can add in markup, e.g.:
+   * <section data-nav-id="specs" data-nav-label="Specs" />
+   */
+  navIdAttr?: string;
   rootMargin?: string;
   threshold?: number | number[];
   scrollOffsetPx?: number;
@@ -23,6 +28,7 @@ export function useSectionNav({
   selector,
   labelAttr = 'data-nav-label',
   idPrefix = 'section-',
+  navIdAttr = 'data-nav-id',
   rootMargin = '-40% 0px -50% 0px',
   threshold = 0,
   scrollOffsetPx = 0,
@@ -30,11 +36,11 @@ export function useSectionNav({
 }: Options) {
   const [sections, setSections] = useState<SectionItem[]>([]);
 
-  // ✅ refovi da izbegnemo stale closures + duple observe
+  // refs to avoid stale closures
   const sectionsRef = useRef<SectionItem[]>([]);
   const visibleIdsRef = useRef<Set<string>>(new Set());
 
-  // ✅ nav visibility
+  // nav visibility
   const [isNavVisible, setIsNavVisible] = useState(true);
   const hideTimerRef = useRef<number | null>(null);
 
@@ -45,19 +51,39 @@ export function useSectionNav({
     }, autoHideMs);
   }, [autoHideMs]);
 
-  // ✅ helper: stable/deduped scan
+  const isVisibleEl = useCallback((el: HTMLElement) => {
+    // ignore elements hidden via CSS (e.g. Tailwind hidden / responsive variants)
+    if (el.offsetParent === null) return false;
+    if (el.getClientRects().length === 0) return false;
+
+    // optional accessibility hidden
+    if (el.getAttribute('aria-hidden') === 'true') return false;
+
+    return true;
+  }, []);
+
+  const sanitize = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9\-]/g, '');
+
+  // Helper: stable dom scan + dedupe
   const scanDom = useCallback(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
 
-    // (opciono ali preporučeno) — uzmi samo one koje zaista imaju labelAttr
-    const filtered = els.filter((el) => el.hasAttribute(labelAttr));
+    // take only those with label + visible
+    const filtered = els
+      .filter((el) => el.hasAttribute(labelAttr))
+      .filter(isVisibleEl);
 
-    // dedupe by element reference
+    // dedupe by element reference (safety)
     const uniqEls: HTMLElement[] = [];
-    const seen = new Set<HTMLElement>();
+    const seenEls = new Set<HTMLElement>();
     for (const el of filtered) {
-      if (seen.has(el)) continue;
-      seen.add(el);
+      if (seenEls.has(el)) continue;
+      seenEls.add(el);
       uniqEls.push(el);
     }
 
@@ -68,51 +94,97 @@ export function useSectionNav({
         el.getAttribute('data-title') ||
         `Section ${idx + 1}`;
 
+      // Prefer stable key from markup if present
+      const stableNavId = el.getAttribute(navIdAttr) || '';
+
+      // Prefer explicit DOM id if it exists; otherwise set one from stableNavId/label
       let id = el.id;
+
       if (!id) {
-        // ✅ stabilniji id: prefix + sanitized label + index
-        const safe = label
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9\-]/g, '');
-        id = `${idPrefix}${safe || 'section'}-${idx + 1}`;
+        const base = stableNavId
+          ? sanitize(stableNavId)
+          : sanitize(label) || 'section';
+
+        id = `${idPrefix}${base}`;
+
+        // Ensure uniqueness if somehow duplicated in DOM
+        // (rare, but protects if two visible nodes share same base)
+        if (document.getElementById(id) && document.getElementById(id) !== el) {
+          id = `${idPrefix}${base}-${idx + 1}`;
+        }
+
         el.id = id;
       }
 
       return { id, label, el, isActive: false };
     });
 
-    // dedupe by id (za svaki slučaj)
+    // dedupe by stable key priority: navIdAttr -> id -> label
     const map = new Map<string, SectionItem>();
-    for (const s of mapped) map.set(s.id, s);
+    for (const s of mapped) {
+      const el = s.el;
+      const k = el.getAttribute(navIdAttr) || s.id || s.label;
+
+      if (!k) continue;
+
+      if (!map.has(k)) {
+        map.set(k, s);
+        continue;
+      }
+
+      // If duplicate key exists, prefer the one closer to top (more "primary")
+      const existing = map.get(k)!;
+      const existingTop = existing.el.getBoundingClientRect().top;
+      const incomingTop = s.el.getBoundingClientRect().top;
+      if (incomingTop < existingTop) {
+        map.set(k, s);
+      }
+    }
 
     const next = Array.from(map.values());
 
     sectionsRef.current = next;
     setSections(next);
 
-    // reset visible set jer rewire
+    // reset visible set on rewiring
     visibleIdsRef.current = new Set();
-  }, [selector, labelAttr, idPrefix]);
+  }, [selector, labelAttr, navIdAttr, idPrefix, isVisibleEl]);
 
-  // init + rescan na resize/orientation (mobilni “2x” često dođe od ovoga)
+  // init + rescan on resize/orientation (throttled)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     scanDom();
 
-    const onResize = () => scanDom();
+    // layout settle rescan (fonts/layout shifts)
+    const settleTimer = window.setTimeout(() => {
+      scanDom();
+    }, 250);
+
+    let raf = 0;
+    let pending = false;
+
+    const onResize = () => {
+      if (pending) return;
+      pending = true;
+      raf = window.requestAnimationFrame(() => {
+        pending = false;
+        scanDom();
+      });
+    };
+
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
 
     return () => {
+      window.clearTimeout(settleTimer);
+      if (raf) window.cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
     };
   }, [scanDom]);
 
-  // observer: koji je u viewportu
+  // observer: which is in viewport
   useEffect(() => {
     if (!sections.length) return;
 
@@ -139,11 +211,9 @@ export function useSectionNav({
 
         if (!changed) return;
 
-        // ✅ uvek računaj iz latest sectionsRef (ne iz stale prev)
         const current = sectionsRef.current;
         const visible = visibleIdsRef.current;
 
-        // mark visible
         const marked = current.map((s) => ({
           ...s,
           isActive: visible.has(s.id),
@@ -159,10 +229,9 @@ export function useSectionNav({
         sectionsRef.current = next;
         setSections(next);
       },
-      { root: null, rootMargin, threshold }
+      { root: null, rootMargin, threshold },
     );
 
-    // ✅ observe samo ono što trenutno postoji, bez dupliranja
     for (const s of sections) obs.observe(s.el);
 
     return () => obs.disconnect();
@@ -170,10 +239,10 @@ export function useSectionNav({
 
   const hasAnyActive = useMemo(
     () => sections.some((s) => s.isActive),
-    [sections]
+    [sections],
   );
 
-  // ✅ show/hide on scroll idle
+  // show/hide on scroll idle
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -203,7 +272,7 @@ export function useSectionNav({
         s.el.getBoundingClientRect().top + window.scrollY - scrollOffsetPx;
       window.scrollTo({ top: y, behavior: 'smooth' });
     },
-    [scrollOffsetPx, scheduleHide]
+    [scrollOffsetPx, scheduleHide],
   );
 
   return { sections, hasAnyActive, scrollTo, isNavVisible };
@@ -211,7 +280,7 @@ export function useSectionNav({
 
 function pickTopMostVisible(
   items: { id: string; el: HTMLElement; isActive: boolean }[],
-  scrollOffsetPx: number
+  scrollOffsetPx: number,
 ) {
   const visible = items.filter((x) => x.isActive);
   if (!visible.length) return '';

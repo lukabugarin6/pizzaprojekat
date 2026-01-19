@@ -89,7 +89,7 @@ export default function Navbar({ t, lang }: { t: NavbarDict; lang: string }) {
   useEffect(() => {
     if (!isMenuOpen) return;
     setIsMenuOpen(false);
-  }, [pathname, isMenuOpen]);
+  }, [pathname]);
 
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
