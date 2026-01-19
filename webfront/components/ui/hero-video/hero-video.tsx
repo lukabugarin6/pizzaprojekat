@@ -34,8 +34,6 @@ export default function HeroVideo({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    alert('data');
-
     const v = videoRef.current;
     if (!v) return;
 
@@ -66,6 +64,7 @@ export default function HeroVideo({
       >
         <LogoSvg />
         <h5 className={clsx(styles.wrapper__logoAndText__text)}>{t.cta}</h5>
+        <p>{data}</p>
       </div>
 
       {/* Background video */}
