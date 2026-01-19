@@ -6,6 +6,10 @@ import styles from './hero-video.module.scss';
 import clsx from 'clsx';
 import { useSmoothScrollToVh } from '@/hooks/useSmoothScrollToVh';
 
+type HeroDict = {
+  cta: string;
+};
+
 type HeroVideoProps = {
   src: string;
   poster?: string;
@@ -13,16 +17,18 @@ type HeroVideoProps = {
   overlayOpacity?: number;
   className?: string;
   children?: React.ReactNode;
+  t: HeroDict;
 };
 
 export default function HeroVideo({
   src,
   poster,
   overlayOpacity = 0.35,
+  className,
   children,
+  t,
 }: HeroVideoProps) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -31,17 +37,11 @@ export default function HeroVideo({
 
     const seek = () => {
       try {
-        // tiny offset to avoid black first frame / ensure first painted frame
         if (v.currentTime < 0.0001) v.currentTime = 0.0001;
-      } catch {
-        // ignore (some browsers throw if not seekable yet)
-      }
+      } catch {}
     };
 
-    // try immediately
     seek();
-
-    // try again when metadata is ready
     v.addEventListener('loadedmetadata', seek);
 
     return () => {
@@ -50,7 +50,7 @@ export default function HeroVideo({
   }, [src]);
 
   return (
-    <section className={clsx(styles.wrapper)}>
+    <section className={clsx(styles.wrapper, className)}>
       <div
         className={clsx(styles.wrapper__logoAndText)}
         onClick={scrollToNextSection}
@@ -61,9 +61,7 @@ export default function HeroVideo({
         }}
       >
         <LogoSvg />
-        <h5 className={clsx(styles.wrapper__logoAndText__text)}>
-          Poručite online vašu omiljenu picu
-        </h5>
+        <h5 className={clsx(styles.wrapper__logoAndText__text)}>{t.cta}</h5>
       </div>
 
       {/* Background video */}

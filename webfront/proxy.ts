@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const locales = ['sr-Latn'] as const;
+const locales = ['sr-Latn', 'en', 'ru'] as const;
 type Locale = (typeof locales)[number];
 
 // regex za statičke fajlove (možeš proširiti po potrebi)
@@ -10,10 +10,10 @@ const PUBLIC_FILE =
   /\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|css|js|map|txt|pdf|mp4|json)$/i;
 
 function getLocale(request: NextRequest): Locale {
-  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
-  if (cookieLocale && locales.includes(cookieLocale as Locale)) {
-    return cookieLocale as Locale;
-  }
+  // const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
+  // if (cookieLocale && locales.includes(cookieLocale as Locale)) {
+  //   return cookieLocale as Locale;
+  // }
 
   const header = request.headers.get('accept-language');
   if (header) {
@@ -47,7 +47,7 @@ export function proxy(request: NextRequest) {
 
   // 3) ako već ima locale u path-u, ne diraj
   const hasLocale = locales.some(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
+    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   );
 
   if (hasLocale) {
@@ -55,7 +55,7 @@ export function proxy(request: NextRequest) {
   }
 
   // 4) dodaj locale samo za "prave" stranice
-  const locale = getLocale(request);
+  const locale: Locale = 'sr-Latn';
   request.nextUrl.pathname = `/${locale}${pathname}`;
   return NextResponse.redirect(request.nextUrl);
 }

@@ -16,20 +16,37 @@ import DeliveryZoneSvg from '@/components/svg/delivery-zone';
 import RandomDeliverySvg from '@/components/svg/random-delivery';
 import PhoneSvg from '@/components/svg/phone-svg';
 import TimeSvg from '@/components/svg/time-svg';
+import LanguageSwitcher from '../language-switcher';
 
-export default function Navbar({}: {}) {
+type NavbarDict = {
+  brand: string;
+  orderPizza: string;
+  deliveryPricing: string;
+  randomOrder: string;
+  workingHours: string; // npr "15:00—23:00"
+  phone: string; // npr "+381 (65) 804 04 43"
+};
+
+export default function Navbar({ t, lang }: { t: NavbarDict; lang: string }) {
   const pathname = usePathname() || '/';
-  const { totalItems } = useCart();
+
+  // ✅ hydration guard
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const { totalItems: totalItemsRaw } = useCart();
+  const totalItems = mounted ? totalItemsRaw : 0; // ✅ SSR-safe
+  const cartEmpty = totalItems === 0;
 
   // sticky posle 0.99vh (za home)
   const stickyAfterVh = useStickyAfterVh(1);
 
   // locale-aware: /, /en, /en/, /ru, /ru/ su home
-  const { lang, currentWithoutLang } = useMemo(() => {
+  const { lang: pathLang, currentWithoutLang } = useMemo(() => {
     const segments = pathname.split('/').filter(Boolean);
     return {
       lang: segments[0] || '',
-      currentWithoutLang: segments.slice(1).join('/'), // '' znaci home (posle lang-a)
+      currentWithoutLang: segments.slice(1).join('/'),
     };
   }, [pathname]);
 
@@ -64,31 +81,31 @@ export default function Navbar({}: {}) {
 
     compute();
 
-    // re-check every 30s (good enough)
-    const t = window.setInterval(compute, 30_000);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(compute, 30_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   // ✅ close menu on route change
   useEffect(() => {
     if (!isMenuOpen) return;
     setIsMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, isMenuOpen]);
 
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
 
   useEffect(() => {
+    if (!mounted) return;
+
     if (totalItems > prevTotalRef.current) {
       setPulse(true);
       const timeout = setTimeout(() => setPulse(false), 2000);
       return () => clearTimeout(timeout);
     }
     prevTotalRef.current = totalItems;
-  }, [totalItems]);
-
-  const cartEmpty = totalItems === 0;
+  }, [totalItems, mounted]);
 
   const handleCartClick = (e: React.MouseEvent) => {
+    if (!mounted) return; // ✅ avoid SSR mismatch edge-case
     if (cartEmpty) {
       e.preventDefault();
       e.stopPropagation();
@@ -142,17 +159,18 @@ export default function Navbar({}: {}) {
               logo: clsx(
                 styles.navbar__item,
                 isCartPage && styles['is-active'],
-                cartEmpty && styles['is-disabled'],
+                mounted && cartEmpty && styles['is-disabled'], // ✅ only after mount
               ),
               nonHoverable: styles.navbar__cartWrapper,
             }}
-            aria-disabled={cartEmpty ? 'true' : undefined}
+            // ✅ do NOT render aria-disabled on server
+            aria-disabled={mounted && cartEmpty ? 'true' : undefined}
             onClick={handleCartClick}
             data-cart-icon
           >
             <div className={styles.navbar__cartIcon}>
               <CartSvg />
-              {totalItems > 0 && (
+              {mounted && totalItems > 0 && (
                 <span className={styles.navbar__badge}>
                   <span
                     className={clsx(
@@ -167,7 +185,9 @@ export default function Navbar({}: {}) {
             </div>
           </ClientLink>
 
-          <div className={clsx(styles.langSwitcher)}>EN | RU</div>
+          <div className={clsx(styles.langSwitcher)}>
+            <LanguageSwitcher />
+          </div>
         </div>
 
         <ClientLink
@@ -182,7 +202,7 @@ export default function Navbar({}: {}) {
           aria-disabled={isHomePage ? 'true' : undefined}
           onClick={handleHomeClick}
         >
-          PIZZA PROJECT
+          {t.brand}
         </ClientLink>
 
         <BurgerToggle isOpen={isMenuOpen} onToggle={toggleMenu} />
@@ -214,8 +234,6 @@ export default function Navbar({}: {}) {
               onClick={() => {
                 closeMenu();
 
-                // ako nisi na home-u, samo idi na home (pa onda user scroll-a tamo)
-                // ako jesi na home-u, uradi smooth scroll
                 if (!isHomePage) {
                   const target = lang ? `/${lang}/` : '/';
                   window.dispatchEvent(
@@ -232,8 +250,9 @@ export default function Navbar({}: {}) {
               <span className={styles.menuIcon}>
                 <PizzaSvg />
               </span>
-              <span className={styles.menuText}>Poruči picu</span>
+              <span className={styles.menuText}>{t.orderPizza}</span>
             </button>
+
             <ClientLink
               href="/cenovnik-dostave"
               preserveLang
@@ -243,7 +262,7 @@ export default function Navbar({}: {}) {
               <span className={styles.menuIcon}>
                 <DeliveryZoneSvg />
               </span>
-              <span className={styles.menuText}>Cenovnik dostave</span>
+              <span className={styles.menuText}>{t.deliveryPricing}</span>
             </ClientLink>
 
             <ClientLink
@@ -255,7 +274,7 @@ export default function Navbar({}: {}) {
               <span className={styles.menuIcon}>
                 <RandomDeliverySvg />
               </span>
-              <span className={styles.menuText}>Nasumična porudžbina</span>
+              <span className={styles.menuText}>{t.randomOrder}</span>
             </ClientLink>
 
             <div className={styles.menuDividerSmall} />
@@ -268,7 +287,7 @@ export default function Navbar({}: {}) {
               <span className={styles.menuIcon}>
                 <PhoneSvg />
               </span>
-              <span className={styles.menuText}>+381 (65) 804 04 43</span>
+              <span className={styles.menuText}>{t.phone}</span>
             </a>
           </div>
 
@@ -285,7 +304,7 @@ export default function Navbar({}: {}) {
               <span className={styles.workingTimeIcon}>
                 <TimeSvg />
               </span>
-              <span className={styles.workingTimeText}>15:00—23:00</span>
+              <span className={styles.workingTimeText}>{t.workingHours}</span>
             </div>
           </div>
         </div>

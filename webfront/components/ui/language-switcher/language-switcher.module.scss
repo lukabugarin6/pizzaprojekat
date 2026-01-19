@@ -1,43 +1,21 @@
 .outerWrapper {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  button,
-  span {
-    font-size: var(--link-font-size);
-    line-height: var(--link-line-height);
-    transition: opacity 0.4s ease-in-out;
-    opacity: 0.4;
-    &.active {
-      font-weight: 400;
-      opacity: 1;
-    }
-  }
+  width: max-content;
   button {
     cursor: pointer;
-  }
-
-  &:has(> button:hover) > * {
-    opacity: 0.4;
-  }
-
-  > button:hover {
-    opacity: 1;
+    transition: color 0.3s ease-out;
+    &:hover {
+      color: var(--accent);
+    }
   }
 }
 
 .active {
-  font-weight: 400;
-  opacity: 1;
 }
 
 @media (max-width: 1023px) {
   .outerWrapper {
     button {
-      opacity: 0.5;
       &.active {
-        font-weight: 400;
-        opacity: 1;
       }
     }
   }

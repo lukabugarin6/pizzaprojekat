@@ -10,8 +10,136 @@
       "description": "Pizza Project – sveže pečena pica za poneti i dostavu. Brza porudžbina, kvalitetni sastojci i odličan ukus. Poruči odmah!"
     },
     "cart": {
-      "title": "Korpa za porudžbinu | Pizza Project",
+      "title": "Pizza Project | Korpa za porudžbinu",
       "description": "Tvoja korpa za porudžbinu u Pizza Projectu. Proveri pice, količinu i cenu, pa nastavi na plaćanje i dostavu."
+    },
+    "deliveryPricing": {
+      "title": "Pizza Project | Cenovnik dostave",
+      "description": "Cenovnik dostave po zonama za Pizza Project. Pronađite svoju zonu i cenu dostave."
+    }
+  },
+  "navbar": {
+    "brand": "PIZZA PROJECT",
+    "orderPizza": "Poruči picu",
+    "deliveryPricing": "Cenovnik dostave",
+    "randomOrder": "Nasumična porudžbina",
+    "workingHours": "15:00—23:00",
+    "phone": "+381 (65) 804 04 43"
+  },
+  "hero": {
+    "cta": "Poručite online vašu omiljenu picu"
+  },
+  "home": {
+    "sections": {
+      "pizza": "Pizza",
+      "sandwiches": "Sendviči",
+      "drinks": "Piće"
+    },
+    "titles": {
+      "sandwiches": "SENDVIČI",
+      "drinks": "PIĆE"
+    },
+    "carousel": {
+      "slides": [
+        {
+          "title": "Accademia Pizzaoli",
+          "text": "Jedna od najpoznatijih škola za usavršavanje pizza majstora. Vodimo se time da su ulaganje i znanje nešto što je nepogrešiva investicija.",
+          "src": "/images/slider2.jpg"
+        },
+        {
+          "title": "Naš početak",
+          "text": "Kad gledamo ove slike tačno nam neka muka pripadne... kad se setimo samo sređivanja, majstora i svih ostalih teškoća nije nam baš prijatno, ali s ove vremenske distance sada znamo da je vredelo.",
+          "src": "/images/slider1.jpg"
+        },
+        {
+          "title": "Iza svake pice stoji priča",
+          "text": "A kad se setim da je na početku htela da me udari lopatom u glavu... 😊 Strpljenje, podrska i ljubav prema onome sto radimo se oseti u svakoj pici i sendviču koje pojedete. Za piće ne znam sta da vam kažem, to je kupovno.",
+          "src": "/images/slider3.jpg"
+        }
+      ]
+    }
+  },
+  "footer": {
+    "contactPhoneLabel": "Kontakt telefon",
+    "addressLabel": "Adresa",
+    "emailLabel": "Email",
+    "mapTitle": "Pizza Project - Lokacija",
+    "addressText": "Boška Petrovića 6, 21000 Novi Sad",
+    "facebookText": "facebook",
+    "instagramText": "instagram"
+  },
+  "sidebar": {
+    "brandTop": "PIZZA",
+    "brandBottom": "PROJECT",
+    "orderPizza": "Poruči picu",
+    "deliveryPricing": "Cenovnik dostave",
+    "cart": "Korpa",
+    "randomOrder": "Nasumična porudžbina",
+    "callUs": "Pozovite nas",
+    "workingHours": "15:00—23:00"
+  },
+  "cart": {
+    "title": "Korpa",
+    "subtitle": "Pregled porudžbine i podaci za dostavu/preuzimanje."
+  },
+  "cartPage": {
+    "back": "Nazad na početnu",
+    "itemsInCart_one": "{count} proizvod u korpi",
+    "itemsInCart_other": "{count} proizvoda u korpi",
+
+    "sizeLabel": "Veličina",
+    "unitPrice": "RSD",
+    "unitPriceSuffix": "(cena po komadu)",
+
+    "decreaseQty": "Smanji količinu",
+    "increaseQty": "Povećaj količinu",
+    "removeFromCart": "Ukloni iz korpe",
+
+    "emptyCart": "Vaša korpa je prazna.",
+
+    "totalLabel": "Ukupno za plaćanje:",
+
+    "savedCustomersTitle": "Sačuvani kupci",
+    "unknownUser": "Nepoznat korisnik",
+    "noPhone": "bez broja",
+
+    "form": {
+      "fullName": "Ime i prezime",
+      "phone": "Broj telefona",
+      "email": "Email",
+      "note": "Napomena",
+      "delivery": "Dostava",
+      "pickup": "Preuzimanje",
+      "address": "Adresa (ulica, broj, sprat...)",
+      "deliveryOk": "Dostava je dostupna za sadržaj korpe.",
+      "deliveryNotOkFallback": "Dostava nije dostupna za sadržaj korpe.",
+      "cashOnly": "Plaćanje prihvatamo samo u gotovini.",
+      "submit": "Poruči",
+      "consent": "Slanjem porudžbine potvrđujete tačnost podataka i dajete saglasnost za obradu ličnih podataka."
+    }
+  },
+  "deliveryPricing": {
+    "backToHome": "Nazad na početnu",
+    "title": "Cenovnik dostave",
+    "subtitle": "Pronađite svoju zonu i cenu dostave.",
+    "searchPlaceholder": "Pretraži zonu (npr. Veternik, Klisa...)",
+    "clearSearchAria": "Obriši pretragu",
+    "sortByPriceAria": "Sortiraj po ceni",
+    "sortByPriceTitle": "Sortiraj po ceni",
+    "sortByZoneAria": "Sortiraj po nazivu (A–Z)",
+    "sortByZoneTitle": "Sortiraj po nazivu (A–Z)",
+    "tableZone": "Zona grada",
+    "tablePrice": "Cena",
+    "currencyShort": "din",
+    "emptyResults": "Nema rezultata za “{q}”.",
+    "notesTitle": "Napomene",
+    "notes": {
+      "partnerPrefix": "Dostavu vrši naš partner",
+      "partnerName": "Fandjo NS",
+      "outsidePricingPrefix": "Zone van cenovnika naplaćuju se",
+      "outsidePricingValue": "150 din/km",
+      "extraStopPrefix": "Svako naredno zaustavljanje naplaćuje se",
+      "extraStopValue": "150 din"
     }
   }
 }

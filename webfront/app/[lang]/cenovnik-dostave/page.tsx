@@ -1,5 +1,6 @@
 import styles from './cenovnik-dostave.module.scss';
 import DeliveryZonesClient from './cenovnik-dostave-client';
+import { getDictionary, type Lang } from '../dictionaries';
 
 const deliveryZones = [
   { zone: 'Grad', price: 400 },
@@ -31,11 +32,18 @@ const deliveryZones = [
   { zone: 'Sremski Karlovci', price: 1600 },
 ];
 
-export default function CenovnikDostavePage() {
+export default async function CenovnikDostavePage({
+  params,
+}: {
+  params: { lang: Lang };
+}) {
+  const { lang } = await params;
+  const dict = await getDictionary(lang);
+
   return (
     <div className={styles['zones-page']}>
       <div className={styles['zones-page__container']}>
-        <DeliveryZonesClient zones={deliveryZones} />
+        <DeliveryZonesClient zones={deliveryZones} t={dict.deliveryPricing} />
       </div>
     </div>
   );

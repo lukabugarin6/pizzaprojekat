@@ -1,0 +1,145 @@
+{
+  "languages": {
+    "en": "En",
+    "sr-Latn": "Sr",
+    "ru": "Ru"
+  },
+  "meta": {
+    "home": {
+      "title": "Pizza Project | Пицца на вынос и доставка",
+      "description": "Pizza Project — свежевыпеченная пицца на вынос и с доставкой. Быстрый заказ, качественные ингредиенты и отличный вкус. Заказывайте прямо сейчас!"
+    },
+    "cart": {
+      "title": "Pizza Project | Корзина заказа",
+      "description": "Ваша корзина заказа в Pizza Project. Проверьте пиццы, количество и цену, затем перейдите к оформлению и доставке."
+    },
+    "deliveryPricing": {
+      "title": "Pizza Project | Стоимость доставки",
+      "description": "Стоимость доставки по зонам для Pizza Project. Найдите свою зону и цену доставки."
+    }
+  },
+  "navbar": {
+    "brand": "PIZZA PROJECT",
+    "orderPizza": "Заказать пиццу",
+    "deliveryPricing": "Тарифы доставки",
+    "randomOrder": "Случайный заказ",
+    "workingHours": "15:00—23:00",
+    "phone": "+381 (65) 804 04 43"
+  },
+  "hero": {
+    "cta": "Закажите вашу любимую пиццу онлайн"
+  },
+  "home": {
+    "sections": {
+      "pizza": "Пицца",
+      "sandwiches": "Сэндвичи",
+      "drinks": "Напитки"
+    },
+    "titles": {
+      "sandwiches": "СЭНДВИЧИ",
+      "drinks": "НАПИТКИ"
+    },
+    "carousel": {
+      "slides": [
+        {
+          "title": "Accademia Pizzaoli",
+          "text": "Одна из самых известных школ для совершенствования мастерства пиццайоло. Мы считаем, что инвестиции в знания — это всегда беспроигрышная инвестиция.",
+          "src": "/images/slider2.jpg"
+        },
+        {
+          "title": "Наше начало",
+          "text": "Когда смотрим на эти фотографии, прямо внутри всё сжимается... вспоминаем ремонт, мастеров и все трудности — не самое приятное. Но сейчас, с расстояния времени, мы точно знаем: это того стоило.",
+          "src": "/images/slider1.jpg"
+        },
+        {
+          "title": "За каждой пиццей — своя история",
+          "text": "А когда вспоминаю, что в самом начале она чуть не хотела ударить меня лопатой по голове... 😊 Терпение, поддержка и любовь к своему делу чувствуются в каждой пицце и каждом сэндвиче. А напитки… тут нечего скрывать — они покупные.",
+          "src": "/images/slider3.jpg"
+        }
+      ]
+    }
+  },
+  "footer": {
+    "contactPhoneLabel": "Телефон",
+    "addressLabel": "Адрес",
+    "emailLabel": "Email",
+    "mapTitle": "Pizza Project — Локация",
+    "addressText": "Boška Petrovića 6, 21000 Novi Sad",
+    "facebookText": "facebook",
+    "instagramText": "instagram"
+  },
+  "sidebar": {
+    "brandTop": "PIZZA",
+    "brandBottom": "PROJECT",
+    "orderPizza": "Заказать пиццу",
+    "deliveryPricing": "Стоимость доставки",
+    "cart": "Корзина",
+    "randomOrder": "Случайный заказ",
+    "callUs": "Позвоните нам",
+    "workingHours": "15:00—23:00"
+  },
+  "cart": {
+    "title": "Корзина",
+    "subtitle": "Обзор заказа и данные для доставки/самовывоза."
+  },
+  "cartPage": {
+    "back": "Назад на главную",
+    "itemsInCart_one": "{count} товар в корзине",
+    "itemsInCart_other": "{count} товаров в корзине",
+
+    "sizeLabel": "Размер",
+    "unitPrice": "RSD",
+    "unitPriceSuffix": "(цена за штуку)",
+
+    "decreaseQty": "Уменьшить количество",
+    "increaseQty": "Увеличить количество",
+    "removeFromCart": "Удалить из корзины",
+
+    "emptyCart": "Ваша корзина пуста.",
+
+    "totalLabel": "Итого к оплате:",
+
+    "savedCustomersTitle": "Сохранённые покупатели",
+    "unknownUser": "Неизвестный пользователь",
+    "noPhone": "без телефона",
+
+    "form": {
+      "fullName": "Имя и фамилия",
+      "phone": "Телефон",
+      "email": "Email",
+      "note": "Комментарий",
+      "delivery": "Доставка",
+      "pickup": "Самовывоз",
+      "address": "Адрес (улица, дом, этаж...)",
+      "deliveryOk": "Доставка доступна для содержимого корзины.",
+      "deliveryNotOkFallback": "Доставка недоступна для содержимого корзины.",
+      "cashOnly": "Оплата только наличными.",
+      "submit": "Оформить заказ",
+      "consent": "Отправляя заказ, вы подтверждаете корректность данных и даёте согласие на обработку персональных данных."
+    }
+  },
+  "deliveryPricing": {
+    "backToHome": "Назад на главную",
+    "title": "Стоимость доставки",
+    "subtitle": "Найдите свою зону и цену доставки.",
+    "searchPlaceholder": "Поиск зоны (например Veternik, Klisa...)",
+    "clearSearchAria": "Очистить поиск",
+    "sortByPriceAria": "Сортировать по цене",
+    "sortByPriceTitle": "Сортировать по цене",
+    "sortByZoneAria": "Сортировать по названию (A–Z)",
+    "sortByZoneTitle": "Сортировать по названию (A–Z)",
+    "tableZone": "Зона",
+    "tablePrice": "Цена",
+    "currencyShort": "RSD",
+    "emptyResults": "Нет результатов по запросу “{q}”.",
+    "notesTitle": "Примечания",
+    "notes": {
+      "partnerPrefix": "Доставку выполняет наш партнер",
+      "partnerName": "Fandjo NS",
+      "outsidePricingPrefix": "Зоны вне прайс-листа оплачиваются",
+      "outsidePricingValue": "150 RSD/км",
+      "extraStopPrefix": "Каждая дополнительная остановка оплачивается",
+      "extraStopValue": "150 RSD"
+    }
+  }
+}

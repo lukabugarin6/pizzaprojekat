@@ -22,6 +22,44 @@ import clsx from 'clsx';
 type Props = {
   title: string;
   subtitle?: string;
+  t: CartPageDict;
+};
+
+type CartPageDict = {
+  back: string;
+  itemsInCart_one: string; // "{count} ..."
+  itemsInCart_other: string; // "{count} ..."
+
+  sizeLabel: string;
+  unitPrice: string;
+  unitPriceSuffix: string;
+
+  decreaseQty: string;
+  increaseQty: string;
+  removeFromCart: string;
+
+  emptyCart: string;
+
+  totalLabel: string;
+
+  savedCustomersTitle: string;
+  unknownUser: string;
+  noPhone: string;
+
+  form: {
+    fullName: string;
+    phone: string;
+    email: string;
+    note: string;
+    delivery: string;
+    pickup: string;
+    address: string;
+    deliveryOk: string;
+    deliveryNotOkFallback: string;
+    cashOnly: string;
+    submit: string;
+    consent: string;
+  };
 };
 
 type SavedCustomer = {
@@ -35,7 +73,11 @@ type SavedCustomer = {
 
 const STORAGE_KEY = 'pp_saved_customers';
 
-export default function CartPageClient({ title, subtitle }: Props) {
+function formatCount(template: string, count: number) {
+  return template.replace('{count}', String(count));
+}
+
+export default function CartPageClient({ title, subtitle, t }: Props) {
   const {
     items = [],
     totalPrice,
@@ -89,6 +131,11 @@ export default function CartPageClient({ title, subtitle }: Props) {
     [items],
   );
 
+  const itemsMetaText = useMemo(() => {
+    const key = totalItems === 1 ? 'itemsInCart_one' : 'itemsInCart_other';
+    return formatCount(t[key], totalItems);
+  }, [t, totalItems]);
+
   const handleIncrease = (item: any) => {
     const current = item.quantity ?? 1;
     const next = Math.min(current + 1, 10);
@@ -134,15 +181,12 @@ export default function CartPageClient({ title, subtitle }: Props) {
     setEmail(customer.email || '');
     setPhone(customer.phone || '');
 
-    // ✅ uzmi u obzir delivery.allowed
     const nextOrderType =
       customer.orderType === 'delivery' && !delivery.allowed
         ? 'pickup'
         : customer.orderType || 'pickup';
 
     setOrderType(nextOrderType);
-
-    // ✅ adresa samo ako je dostava
     setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
   };
@@ -160,7 +204,6 @@ export default function CartPageClient({ title, subtitle }: Props) {
     e.preventDefault();
     if (!items.length) return;
 
-    // ✅ hard-block ako je dostava “na silu”
     if (orderType === 'delivery' && !delivery.allowed) return;
 
     const trimmedFullName = fullName.trim();
@@ -194,8 +237,6 @@ export default function CartPageClient({ title, subtitle }: Props) {
     resetForm();
   };
 
-  const itemLabel = totalItems === 1 ? 'proizvod' : 'proizvoda';
-
   return (
     <div className={styles['cart-page']}>
       <div className={styles['cart-page__container']}>
@@ -209,9 +250,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
             className={styles['cart-page__back-icon']}
             aria-hidden="true"
           />
-          <span className={styles['cart-page__back-text']}>
-            Nazad na početnu
-          </span>
+          <span className={styles['cart-page__back-text']}>{t.back}</span>
         </ClientLink>
 
         <header className={styles['cart-page__header']}>
@@ -227,7 +266,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
             <section className={styles['cart-page__section']}>
               <div className={styles['cart-page__section-head']}>
                 <div className={styles['cart-page__section-meta']}>
-                  {totalItems} {itemLabel} u korpi
+                  {itemsMetaText}
                 </div>
               </div>
 
@@ -267,7 +306,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                                 <CiRuler size={20} />
                               </span>
                               <span className={styles['cart-page__meta-label']}>
-                                Veličina
+                                {t.sizeLabel}
                               </span>
                               <span className={styles['cart-page__meta-value']}>
                                 — {item?.size} cm
@@ -283,7 +322,8 @@ export default function CartPageClient({ title, subtitle }: Props) {
                             <div
                               className={styles['cart-page__item-unitprice']}
                             >
-                              {unitPrice} RSD <span>(cena po komadu)</span>
+                              {unitPrice} {t.unitPrice}{' '}
+                              <span>{t.unitPriceSuffix}</span>
                             </div>
                           </div>
                         </div>
@@ -295,7 +335,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                               className={styles['cart-page__item-counter-btn']}
                               onClick={() => handleDecrease(item)}
                               disabled={qty === 1}
-                              aria-label="Smanji količinu"
+                              aria-label={t.decreaseQty}
                             >
                               <svg
                                 width="16"
@@ -326,7 +366,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                               className={styles['cart-page__item-counter-btn']}
                               onClick={() => handleIncrease(item)}
                               disabled={qty === 10}
-                              aria-label="Povećaj količinu"
+                              aria-label={t.increaseQty}
                             >
                               <svg
                                 width="16"
@@ -346,14 +386,14 @@ export default function CartPageClient({ title, subtitle }: Props) {
                           </div>
 
                           <div className={styles['cart-page__item-price']}>
-                            {lineTotal} RSD
+                            {lineTotal} {t.unitPrice}
                           </div>
 
                           <button
                             type="button"
                             className={styles['cart-page__item-remove']}
                             onClick={() => handleRemove(item)}
-                            aria-label="Ukloni iz korpe"
+                            aria-label={t.removeFromCart}
                           >
                             <HiMiniXMark size={26} />
                           </button>
@@ -363,9 +403,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                   })}
                 </div>
               ) : (
-                <div className={styles['cart-page__empty']}>
-                  Vaša korpa je prazna.
-                </div>
+                <div className={styles['cart-page__empty']}>{t.emptyCart}</div>
               )}
             </section>
           </div>
@@ -378,10 +416,10 @@ export default function CartPageClient({ title, subtitle }: Props) {
                 <section className={styles['cart-page__section']}>
                   <div className={styles['cart-page__total']}>
                     <span className={styles['cart-page__total-label']}>
-                      Ukupno za plaćanje:
+                      {t.totalLabel}
                     </span>
                     <span className={styles['cart-page__total-value']}>
-                      {totalPrice} RSD
+                      {totalPrice} {t.unitPrice}
                     </span>
                   </div>
                 </section>
@@ -391,7 +429,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                   <section className={styles['cart-page__section']}>
                     <div className={styles['cart-page__saved']}>
                       <div className={styles['cart-page__saved-title']}>
-                        Sačuvani kupci
+                        {t.savedCustomersTitle}
                       </div>
                       <ul className={styles['cart-page__saved-list']}>
                         {savedCustomers.map((c, idx) => (
@@ -407,13 +445,13 @@ export default function CartPageClient({ title, subtitle }: Props) {
                               <span
                                 className={styles['cart-page__saved-line-main']}
                               >
-                                {c.fullName || 'Nepoznat korisnik'} • {c.email}
+                                {c.fullName || t.unknownUser} • {c.email}
                               </span>
                               <span
                                 className={styles['cart-page__saved-line-sub']}
                               >
                                 {c.address && `${c.address} • `}
-                                {c.phone || 'bez broja'}
+                                {c.phone || t.noPhone}
                               </span>
                             </button>
                           </li>
@@ -432,7 +470,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                     <div className={styles['cart-page__form-row']}>
                       <SidebarCartFormField
                         type="text"
-                        placeholder="Ime i prezime"
+                        placeholder={t.form.fullName}
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -441,7 +479,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
 
                       <SidebarCartFormField
                         type="tel"
-                        placeholder="Broj telefona"
+                        placeholder={t.form.phone}
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required
@@ -452,7 +490,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                     <div className={styles['cart-page__form-row']}>
                       <SidebarCartFormField
                         type="email"
-                        placeholder="Email"
+                        placeholder={t.form.email}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         leftIcon={<FiMail size={16} />}
@@ -460,14 +498,13 @@ export default function CartPageClient({ title, subtitle }: Props) {
 
                       <SidebarCartFormField
                         as="textarea"
-                        placeholder="Napomena"
+                        placeholder={t.form.note}
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         leftIcon={<FiMessageSquare size={16} />}
                       />
                     </div>
 
-                    {/* RADIOs + MESSAGES (isto kao u SidebarCartPreview) */}
                     <div className={styles['cart-page__form-row']}>
                       <div className={styles['cart-page__form-radios']}>
                         <label
@@ -492,7 +529,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                           <span
                             className={styles['cart-page__form-radio-label']}
                           >
-                            Dostava
+                            {t.form.delivery}
                           </span>
                         </label>
 
@@ -511,12 +548,11 @@ export default function CartPageClient({ title, subtitle }: Props) {
                           <span
                             className={styles['cart-page__form-radio-label']}
                           >
-                            Preuzimanje
+                            {t.form.pickup}
                           </span>
                         </label>
                       </div>
 
-                      {/* poruka UVEK ispod (10px) */}
                       <div
                         className={clsx(
                           styles['cart-page__delivery-message'],
@@ -527,16 +563,15 @@ export default function CartPageClient({ title, subtitle }: Props) {
                         aria-live="polite"
                       >
                         {delivery.allowed
-                          ? 'Dostava je dostupna za sadržaj korpe.'
-                          : (delivery.reason ??
-                            'Dostava nije dostupna za sadržaj korpe.')}
+                          ? ''
+                          : (delivery.reason ?? t.form.deliveryNotOkFallback)}
                       </div>
 
                       <div
                         className={styles['cart-page__cash-message']}
                         role="note"
                       >
-                        Plaćanje prihvatamo samo u gotovini.
+                        {t.form.cashOnly}
                       </div>
                     </div>
 
@@ -544,7 +579,7 @@ export default function CartPageClient({ title, subtitle }: Props) {
                       <div className={styles['cart-page__form-row']}>
                         <SidebarCartFormField
                           type="text"
-                          placeholder="Adresa (ulica, broj, sprat...)"
+                          placeholder={t.form.address}
                           value={address}
                           leftIcon={<FiMapPin />}
                           onChange={(e) => setAddress(e.target.value)}
@@ -561,13 +596,12 @@ export default function CartPageClient({ title, subtitle }: Props) {
                         (orderType === 'delivery' && !delivery.allowed)
                       }
                     >
-                      Poruči
+                      {t.form.submit}
                       <HandPointerSvg />
                     </button>
 
                     <p className={styles['cart-page__form-note']}>
-                      Slanjem porudžbine potvrđujete tačnost podataka i dajete
-                      saglasnost za obradu ličnih podataka.
+                      {t.form.consent}
                     </p>
                   </form>
                 </section>

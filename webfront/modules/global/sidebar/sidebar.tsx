@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import { usePathname } from 'next/navigation';
 
@@ -16,21 +16,41 @@ import { useCart } from '@/context/cart/cart-context';
 import ClientLink from '@/components/ui/client-link';
 import SidebarCartPreview from '@/components/ui/sidebar-cart-preview';
 import { useDelayedHover } from '@/hooks/useDelayedHover';
+import LanguageSwitcher from '@/components/ui/language-switcher';
 
-type Props = {
-  lang?: 'sr-Latn' | 'sr-Cyrl';
+type SidebarDict = {
+  brandTop: string;
+  brandBottom: string;
+  orderPizza: string;
+  deliveryPricing: string;
+  cart: string;
+  randomOrder: string;
+  callUs: string;
+  workingHours: string;
 };
 
-export default function Sidebar({ lang }: Props) {
-  const pathname = usePathname();
+type Props = {
+  t: SidebarDict;
+};
 
-  // /korpa, /sr-Latn/korpa, /sr-Cyrl/korpa, /en/korpa, /ru/korpa
-  const isCartPage = /(^|\/)korpa\/?$/.test(pathname || '');
-  const isRandomPage = /(^|\/)nasumicna-porudzbina\/?$/.test(pathname || '');
-  const isDeliveryPage = /(^|\/)cenovnik-dostave\/?$/.test(pathname || '');
+export default function Sidebar({ t }: Props) {
+  const pathname = usePathname() || '/';
+
+  // ✅ hydration guard (SSR sees empty cart; wait for client mount)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // locale-aware routes
+  const isCartPage = /(^|\/)korpa\/?$/.test(pathname);
+  const isRandomPage = /(^|\/)nasumicna-porudzbina\/?$/.test(pathname);
+  const isDeliveryPage = /(^|\/)cenovnik-dostave\/?$/.test(pathname);
 
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
-  const { totalItems } = useCart();
+
+  const { totalItems: totalItemsRaw } = useCart();
+
+  // ✅ SSR-safe values
+  const totalItems = mounted ? totalItemsRaw : 0;
   const cartEmpty = totalItems === 0;
 
   const prevTotalRef = useRef(totalItems);
@@ -42,90 +62,103 @@ export default function Sidebar({ lang }: Props) {
     handleMouseLeave: handleCartMouseLeave,
   } = useDelayedHover(700);
 
-  // ✅ WORKING HOURS: 15:00–23:00 (local time)
+  // ✅ WORKING HOURS
   const [isOpenNow, setIsOpenNow] = useState(true);
 
   useEffect(() => {
     const compute = () => {
       const now = new Date();
-
       const day = now.getDay(); // 0=Sunday ... 6=Saturday
       const isSunday = day === 0;
 
       const minutes = now.getHours() * 60 + now.getMinutes();
-      const start = 15 * 60; // 15:00
-      const end = 23 * 60; // 23:00
+      const start = 15 * 60;
+      const end = 23 * 60;
 
       const openToday = !isSunday && minutes >= start && minutes < end;
-
       setIsOpenNow(openToday);
     };
 
     compute();
-
-    const t = window.setInterval(compute, 30_000);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(compute, 30_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   // if we navigate to cart page, force-close preview
   useEffect(() => {
-    if (isCartPage) {
-      handleCartMouseLeave();
-    }
+    if (isCartPage) handleCartMouseLeave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCartPage]);
 
   useEffect(() => {
+    if (!mounted) return;
+
     if (totalItems > prevTotalRef.current) {
       setPulse(true);
-
-      const timeout = setTimeout(() => {
-        setPulse(false);
-      }, 2000);
-
+      const timeout = setTimeout(() => setPulse(false), 2000);
       return () => clearTimeout(timeout);
     }
 
     prevTotalRef.current = totalItems;
-  }, [totalItems]);
+  }, [totalItems, mounted]);
 
   const handleCartEnterSafe = () => {
+    if (!mounted) return; // ✅ no preview during SSR/first paint
     if (isCartPage) return;
     handleCartMouseEnter();
   };
 
   const handleCartLeaveSafe = () => {
+    if (!mounted) return;
     if (isCartPage) return;
     handleCartMouseLeave();
   };
 
   const handleCartClick = (e: React.MouseEvent) => {
-    // ✅ samo blokiraj odlazak na /korpa kad je prazno
+    if (!mounted) return; // ✅ avoid SSR mismatch edge cases
     if (cartEmpty) {
       e.preventDefault();
       e.stopPropagation();
     }
   };
 
-  const isHomePage = useMemo(() => {
+  // locale-aware home detection
+  const { currentWithoutLang, langFromPath } = useMemo(() => {
     const segments = pathname.split('/').filter(Boolean);
-    // "/" ili "/en" ili "/sr-Latn" itd.
-    return segments.length <= 1;
+    return {
+      langFromPath: segments[0] || '',
+      currentWithoutLang: segments.slice(1).join('/'),
+    };
   }, [pathname]);
+
+  const isHomePage =
+    currentWithoutLang === '' || (pathname === '/' && !langFromPath);
+
+  const handleOrderPizza = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isHomePage) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      scrollToNextSection();
+    },
+    [isHomePage, scrollToNextSection],
+  );
 
   return (
     <div className={clsx(styles.wrapper, !isOpenNow && styles.closed)}>
       <div className={clsx(styles.wrapper__inner)}>
         <ClientLink
           href="/"
+          preserveLang
           classes={{
             item: styles.wrapper__inner__item,
             logo: styles.wrapper__inner__logo,
             nonHoverable: styles.nonHoverable,
           }}
         >
-          PIZZA <br />
-          PROJECT
+          {t.brandTop} <br />
+          {t.brandBottom}
         </ClientLink>
 
         <div className={clsx(styles.wrapper__inner__top)}>
@@ -136,13 +169,10 @@ export default function Sidebar({ lang }: Props) {
               item: styles.wrapper__inner__item,
               logo: styles.wrapper__inner__top__item,
             }}
-            onClick={(e) => {
-              if (!isHomePage) return;
-              scrollToNextSection();
-            }}
+            onClick={handleOrderPizza}
           >
             <PizzaSvg />
-            <span>Poruči picu</span>
+            <span>{t.orderPizza}</span>
           </ClientLink>
 
           <ClientLink
@@ -155,24 +185,26 @@ export default function Sidebar({ lang }: Props) {
               nonHoverable: styles.smaller,
             }}
             href="/cenovnik-dostave"
+            preserveLang
           >
             <DeliveryZoneSvg />
-            <span>Cenovnik dostave</span>
+            <span>{t.deliveryPricing}</span>
           </ClientLink>
 
-          {/* CART LINK (preview radi i kad je prazno; samo klik blokiran) */}
           <ClientLink
             href="/korpa"
+            preserveLang
             classes={{
               item: styles.wrapper__inner__item,
               logo: clsx(
                 styles.wrapper__inner__top__item,
                 isCartPage && styles.active,
-                cartEmpty && styles.disabled,
+                mounted && cartEmpty && styles.disabled, // ✅ only after mount
               ),
               nonHoverable: styles.cartWrapper,
             }}
-            aria-disabled={cartEmpty ? 'true' : undefined}
+            // ✅ do NOT render aria-disabled on server → prevents mismatch
+            aria-disabled={mounted && cartEmpty ? 'true' : undefined}
             onClick={handleCartClick}
             data-cart-icon
             onMouseEnter={handleCartEnterSafe}
@@ -180,7 +212,7 @@ export default function Sidebar({ lang }: Props) {
           >
             <div className={styles.cartIcon}>
               <CartSvg />
-              {totalItems > 0 && (
+              {mounted && totalItems > 0 && (
                 <span
                   className={clsx(
                     styles.cartBadge,
@@ -191,18 +223,18 @@ export default function Sidebar({ lang }: Props) {
                 </span>
               )}
             </div>
-            <span>Korpa</span>
+            <span>{t.cart}</span>
           </ClientLink>
 
-          {/* CART PREVIEW PANEL (disabled only when on /korpa page) */}
           <SidebarCartPreview
-            isOpen={!isCartPage && isCartPreviewOpen}
+            isOpen={mounted && !isCartPage && isCartPreviewOpen}
             onMouseEnter={handleCartEnterSafe}
             onMouseLeave={handleCartLeaveSafe}
           />
 
           <ClientLink
             href="/nasumicna-porudzbina"
+            preserveLang
             classes={{
               item: styles.wrapper__inner__item,
               logo: clsx(
@@ -214,14 +246,14 @@ export default function Sidebar({ lang }: Props) {
             }}
           >
             <RandomDeliverySvg />
-            <span>Nasumična porudžbina</span>
+            <span>{t.randomOrder}</span>
           </ClientLink>
 
           <div className={clsx(styles.wrapper__inner__item, styles.phone)}>
             <PhoneSvg />
             <span>+381 (65) 804 04 43</span>
             <span className={clsx(styles.wrapper__inner__item__subtitle)}>
-              Pozovite nas
+              {t.callUs}
             </span>
           </div>
 
@@ -234,11 +266,13 @@ export default function Sidebar({ lang }: Props) {
             )}
           >
             <TimeSvg />
-            <span>15:00—23:00</span>
+            <span>{t.workingHours}</span>
           </div>
         </div>
 
-        <div className={clsx(styles.langSwitcher)}>EN | RU</div>
+        <div className={clsx(styles.langSwitcher)}>
+          <LanguageSwitcher shorter />
+        </div>
       </div>
     </div>
   );

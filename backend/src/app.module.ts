@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { User } from './users/user.entity';
 import { WebAuthnCredential } from './users/webauthn-credential.entity';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -19,14 +21,13 @@ import { WebAuthnCredential } from './users/webauthn-credential.entity';
         password: cfg.get('DB_PASS'),
         database: cfg.get('DB_NAME'),
         entities: [User, WebAuthnCredential],
-
-        // DEV only:
         synchronize: true,
-        // Prod: migrate, ne synchronize
       }),
     }),
 
     AuthModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

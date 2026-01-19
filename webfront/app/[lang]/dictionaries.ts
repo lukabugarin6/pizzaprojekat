@@ -2,7 +2,8 @@ import 'server-only';
 
 const dictionaries = {
   'sr-Latn': () => import('./dictionaries/sr-Latn.json').then((m) => m.default),
-  'sr-Cyrl': () => import('./dictionaries/sr-Cyrl.json').then((m) => m.default),
+  en: () => import('./dictionaries/en.json').then((m) => m.default),
+  ru: () => import('./dictionaries/ru.json').then((m) => m.default),
 };
 
 export type Lang = keyof typeof dictionaries;

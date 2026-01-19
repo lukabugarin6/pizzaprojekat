@@ -1,27 +1,27 @@
 import clsx from 'clsx';
 import styles from './footer.module.scss';
-import Container from '@/components/ui/container';
-import LanguageSwitcher from '@/components/ui/language-switcher';
-import Link from 'next/link';
-// import type { FooterDict } from '@/app/[lang]/dictionaries';
 import { FaFacebookF } from 'react-icons/fa';
 import { FaInstagram } from 'react-icons/fa6';
-import LogoSvg from '@/components/svg/logo-svg';
 
-type Props = {
-  // t: FooterDict;
-  lang?: 'sr-Latn' | 'sr-Cyrl';
+type FooterDict = {
+  contactPhoneLabel: string;
+  addressLabel: string;
+  emailLabel: string;
+  mapTitle: string;
+  addressText: string;
+  facebookText: string;
+  instagramText: string;
 };
 
-export default function Footer({
-  // t,
-  lang,
-}: Props) {
+type Props = {
+  t: FooterDict;
+};
+
+export default function Footer({ t }: Props) {
   const lat = 45.26025575066642;
   const lon = 19.79955594233024;
 
   // manji brojevi = veći zoom (bliže)
-  // kreni ovde, pa po potrebi još smanji
   const dLat = 0.00025;
   const dLon = 0.00035;
 
@@ -35,7 +35,7 @@ export default function Footer({
         <div className={clsx(styles.wrapper__left)}>
           <div className={clsx(styles.wrapper__left__item)}>
             <div className={clsx(styles.wrapper__left__item__label)}>
-              Kontakt telefon
+              {t.contactPhoneLabel}
             </div>
             <a
               href="tel:+381658040443"
@@ -44,16 +44,20 @@ export default function Footer({
               +381 (65) 804 04 43
             </a>
           </div>
+
           <div className={clsx(styles.wrapper__left__item)}>
             <div className={clsx(styles.wrapper__left__item__label)}>
-              Adresa
+              {t.addressLabel}
             </div>
             <div className={clsx(styles.wrapper__left__item__text)}>
-              Boška Petrovića 6, 21000 Novi Sad
+              {t.addressText}
             </div>
           </div>
+
           <div className={clsx(styles.wrapper__left__item)}>
-            <div className={clsx(styles.wrapper__left__item__label)}>Email</div>
+            <div className={clsx(styles.wrapper__left__item__label)}>
+              {t.emailLabel}
+            </div>
             <a
               href="mailto:pizzaprojectns@gmail.com"
               className={clsx(styles.wrapper__left__item__text, styles.link)}
@@ -61,21 +65,29 @@ export default function Footer({
               pizzaprojectns@gmail.com
             </a>
           </div>
+
           <div className={clsx(styles.wrapper__left__socials)}>
-            <div className={clsx(styles.link, styles.socialLink)}>
-              <FaFacebookF /> facebook
-            </div>
-            <div className={clsx(styles.link, styles.socialLink)}>
-              <FaInstagram /> instagram
-            </div>
+            {/* Ako imaš real linkove, samo ubaci href */}
+            <a
+              className={clsx(styles.link, styles.socialLink)}
+              href="#"
+              aria-label="Facebook"
+            >
+              <FaFacebookF /> {t.facebookText}
+            </a>
+            <a
+              className={clsx(styles.link, styles.socialLink)}
+              href="#"
+              aria-label="Instagram"
+            >
+              <FaInstagram /> {t.instagramText}
+            </a>
           </div>
         </div>
+
         <div className={clsx(styles.wrapper__right)}>
-          {/* <div className={clsx(styles.footerLogo)}>
-            <LogoSvg />
-          </div> */}
           <iframe
-            title="Pizza Project - Lokacija"
+            title={t.mapTitle}
             src={src}
             className={styles.footerMap__frame}
             loading="lazy"

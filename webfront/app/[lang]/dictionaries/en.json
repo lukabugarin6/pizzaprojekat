@@ -1,0 +1,145 @@
+{
+  "languages": {
+    "en": "En",
+    "sr-Latn": "Sr",
+    "ru": "Ru"
+  },
+  "meta": {
+    "home": {
+      "title": "Pizza Project | Takeaway & Delivery Pizza",
+      "description": "Pizza Project – freshly baked pizza for takeaway and delivery. Fast ordering, quality ingredients, and great taste. Order now!"
+    },
+    "cart": {
+      "title": "Pizza Project | Order Cart",
+      "description": "Your order cart at Pizza Project. Review your pizzas, quantities, and prices, then proceed to checkout and delivery."
+    },
+    "deliveryPricing": {
+      "title": "Pizza Project | Delivery pricing",
+      "description": "Delivery pricing by zones for Pizza Project. Find your zone and delivery fee."
+    }
+  },
+  "navbar": {
+    "brand": "PIZZA PROJECT",
+    "orderPizza": "Order pizza",
+    "deliveryPricing": "Delivery pricing",
+    "randomOrder": "Random order",
+    "workingHours": "15:00—23:00",
+    "phone": "+381 (65) 804 04 43"
+  },
+  "hero": {
+    "cta": "Order your favorite pizza online"
+  },
+  "home": {
+    "sections": {
+      "pizza": "Pizza",
+      "sandwiches": "Sandwiches",
+      "drinks": "Drinks"
+    },
+    "titles": {
+      "sandwiches": "SANDWICHES",
+      "drinks": "DRINKS"
+    },
+    "carousel": {
+      "slides": [
+        {
+          "title": "Accademia Pizzaoli",
+          "text": "One of the most well-known schools for mastering the art of pizza. We believe investing in knowledge is always the safest investment.",
+          "src": "/images/slider2.jpg"
+        },
+        {
+          "title": "How it started",
+          "text": "When we look at these photos, we almost feel it in our stomachs... remembering all the renovations, contractors, and headaches wasn’t exactly fun — but looking back now, we know it was worth it.",
+          "src": "/images/slider1.jpg"
+        },
+        {
+          "title": "Every pizza has a story",
+          "text": "And when I remember she almost wanted to hit me with a shovel at the beginning... 😊 Patience, support, and love for what we do can be tasted in every pizza and sandwich you eat. As for drinks — no secrets there, we buy those.",
+          "src": "/images/slider3.jpg"
+        }
+      ]
+    }
+  },
+  "footer": {
+    "contactPhoneLabel": "Phone",
+    "addressLabel": "Address",
+    "emailLabel": "Email",
+    "mapTitle": "Pizza Project - Location",
+    "addressText": "Boška Petrovića 6, 21000 Novi Sad",
+    "facebookText": "facebook",
+    "instagramText": "instagram"
+  },
+  "sidebar": {
+    "brandTop": "PIZZA",
+    "brandBottom": "PROJECT",
+    "orderPizza": "Order pizza",
+    "deliveryPricing": "Delivery pricing",
+    "cart": "Cart",
+    "randomOrder": "Random order",
+    "callUs": "Call us",
+    "workingHours": "15:00—23:00"
+  },
+  "cart": {
+    "title": "Cart",
+    "subtitle": "Order overview and delivery/pickup details."
+  },
+  "cartPage": {
+    "back": "Back to home",
+    "itemsInCart_one": "{count} item in cart",
+    "itemsInCart_other": "{count} items in cart",
+
+    "sizeLabel": "Size",
+    "unitPrice": "RSD",
+    "unitPriceSuffix": "(unit price)",
+
+    "decreaseQty": "Decrease quantity",
+    "increaseQty": "Increase quantity",
+    "removeFromCart": "Remove from cart",
+
+    "emptyCart": "Your cart is empty.",
+
+    "totalLabel": "Total to pay:",
+
+    "savedCustomersTitle": "Saved customers",
+    "unknownUser": "Unknown user",
+    "noPhone": "no phone",
+
+    "form": {
+      "fullName": "Full name",
+      "phone": "Phone number",
+      "email": "Email",
+      "note": "Note",
+      "delivery": "Delivery",
+      "pickup": "Pickup",
+      "address": "Address (street, number, floor...)",
+      "deliveryOk": "Delivery is available for your cart.",
+      "deliveryNotOkFallback": "Delivery is not available for your cart.",
+      "cashOnly": "We accept cash only.",
+      "submit": "Place order",
+      "consent": "By submitting the order, you confirm the information is accurate and you consent to the processing of personal data."
+    }
+  },
+  "deliveryPricing": {
+    "backToHome": "Back to home",
+    "title": "Delivery pricing",
+    "subtitle": "Find your zone and delivery fee.",
+    "searchPlaceholder": "Search zone (e.g. Veternik, Klisa...)",
+    "clearSearchAria": "Clear search",
+    "sortByPriceAria": "Sort by price",
+    "sortByPriceTitle": "Sort by price",
+    "sortByZoneAria": "Sort by name (A–Z)",
+    "sortByZoneTitle": "Sort by name (A–Z)",
+    "tableZone": "Zone",
+    "tablePrice": "Price",
+    "currencyShort": "RSD",
+    "emptyResults": "No results for “{q}”.",
+    "notesTitle": "Notes",
+    "notes": {
+      "partnerPrefix": "Delivery is handled by our partner",
+      "partnerName": "Fandjo NS",
+      "outsidePricingPrefix": "Zones not listed are charged",
+      "outsidePricingValue": "150 RSD/km",
+      "extraStopPrefix": "Each additional stop is charged",
+      "extraStopValue": "150 RSD"
+    }
+  }
+}

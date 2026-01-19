@@ -8,8 +8,9 @@ export default async function CartPage({ params }: { params: { lang: Lang } }) {
   return (
     <main>
       <CartPageClient
-        title={'Korpa'}
-        subtitle={'Pregled porudžbine i podaci za dostavu/preuzimanje.'}
+        title={dict.cart.title}
+        subtitle={dict.cart.subtitle}
+        t={dict.cartPage}
       />
     </main>
   );

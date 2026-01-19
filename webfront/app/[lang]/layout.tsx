@@ -9,17 +9,6 @@ import Preloader from '@/components/ui/preloader';
 import { CartProvider } from '@/context/cart/cart-provider';
 import Navbar from '@/components/ui/navbar';
 
-const montserrat = localFont({
-  src: [
-    {
-      path: '../../public/fonts/Montserrat-VariableFont_wght.ttf',
-      weight: '100 900',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-montserrat',
-});
-
 const ptSans = localFont({
   src: [
     {
@@ -36,28 +25,6 @@ const ptSans = localFont({
   variable: '--font-pt-sans',
 });
 
-const playfair = localFont({
-  src: [
-    {
-      path: '../../public/fonts/Playfair-VariableFont.ttf',
-      weight: '100 900',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-playfair',
-});
-
-const rubik = localFont({
-  src: [
-    {
-      path: '../../public/fonts/Rubik-VariableFont.ttf',
-      weight: '100 900',
-      style: 'normal',
-    },
-  ],
-  variable: '--font-rubik',
-});
-
 const robotoCondensed = localFont({
   src: [
     {
@@ -69,7 +36,7 @@ const robotoCondensed = localFont({
   variable: '--font-roboto-condensed',
 });
 
-const interTight = localFont({
+const planet = localFont({
   src: [
     {
       path: '../../public/fonts/home-planet-bb.regular.ttf',
@@ -77,7 +44,7 @@ const interTight = localFont({
       style: 'normal',
     },
   ],
-  variable: '--font-inter-tight',
+  variable: '--font-planet',
 });
 
 export async function generateStaticParams() {
@@ -98,6 +65,8 @@ export async function generateMetadata({
     alternates: {
       languages: {
         'sr-Latn': '/sr-Latn',
+        en: '/en',
+        ru: '/ru',
       },
     },
   };
@@ -117,7 +86,7 @@ export default async function RootLayout({
     <html lang={lang}>
       <body
         data-preloader="true"
-        className={`${montserrat.variable} ${ptSans.variable} ${playfair.variable} ${rubik.variable} ${robotoCondensed.variable} ${interTight.variable} antialiased`}
+        className={`${ptSans.variable} ${robotoCondensed.variable} ${planet.variable} antialiased`}
       >
         <ThemeProvider>
           {/* prosleđujemo samo deo za navbar */}
@@ -132,10 +101,10 @@ export default async function RootLayout({
                 flexDirection: 'column',
               }}
             >
-              <Sidebar />
-              <Navbar />
+              <Sidebar t={dict.sidebar} />{' '}
+              <Navbar t={dict.navbar} lang={lang} />
               <div style={{ flexGrow: 1 }}>{children}</div>
-              <Footer />
+              <Footer t={dict.footer} />
               <Preloader />
             </div>
           </CartProvider>

@@ -65,7 +65,7 @@
 
   &__langSwitcherAndCartWrapper {
     position: relative;
-
+    z-index: 999;
     .langSwitcher {
       width: max-content;
       position: absolute;
@@ -76,9 +76,10 @@
       font-size: 14px;
       letter-spacing: -0.03em;
       opacity: 0.9;
-      pointer-events: none;
-      user-select: none;
+      // pointer-events: none;
+      // user-select: none;
       color: inherit;
+      z-index: 99;
     }
   }
 

@@ -12,7 +12,44 @@ import styles from './cenovnik-dostave.module.scss';
 
 type ZoneRow = { zone: string; price: number };
 
-export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
+export type DeliveryPricingDict = {
+  backToHome: string;
+  title: string;
+  subtitle: string;
+
+  searchPlaceholder: string;
+  clearSearchAria: string;
+
+  sortByPriceAria: string;
+  sortByPriceTitle: string;
+
+  sortByZoneAria: string;
+  sortByZoneTitle: string;
+
+  tableZone: string;
+  tablePrice: string;
+  currencyShort: string; // "din" / "RSD"
+
+  emptyResults: string; // koristi {q}
+
+  notesTitle: string;
+  notes: {
+    partnerPrefix: string; // npr "Dostavu vrši naš partner"
+    partnerName: string; // "Fandjo NS"
+    outsidePricingPrefix: string; // npr "Zone van cenovnika naplaćuju se"
+    outsidePricingValue: string; // "150 din/km"
+    extraStopPrefix: string; // "Svako naredno zaustavljanje naplaćuje se"
+    extraStopValue: string; // "150 din"
+  };
+};
+
+export default function DeliveryZonesClient({
+  zones,
+  t,
+}: {
+  zones: ZoneRow[];
+  t: DeliveryPricingDict;
+}) {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<'zone' | 'price'>('price');
 
@@ -43,23 +80,19 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
           className={styles['zones-page__back-icon']}
           aria-hidden="true"
         />
-        <span className={styles['zones-page__back-text']}>
-          Nazad na početnu
-        </span>
+        <span className={styles['zones-page__back-text']}>{t.backToHome}</span>
       </ClientLink>
 
       <header className={styles['zones-page__header']}>
-        <h1 className={styles['zones-page__title']}>Cenovnik dostave</h1>
-        <p className={styles['zones-page__subtitle']}>
-          Pronađite svoju zonu i cenu dostave.
-        </p>
+        <h1 className={styles['zones-page__title']}>{t.title}</h1>
+        <p className={styles['zones-page__subtitle']}>{t.subtitle}</p>
       </header>
 
       <div className={styles['zones-page__controls']}>
         <div className={styles['zones-page__searchWrap']}>
           <input
             className={styles['zones-page__search']}
-            placeholder="Pretraži zonu (npr. Veternik, Klisa...)"
+            placeholder={t.searchPlaceholder}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -68,7 +101,7 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
               type="button"
               className={styles['zones-page__clear']}
               onClick={() => setQ('')}
-              aria-label="Obriši pretragu"
+              aria-label={t.clearSearchAria}
             >
               ×
             </button>
@@ -83,8 +116,8 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
               sort === 'price' && styles['zones-page__iconBtn--active'],
             )}
             onClick={() => setSort('price')}
-            aria-label="Sortiraj po ceni"
-            title="Sortiraj po ceni"
+            aria-label={t.sortByPriceAria}
+            title={t.sortByPriceTitle}
           >
             <HiOutlineCurrencyDollar
               className={styles['zones-page__icon']}
@@ -99,8 +132,8 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
               sort === 'zone' && styles['zones-page__iconBtn--active'],
             )}
             onClick={() => setSort('zone')}
-            aria-label="Sortiraj po nazivu (A–Z)"
-            title="Sortiraj po nazivu (A–Z)"
+            aria-label={t.sortByZoneAria}
+            title={t.sortByZoneTitle}
           >
             <HiOutlineBarsArrowUp
               className={styles['zones-page__icon']}
@@ -112,13 +145,13 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
 
       <div className={styles['zones-page__table']}>
         <div className={styles['zones-page__thead']}>
-          <div>Zona grada</div>
-          <div className={styles['zones-page__right']}>Cena</div>
+          <div>{t.tableZone}</div>
+          <div className={styles['zones-page__right']}>{t.tablePrice}</div>
         </div>
 
         {filtered.length === 0 ? (
           <div className={styles['zones-page__empty']}>
-            Nema rezultata za “{q}”.
+            {t.emptyResults.replace('{q}', q)}
           </div>
         ) : (
           filtered.map((row) => (
@@ -130,7 +163,7 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
                   styles['zones-page__right'],
                 )}
               >
-                {row.price} din
+                {row.price} {t.currencyShort}
               </div>
             </div>
           ))
@@ -138,16 +171,17 @@ export default function DeliveryZonesClient({ zones }: { zones: ZoneRow[] }) {
       </div>
 
       <div className={styles['zones-page__notes']}>
-        <div className={styles['zones-page__noteTitle']}>Napomene</div>
+        <div className={styles['zones-page__noteTitle']}>{t.notesTitle}</div>
         <ul className={styles['zones-page__noteList']}>
           <li>
-            Dostavu vrši naš partner <strong>Fandjo NS</strong>.
+            {t.notes.partnerPrefix} <strong>{t.notes.partnerName}</strong>.
           </li>
           <li>
-            Zone van cenovnika naplaćuju se <strong>150 din/km</strong>.
+            {t.notes.outsidePricingPrefix}{' '}
+            <strong>{t.notes.outsidePricingValue}</strong>.
           </li>
           <li>
-            Svako naredno zaustavljanje naplaćuje se <strong>150 din</strong>.
+            {t.notes.extraStopPrefix} <strong>{t.notes.extraStopValue}</strong>.
           </li>
         </ul>
       </div>
