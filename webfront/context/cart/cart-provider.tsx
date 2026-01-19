@@ -14,9 +14,9 @@ const STORAGE_KEY = 'cart';
  * ✅ Must have at least one pizza 32 or 50 to enable delivery
  */
 function getDeliveryEligibility(items: CartItem[]) {
-  const isPizza = (id: string) => id.startsWith('pizza-');
-  const isSandwich = (id: string) => id.startsWith('sandwich-');
-  const isDrink = (id: string) => id.startsWith('drink-');
+  const isPizza = (id: string) => id?.startsWith('pizza-');
+  const isSandwich = (id: string) => id?.startsWith('sandwich-');
+  const isDrink = (id: string) => id?.startsWith('drink-');
 
   const isPizzaSmall = (item: CartItem) =>
     isPizza(item.productId) && item.size === 24;
@@ -27,7 +27,7 @@ function getDeliveryEligibility(items: CartItem[]) {
   const hasAnyItems = items.some((i) => i.quantity > 0);
 
   const hasAllowedPizza = items.some(
-    (i) => i.quantity > 0 && isPizzaDeliveryAllowed(i)
+    (i) => i.quantity > 0 && isPizzaDeliveryAllowed(i),
   );
 
   const hasForbiddenItems = items.some((i) => {
@@ -84,12 +84,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = (item: CartItem) => {
     setItems((prev) => {
       const existing = prev.find(
-        (p) => p.productId === item.productId && p.size === item.size
+        (p) => p.productId === item.productId && p.size === item.size,
       );
 
       if (existing) {
         return prev.map((p) =>
-          p === existing ? { ...p, quantity: p.quantity + item.quantity } : p
+          p === existing ? { ...p, quantity: p.quantity + item.quantity } : p,
         );
       }
 
@@ -99,7 +99,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCart = (productId: string, size: number) => {
     setItems((prev) =>
-      prev.filter((p) => !(p.productId === productId && p.size === size))
+      prev.filter((p) => !(p.productId === productId && p.size === size)),
     );
   };
 
@@ -109,7 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const updateItemQuantity = (
     productId: string,
     size: number,
-    quantity: number
+    quantity: number,
   ) => {
     setItems(
       (prev) =>
@@ -117,9 +117,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           .map((p) =>
             p.productId === productId && p.size === size
               ? { ...p, quantity }
-              : p
+              : p,
           )
-          .filter((p) => p.quantity > 0) // optional: auto-remove if qty becomes 0
+          .filter((p) => p.quantity > 0), // optional: auto-remove if qty becomes 0
     );
   };
 
