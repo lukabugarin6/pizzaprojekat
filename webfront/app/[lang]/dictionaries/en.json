@@ -16,6 +16,10 @@
     "deliveryPricing": {
       "title": "Pizza Project | Delivery pricing",
       "description": "Delivery pricing by zones for Pizza Project. Find your zone and delivery fee."
+    },
+    "randomOrder": {
+      "title": "Pizza Project | Random order",
+      "description": "Let chance decide — choose quantity and size, roll the dice, and add randomly selected pizzas to your cart."
     }
   },
   "navbar": {
@@ -141,5 +145,29 @@
       "extraStopPrefix": "Each additional stop is charged",
       "extraStopValue": "150 RSD"
     }
+  },
+  "randomOrder": {
+    "title": "Random order",
+    "subtitle": "Leave it to chance — we’ll surprise you with a pizza."
+  },
+  "randomOrderPage": {
+    "backToHome": "Back to home",
+    "backToHomeAria": "Back to home page",
+
+    "increaseQtyAria": "Increase quantity",
+    "decreaseQtyAria": "Decrease quantity",
+
+    "sizeCmSuffix": "cm",
+    "sizeLabel": "Size",
+
+    "confirmCta": "Roll the dice",
+
+    "unitPriceSuffix": "price per item",
+
+    "increaseRowQtyAria": "Increase quantity for this item",
+    "decreaseRowQtyAria": "Decrease quantity for this item",
+
+    "totalLabel": "Total:",
+    "addAllToCart": "Add all to cart"
   }
 }

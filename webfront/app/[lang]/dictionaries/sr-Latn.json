@@ -16,6 +16,10 @@
     "deliveryPricing": {
       "title": "Pizza Project | Cenovnik dostave",
       "description": "Cenovnik dostave po zonama za Pizza Project. Pronađite svoju zonu i cenu dostave."
+    },
+    "randomOrder": {
+      "title": "Pizza Project | Nasumična porudžbina",
+      "description": "Prepustite izbor slučaju — izaberite količinu i veličinu, bacite kocku i dodajte nasumično odabrane pice u korpu."
     }
   },
   "navbar": {
@@ -141,5 +145,27 @@
       "extraStopPrefix": "Svako naredno zaustavljanje naplaćuje se",
       "extraStopValue": "150 din"
     }
+  },
+  "randomOrder": {
+    "title": "Nasumična porudžbina",
+    "subtitle": "Prepustite izbor slučaju — mi ćemo vas iznenaditi picom."
+  },
+  "randomOrderPage": {
+    "backToHome": "Nazad na početnu",
+    "confirmCta": "Baci kocku",
+
+    "increaseQtyAria": "Povećaj količinu",
+    "decreaseQtyAria": "Smanji količinu",
+
+    "sizeCmSuffix": "cm",
+
+    "unitPriceSuffix": "cena po komadu",
+
+    "increaseRowQtyAria": "Povećaj količinu za ovaj red",
+    "decreaseRowQtyAria": "Smanji količinu za ovaj red",
+
+    "totalLabel": "Ukupno:",
+    "addAllToCart": "Dodaj sve u korpu",
+    "sizeLabel": "Veličina"
   }
 }

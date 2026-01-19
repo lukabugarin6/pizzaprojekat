@@ -16,6 +16,10 @@
     "deliveryPricing": {
       "title": "Pizza Project | Стоимость доставки",
       "description": "Стоимость доставки по зонам для Pizza Project. Найдите свою зону и цену доставки."
+    },
+    "randomOrder": {
+      "title": "Pizza Project | Случайный заказ",
+      "description": "Доверьтесь случаю — выберите количество и размер, бросьте кости и добавьте случайно выбранные пиццы в корзину."
     }
   },
   "navbar": {
@@ -141,5 +145,29 @@
       "extraStopPrefix": "Каждая дополнительная остановка оплачивается",
       "extraStopValue": "150 RSD"
     }
+  },
+  "randomOrder": {
+    "title": "Случайный заказ",
+    "subtitle": "Доверьтесь случаю — мы удивим вас пиццей."
+  },
+  "randomOrderPage": {
+    "backToHome": "На главную",
+    "backToHomeAria": "Вернуться на главную страницу",
+
+    "increaseQtyAria": "Увеличить количество",
+    "decreaseQtyAria": "Уменьшить количество",
+
+    "sizeCmSuffix": "см",
+    "sizeLabel": "Размер",
+
+    "confirmCta": "Бросить кости",
+
+    "unitPriceSuffix": "цена за штуку",
+
+    "increaseRowQtyAria": "Увеличить количество этого товара",
+    "decreaseRowQtyAria": "Уменьшить количество этого товара",
+
+    "totalLabel": "Итого:",
+    "addAllToCart": "Добавить всё в корзину"
   }
 }

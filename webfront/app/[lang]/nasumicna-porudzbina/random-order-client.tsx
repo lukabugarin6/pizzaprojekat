@@ -17,12 +17,38 @@ type GeneratedPizza = any & {
   rowQty: number;
 };
 
+type RandomOrderT = {
+  backToHome: string;
+  backToHomeAria?: string;
+
+  increaseQtyAria: string;
+  decreaseQtyAria: string;
+
+  sizeCmSuffix: string; // "cm"
+
+  confirmCta: string;
+
+  sizeLabel: string;
+
+  unitPriceSuffix: string; // "cena po komadu"
+
+  increaseRowQtyAria: string;
+  decreaseRowQtyAria: string;
+
+  totalLabel: string;
+  addAllToCart: string;
+};
+
 export default function RandomOrderClient({
   pizzas,
-  children,
+  title,
+  subtitle,
+  t,
 }: {
   pizzas: any[];
-  children: React.ReactNode;
+  title: string;
+  subtitle: string;
+  t: RandomOrderT;
 }) {
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,8 +79,8 @@ export default function RandomOrderClient({
 
   const { addToCart } = useCart();
 
-  const easeInOutCubic = (t: number) =>
-    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeInOutCubic = (tt: number) =>
+    tt < 0.5 ? 4 * tt * tt * tt : 1 - Math.pow(-2 * tt + 2, 3) / 2;
 
   const scrollToEl = (el: HTMLElement, duration = 650) => {
     const startY = window.scrollY;
@@ -134,13 +160,13 @@ export default function RandomOrderClient({
       window.dispatchEvent(
         new CustomEvent('start-route-change', {
           detail: { href: window.location.pathname, forceOpen: true },
-        })
+        }),
       );
     } else {
       window.dispatchEvent(
         new CustomEvent('start-route-change', {
           detail: { href: `/${pathSegments[0]}/korpa` },
-        })
+        }),
       );
     }
   };
@@ -153,16 +179,16 @@ export default function RandomOrderClient({
   const incRowQty = (idx: number) => {
     setGeneratedPizzas((prev) =>
       prev.map((p, i) =>
-        i === idx ? { ...p, rowQty: Math.min((p.rowQty ?? 1) + 1, 10) } : p
-      )
+        i === idx ? { ...p, rowQty: Math.min((p.rowQty ?? 1) + 1, 10) } : p,
+      ),
     );
   };
 
   const decRowQty = (idx: number) => {
     setGeneratedPizzas((prev) =>
       prev.map((p, i) =>
-        i === idx ? { ...p, rowQty: Math.max((p.rowQty ?? 1) - 1, 1) } : p
-      )
+        i === idx ? { ...p, rowQty: Math.max((p.rowQty ?? 1) - 1, 1) } : p,
+      ),
     );
   };
 
@@ -189,21 +215,22 @@ export default function RandomOrderClient({
 
   return (
     <>
-      {/* Lottie */}
+      {/* Back */}
       <ClientLink
         href="/"
-        classes={{
-          item: styles['random-order__back'],
-        }}
+        classes={{ item: styles['random-order__back'] }}
+        aria-label={t.backToHomeAria ?? t.backToHome}
       >
         <HiOutlineArrowLongLeft
           className={styles['random-order__back-icon']}
           aria-hidden="true"
         />
         <span className={styles['random-order__back-text']}>
-          Nazad na početnu
+          {t.backToHome}
         </span>
       </ClientLink>
+
+      {/* Lottie */}
       <div className={styles['random-order__lottie']}>
         <Lottie
           key={dicePlayKey}
@@ -224,7 +251,7 @@ export default function RandomOrderClient({
             }
           }}
           onComplete={() => {
-            // ✅ prvo complete = intro završen → javi preloaderu "page-ready"
+            // prvo complete = intro završen
             if (!introDone.current) {
               introDone.current = true;
             }
@@ -248,8 +275,9 @@ export default function RandomOrderClient({
         />
       </div>
 
-      {/* SERVER children: H1 + subtitle su OVDE */}
-      {children}
+      {/* Title + subtitle */}
+      <h1 className={styles['random-order__title']}>{title}</h1>
+      <p className={styles['random-order__subtitle']}>{subtitle}</p>
 
       {/* Counter */}
       <div className={styles['random-order__counter']}>
@@ -258,7 +286,7 @@ export default function RandomOrderClient({
           className={styles['random-order__counter-btn']}
           onClick={increaseQty}
           disabled={quantity === 10}
-          aria-label="Increase quantity"
+          aria-label={t.increaseQtyAria}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path
@@ -276,7 +304,7 @@ export default function RandomOrderClient({
           className={styles['random-order__counter-btn']}
           onClick={decreaseQty}
           disabled={quantity === 1}
-          aria-label="Decrease quantity"
+          aria-label={t.decreaseQtyAria}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path
@@ -303,10 +331,10 @@ export default function RandomOrderClient({
             onClick={() => setSelectedSize(size)}
             className={clsx(
               styles['random-order__size-btn'],
-              selectedSize === size && styles['random-order__size-btn--active']
+              selectedSize === size && styles['random-order__size-btn--active'],
             )}
           >
-            {size} cm
+            {size} {t.sizeCmSuffix}
           </button>
         ))}
       </div>
@@ -318,7 +346,7 @@ export default function RandomOrderClient({
         type="button"
         disabled={!lottieReady || lockUi}
       >
-        Baci kocku <HandPointerSvg />
+        {t.confirmCta} <HandPointerSvg />
       </button>
 
       {/* Results */}
@@ -330,7 +358,7 @@ export default function RandomOrderClient({
             resultsPhase === 'showing' &&
               styles['random-order__generated--showing'],
             resultsPhase === 'hiding' &&
-              styles['random-order__generated--hiding']
+              styles['random-order__generated--hiding'],
           )}
         >
           {generatedPizzas.map((pizza, idx) => {
@@ -363,10 +391,10 @@ export default function RandomOrderClient({
                       <CiRuler size={22} />
                     </span>
                     <span className={styles['random-order__row-meta-label']}>
-                      Veličina
+                      {t.sizeLabel}
                     </span>
                     <span className={styles['random-order__row-meta-value']}>
-                      — {pizza.selectedVariant?.size} cm
+                      — {pizza.selectedVariant?.size} {t.sizeCmSuffix}
                     </span>
                   </div>
 
@@ -377,7 +405,7 @@ export default function RandomOrderClient({
                   )}
 
                   <div className={styles['random-order__row-unitprice']}>
-                    {unitPrice} RSD <span>(cena po komadu)</span>
+                    {unitPrice} RSD <span>({t.unitPriceSuffix})</span>
                   </div>
                 </div>
 
@@ -388,7 +416,7 @@ export default function RandomOrderClient({
                       className={styles['random-order__row-counter-btn']}
                       onClick={() => incRowQty(idx)}
                       disabled={rowQty === 10}
-                      aria-label="Increase row quantity"
+                      aria-label={t.increaseRowQtyAria}
                     >
                       <svg
                         width="16"
@@ -411,7 +439,7 @@ export default function RandomOrderClient({
                       className={styles['random-order__row-counter-btn']}
                       onClick={() => decRowQty(idx)}
                       disabled={rowQty === 1}
-                      aria-label="Decrease row quantity"
+                      aria-label={t.decreaseRowQtyAria}
                     >
                       <svg
                         width="16"
@@ -443,7 +471,7 @@ export default function RandomOrderClient({
           })}
 
           <div className={styles['random-order__summary']}>
-            <span>Ukupno:</span>
+            <span>{t.totalLabel}</span>
             <strong>{totalAll} RSD</strong>
           </div>
 
@@ -452,7 +480,7 @@ export default function RandomOrderClient({
             onClick={handleAddAllToCart}
             type="button"
           >
-            Dodaj sve u korpu <HandPointerSvg />
+            {t.addAllToCart} <HandPointerSvg />
           </button>
         </div>
       )}

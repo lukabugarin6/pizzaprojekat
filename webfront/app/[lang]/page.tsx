@@ -5,10 +5,17 @@ import ProductCard from '@/components/ui/product-card';
 import CarouselDemo from '@/components/ui/carousel-demo';
 import { drinks, pizzas, sandwiches } from '@/data';
 import ProductsFloatingNav from '@/components/ui/products-floating-nav';
+import { getHello } from '@/lib/api';
 
 export default async function HomePage({ params }: { params: { lang: Lang } }) {
   const { lang } = await params;
   const dict = await getDictionary(lang);
+
+  const data = await getHello();
+
+  console.log({
+    data,
+  });
 
   return (
     <main>

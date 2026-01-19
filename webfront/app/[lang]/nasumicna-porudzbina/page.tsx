@@ -1,19 +1,26 @@
-import { Suspense } from 'react';
 import styles from './nasumicna-porudzbina.module.scss';
+import { getDictionary, type Lang } from '../dictionaries';
 import RandomOrderClient from './random-order-client';
 import { pizzas } from '@/data';
 
-export default function NasumicnaPorudzbinaPage() {
+export default async function NasumicnaPorudzbinaPage({
+  params,
+}: {
+  params: { lang: Lang };
+}) {
+  const { lang } = await params;
+  const dict = await getDictionary(lang);
+
   return (
-    <div className={styles['random-order']}>
-      {/* <Suspense fallback={<Loading />}> */}
-      <RandomOrderClient pizzas={pizzas}>
-        <h1 className={styles['random-order__title']}>Nasumična porudžbina</h1>
-        <p className={styles['random-order__subtitle']}>
-          Prepustite izbor slučaju — mi ćemo vas iznenaditi picom.
-        </p>
-      </RandomOrderClient>
-      {/* </Suspense> */}
-    </div>
+    <main className={styles['random-order']}>
+      <div className={styles['random-order__container']}>
+        <RandomOrderClient
+          pizzas={pizzas}
+          title={dict.randomOrder.title}
+          subtitle={dict.randomOrder.subtitle}
+          t={dict.randomOrderPage}
+        />
+      </div>
+    </main>
   );
 }
