@@ -163,8 +163,10 @@
     cursor: pointer;
     transition: all 0.2s ease;
 
-    &:hover {
-      border-color: #000;
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        border-color: #000;
+      }
     }
 
     &--active {
@@ -237,16 +239,13 @@
       transition: transform 0.3s ease;
     }
 
-    &:hover {
-      svg {
-        transform: rotate(90deg) translateY(-8px);
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        svg {
+          transform: rotate(90deg) translateY(-8px);
+        }
       }
     }
-  }
-
-  &__order-icon {
-    display: inline-block;
-    transition: transform 0.25s ease;
   }
 
   &__quantity {
@@ -308,14 +307,18 @@
     border: none;
     cursor: pointer;
     color: var(--white);
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      opacity 0.15s ease;
 
     svg {
       display: block;
     }
 
-    &:hover {
-      color: var(--gray-hover);
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        color: var(--gray-hover);
+      }
     }
 
     &:disabled {
