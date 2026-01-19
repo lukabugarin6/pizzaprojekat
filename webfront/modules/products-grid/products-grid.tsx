@@ -1,6 +1,5 @@
 import clsx from 'clsx';
 import styles from './products-grid.module.scss';
-import Container from '@/components/ui/container';
 // import type { BanksTableDict } from '@/app/[lang]/dictionaries';
 
 type ProductsGridProps = {
