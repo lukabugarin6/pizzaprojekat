@@ -18,6 +18,7 @@ type HeroVideoProps = {
   className?: string;
   children?: React.ReactNode;
   t: HeroDict;
+  data?: any;
 };
 
 export default function HeroVideo({
@@ -26,12 +27,15 @@ export default function HeroVideo({
   overlayOpacity = 0.35,
   className,
   children,
+  data,
   t,
 }: HeroVideoProps) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
+    alert('data');
+
     const v = videoRef.current;
     if (!v) return;
 

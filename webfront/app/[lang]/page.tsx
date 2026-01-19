@@ -13,16 +13,13 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
 
   const data = await getHello();
 
-  console.log({
-    data,
-  });
-
   return (
     <main>
       <HeroVideo
         t={dict.hero}
         src="/videos/hero_31s_6mb.mp4"
         overlayOpacity={0.65}
+        data={data}
       />
 
       <ProductsFloatingNav selector=".productGridSection" scrollOffsetPx={0} />
