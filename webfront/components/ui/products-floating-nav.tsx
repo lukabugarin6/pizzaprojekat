@@ -28,10 +28,10 @@ export default function ProductsFloatingNav({
       className={clsx(
         // ✅ samo 1280+
         'flex',
-        'fixed bottom-6 right-1 xl:right-2 z-50 flex-col items-center gap-14',
+        'fixed bottom-6 right-1.5 xl:right-2 z-50 flex-col items-center gap-14',
         'transition-opacity duration-300 z-[9999]',
         isNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
-        className
+        className,
       )}
     >
       {sections.map((s) => (
@@ -45,7 +45,7 @@ export default function ProductsFloatingNav({
             'capitalize tracking-[0.1em] text-[15px] leading-none',
             'text-neutral-600 hover:text-neutral-800 transition-colors',
             '[writing-mode:vertical-rl] rotate-180',
-            s.isActive ? 'font-bold text-neutral-900' : 'font-medium'
+            s.isActive ? 'font-bold text-neutral-900' : 'font-medium',
           )}
           style={{ fontFamily: 'var(--font-roboto-condensed)' }}
         >
