@@ -1,39 +1,33 @@
+// src/users/user.entity.ts
 import {
+  Entity,
+  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-  Index,
 } from 'typeorm';
-import { WebAuthnCredential } from './webauthn-credential.entity';
+import { Role } from '../common/enums/role.enum';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 255 })
-  email!: string;
+  @Column({ unique: true })
+  email: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  name!: string | null;
+  @Column()
+  password: string;
 
-  // poslednji challenge (kratko traje)
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  webauthnChallenge!: string | null;
+  @Column({
+    type: 'enum',
+    enum: Role,
+    default: Role.USER,
+  })
+  role: Role;
 
-  @Column({ type: 'datetime', nullable: true })
-  challengeExpiresAt!: Date | null;
-
-  @OneToMany(() => WebAuthnCredential, (c) => c.user, { cascade: false })
-  credentials!: WebAuthnCredential[];
+  @Column({ default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+  createdAt: Date;
 }

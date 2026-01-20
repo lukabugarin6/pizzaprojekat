@@ -1,27 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { AuthGuard } from '@nestjs/passport';
 
-@Controller('auth/webauthn')
+@Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private authService: AuthService) {}
 
-  @Post('register/options')
-  registerOptions(@Body() body: { email: string; name?: string }) {
-    return this.auth.registrationOptions(body.email, body.name);
-  }
-
-  @Post('register/verify')
-  registerVerify(@Body() body: { email: string; response: any }) {
-    return this.auth.verifyRegistration(body.email, body.response);
-  }
-
-  @Post('login/options')
-  loginOptions(@Body() body: { email: string }) {
-    return this.auth.authenticationOptions(body.email);
-  }
-
-  @Post('login/verify')
-  loginVerify(@Body() body: { email: string; response: any }) {
-    return this.auth.verifyAuthentication(body.email, body.response);
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async login(@Request() req) {
+    return this.authService.login(req.user);
   }
 }
