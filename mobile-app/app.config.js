@@ -1,12 +1,12 @@
 export default {
   expo: {
-    owner: "lukabugarin6@gmail.com",
+    owner: "luka.bugarin",
     jsEngine: "hermes",
     name: "Pizzaproject",
     slug: "pizzaproject",
     version: "1.0.4",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/logo.png",
     scheme: "com.pizzaproject",
     userInterfaceStyle: "automatic",
 
@@ -31,7 +31,7 @@ export default {
 
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
+        foregroundImage: "./assets/logo.png",
         backgroundColor: "#ffffff",
       },
       package: "com.pizzaproject",
@@ -52,16 +52,15 @@ export default {
     web: {
       bundler: "metro",
       output: "single",
-      favicon: "./assets/images/favicon.png",
+      favicon: "./assets/favicon.png",
     },
 
     plugins: [
       "expo-router",
-      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/logo.png",
+          image: "./assets/logo.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
@@ -93,20 +92,14 @@ export default {
         },
       ],
       "expo-secure-store",
-      [
-        "expo-video",
-        {
-          supportsBackgroundPlayback: true,
-          supportsPictureInPicture: true,
-        },
-      ],
-      "expo-font",
-      "expo-web-browser",
     ],
 
     extra: {
       router: {
         origin: false,
+      },
+      eas: {
+        projectId: "79579be3-55dd-4cda-8f50-cc19723fd493",
       },
     },
   },
