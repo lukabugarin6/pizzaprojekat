@@ -11,6 +11,7 @@ export default async function CartPage({ params }: { params: { lang: Lang } }) {
         title={dict.cart.title}
         subtitle={dict.cart.subtitle}
         t={dict.cartPage}
+        deliveryT={dict.cart.delivery}
       />
     </main>
   );

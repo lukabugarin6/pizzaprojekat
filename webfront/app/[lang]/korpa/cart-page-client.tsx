@@ -18,11 +18,14 @@ import SidebarCartFormField from '@/components/ui/sidebar-cart-preview/sidebar-c
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import ClientLink from '@/components/ui/client-link';
 import clsx from 'clsx';
+import { DeliveryReason } from '@/context/cart/cart-provider';
+import { Dictionary } from '../dictionaries';
 
 type Props = {
   title: string;
   subtitle?: string;
   t: CartPageDict;
+  deliveryT: Dictionary['cart']['delivery'];
 };
 
 type CartPageDict = {
@@ -77,7 +80,12 @@ function formatCount(template: string, count: number) {
   return template.replace('{count}', String(count));
 }
 
-export default function CartPageClient({ title, subtitle, t }: Props) {
+export default function CartPageClient({
+  title,
+  subtitle,
+  t,
+  deliveryT,
+}: Props) {
   const {
     items = [],
     totalPrice,
@@ -236,6 +244,12 @@ export default function CartPageClient({ title, subtitle, t }: Props) {
 
     resetForm();
   };
+
+  type DeliveryReasonKey = Exclude<DeliveryReason, null>;
+
+  const deliveryReasonText = delivery.reason
+    ? deliveryT[delivery.reason as keyof typeof deliveryT]
+    : t.form.deliveryNotOkFallback;
 
   return (
     <div className={styles['cart-page']}>
@@ -562,9 +576,7 @@ export default function CartPageClient({ title, subtitle, t }: Props) {
                         role="status"
                         aria-live="polite"
                       >
-                        {delivery.allowed
-                          ? ''
-                          : (delivery.reason ?? t.form.deliveryNotOkFallback)}
+                        {delivery.allowed ? null : deliveryReasonText}
                       </div>
 
                       <div

@@ -118,7 +118,7 @@ export default function ProductCard({
         styles['product-card'],
         isVisible && styles['product-card--animated'],
         isVisible && styles['product-card--fade-in'],
-        smaller && styles['product-card--smaller']
+        smaller && styles['product-card--smaller'],
       )}
     >
       <div className={styles['product-card__inner']}>
@@ -151,7 +151,7 @@ export default function ProductCard({
                     className={clsx(
                       styles['product-card__size-btn'],
                       selectedSize === variant.size &&
-                        styles['product-card__size-btn--active']
+                        styles['product-card__size-btn--active'],
                     )}
                   >
                     {variant.size} cm

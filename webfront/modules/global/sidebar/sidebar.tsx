@@ -17,6 +17,7 @@ import ClientLink from '@/components/ui/client-link';
 import SidebarCartPreview from '@/components/ui/sidebar-cart-preview';
 import { useDelayedHover } from '@/hooks/useDelayedHover';
 import LanguageSwitcher from '@/components/ui/language-switcher';
+import { Dictionary } from '@/app/[lang]/dictionaries';
 
 type SidebarDict = {
   brandTop: string;
@@ -31,9 +32,11 @@ type SidebarDict = {
 
 type Props = {
   t: SidebarDict;
+  cartT: Dictionary['cart'];
+  cartPageT: Dictionary['cartPage'];
 };
 
-export default function Sidebar({ t }: Props) {
+export default function Sidebar({ t, cartT, cartPageT }: Props) {
   const pathname = usePathname() || '/';
 
   // ✅ hydration guard (SSR sees empty cart; wait for client mount)
@@ -230,6 +233,8 @@ export default function Sidebar({ t }: Props) {
             isOpen={mounted && !isCartPage && isCartPreviewOpen}
             onMouseEnter={handleCartEnterSafe}
             onMouseLeave={handleCartLeaveSafe}
+            cartT={cartT}
+            cartPageT={cartPageT}
           />
 
           <ClientLink

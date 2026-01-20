@@ -18,11 +18,15 @@ import styles from './sidebar-cart-preview.module.scss';
 import { useCart } from '@/context/cart/cart-context';
 import SidebarCartFormField from './sidebar-cart-form-field';
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
+import { Dictionary } from '@/app/[lang]/dictionaries';
+import { DeliveryReason } from '@/context/cart/cart-provider';
 
 type SidebarCartPreviewProps = {
   isOpen: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  cartT: Dictionary['cart'];
+  cartPageT: Dictionary['cartPage'];
 };
 
 type SavedCustomer = {
@@ -40,6 +44,8 @@ export default function SidebarCartPreview({
   isOpen,
   onMouseEnter,
   onMouseLeave,
+  cartT,
+  cartPageT,
 }: SidebarCartPreviewProps) {
   const {
     items = [],
@@ -216,6 +222,12 @@ export default function SidebarCartPreview({
     resetForm();
   };
 
+  type DeliveryReasonKey = Exclude<DeliveryReason, null>;
+
+  const deliveryReasonText = delivery.reason
+    ? cartT.delivery[delivery.reason as keyof typeof cartT.delivery]
+    : cartPageT.form.deliveryNotOkFallback;
+
   return createPortal(
     <div
       className={styles['sidebar-cart']}
@@ -234,7 +246,7 @@ export default function SidebarCartPreview({
             <header className={styles['sidebar-cart__header']}>
               <div className={styles['sidebar-cart__header-main']}>
                 <h3 className={styles['sidebar-cart__header-title']}>
-                  Vaša korpa
+                  {cartT.title}
                 </h3>
               </div>
             </header>
@@ -278,7 +290,7 @@ export default function SidebarCartPreview({
                               <span
                                 className={styles['sidebar-cart__meta-label']}
                               >
-                                Veličina
+                                {cartPageT.sizeLabel}
                               </span>
                               <span
                                 className={styles['sidebar-cart__meta-value']}
@@ -297,7 +309,7 @@ export default function SidebarCartPreview({
                             className={styles['sidebar-cart__item-counter-btn']}
                             onClick={() => handleDecrease(item)}
                             disabled={qty === 1}
-                            aria-label="Smanji količinu"
+                            aria-label={cartPageT.decreaseQty}
                           >
                             <svg
                               width="16"
@@ -328,7 +340,7 @@ export default function SidebarCartPreview({
                             className={styles['sidebar-cart__item-counter-btn']}
                             onClick={() => handleIncrease(item)}
                             disabled={qty === 10}
-                            aria-label="Povećaj količinu"
+                            aria-label={cartPageT.increaseQty}
                           >
                             <svg
                               width="16"
@@ -355,7 +367,7 @@ export default function SidebarCartPreview({
                           type="button"
                           className={styles['sidebar-cart__item-remove']}
                           onClick={() => handleRemove(item)}
-                          aria-label="Ukloni iz korpe"
+                          aria-label={cartPageT.removeFromCart}
                         >
                           <HiMiniXMark size={26} />
                         </button>
@@ -366,7 +378,7 @@ export default function SidebarCartPreview({
               </div>
             ) : (
               <div className={styles['sidebar-cart__empty']}>
-                Vaša korpa je prazna.
+                {cartPageT.emptyCart}
               </div>
             )}
           </div>
@@ -375,10 +387,7 @@ export default function SidebarCartPreview({
             <footer className={styles['sidebar-cart__footer']}>
               <div className={styles['sidebar-cart__footer-row']}>
                 <span className={styles['sidebar-cart__footer-label']}>
-                  Ukupno za plaćanje:
-                  <span className={styles['sidebar-cart__cash-badge']}>
-                    Gotovina
-                  </span>
+                  {cartPageT.totalLabel}
                 </span>
 
                 <span className={styles['sidebar-cart__footer-value']}>
@@ -388,7 +397,7 @@ export default function SidebarCartPreview({
               {savedCustomers.length > 0 && (
                 <div className={styles['sidebar-cart__saved']}>
                   <div className={styles['sidebar-cart__saved-title']}>
-                    Sačuvani kupci
+                    {cartPageT.savedCustomersTitle}
                   </div>
                   <ul className={styles['sidebar-cart__saved-list']}>
                     {savedCustomers.map((c, idx) => (
@@ -404,13 +413,14 @@ export default function SidebarCartPreview({
                           <span
                             className={styles['sidebar-cart__saved-line-main']}
                           >
-                            {c.fullName || 'Nepoznat korisnik'} • {c.email}
+                            {c.fullName || cartPageT.unknownUser}
+                            {c.phone || cartPageT.noPhone}
                           </span>
                           <span
                             className={styles['sidebar-cart__saved-line-sub']}
                           >
                             {c.address && `${c.address} • `}
-                            {c.phone || 'bez broja'}
+                            {c.phone || cartPageT.noPhone}
                           </span>
                         </button>
                       </li>
@@ -432,7 +442,7 @@ export default function SidebarCartPreview({
                 >
                   <SidebarCartFormField
                     type="text"
-                    placeholder="Ime i prezime"
+                    placeholder={cartPageT.form.fullName}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
@@ -441,7 +451,7 @@ export default function SidebarCartPreview({
 
                   <SidebarCartFormField
                     type="tel"
-                    placeholder="Broj telefona"
+                    placeholder={cartPageT.form.phone}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
@@ -458,7 +468,7 @@ export default function SidebarCartPreview({
                 >
                   <SidebarCartFormField
                     type="email"
-                    placeholder="Email"
+                    placeholder={cartPageT.form.email}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     leftIcon={<FiMail size={16} />}
@@ -466,7 +476,7 @@ export default function SidebarCartPreview({
 
                   <SidebarCartFormField
                     as="textarea"
-                    placeholder="Napomena"
+                    placeholder={cartPageT.form.note}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     leftIcon={<FiMessageSquare size={16} />}
@@ -503,7 +513,7 @@ export default function SidebarCartPreview({
                       <span
                         className={styles['sidebar-cart__form-radio-label']}
                       >
-                        Dostava
+                        {cartPageT.form.delivery}
                       </span>
                     </label>
 
@@ -522,7 +532,7 @@ export default function SidebarCartPreview({
                       <span
                         className={styles['sidebar-cart__form-radio-label']}
                       >
-                        Preuzimanje
+                        {cartPageT.form.pickup}
                       </span>
                     </label>
                   </div>
@@ -537,16 +547,13 @@ export default function SidebarCartPreview({
                     role="status"
                     aria-live="polite"
                   >
-                    {delivery.allowed
-                      ? 'Dostava je dostupna za sadržaj korpe.'
-                      : (delivery.reason ??
-                        'Dostava nije dostupna za sadržaj korpe.')}
+                    {delivery.allowed ? null : deliveryReasonText}
                   </div>
                   <div
                     className={styles['sidebar-cart__cash-message']}
                     role="note"
                   >
-                    Plaćanje prihvatamo samo u gotovini.
+                    {cartPageT.form.cashOnly}
                   </div>
                 </div>
 
@@ -555,7 +562,7 @@ export default function SidebarCartPreview({
                   <div className={styles['sidebar-cart__form-row']}>
                     <SidebarCartFormField
                       type="text"
-                      placeholder="Adresa (ulica, broj, sprat...)"
+                      placeholder={cartPageT.form.address}
                       value={address}
                       leftIcon={<FiMapPin />}
                       onChange={(e) => setAddress(e.target.value)}
@@ -569,13 +576,12 @@ export default function SidebarCartPreview({
                   className={styles['sidebar-cart__submit']}
                   disabled={!hasItems}
                 >
-                  Naruči
+                  {cartPageT.form.submit}
                   <HandPointerSvg />
                 </button>
 
                 <p className={styles['sidebar-cart__form-note']}>
-                  Slanjem porudžbine potvrđujete tačnost podataka i dajete
-                  saglasnost za obradu ličnih podataka.
+                  {cartPageT.form.consent}
                 </p>
               </form>
             </footer>

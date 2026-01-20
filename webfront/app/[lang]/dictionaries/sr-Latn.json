@@ -84,7 +84,14 @@
   },
   "cart": {
     "title": "Korpa",
-    "subtitle": "Pregled porudžbine i podaci za dostavu/preuzimanje."
+    "subtitle": "Pregled porudžbine i podaci za dostavu/preuzimanje.",
+    "delivery": {
+      "empty": "Korpa je prazna.",
+      "onlyDrinks": "Dostava nije moguća samo za piće.",
+      "needLargePizza": "Za dostavu je potrebna bar jedna pizza 32cm ili 50cm.",
+      "forbiddenItems": "Male pice (24cm) i sendviče ne dostavljamo.",
+      "allowed": "Dostava je dostupna za sadržaj korpe."
+    }
   },
   "cartPage": {
     "back": "Nazad na početnu",

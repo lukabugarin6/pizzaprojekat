@@ -93,7 +93,7 @@ export default async function RootLayout({
           {/* <Navbar t={dict.navbar} lang={lang} /> */}
           {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
 
-          <CartProvider>
+          <CartProvider deliveryDict={dict.cart.delivery}>
             <div
               style={{
                 minHeight: '100vh',
@@ -101,7 +101,11 @@ export default async function RootLayout({
                 flexDirection: 'column',
               }}
             >
-              <Sidebar t={dict.sidebar} />{' '}
+              <Sidebar
+                t={dict.sidebar}
+                cartT={dict.cart}
+                cartPageT={dict.cartPage}
+              />
               <Navbar t={dict.navbar} lang={lang} />
               <div style={{ flexGrow: 1 }}>{children}</div>
               <Footer t={dict.footer} />

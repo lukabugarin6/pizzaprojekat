@@ -7,7 +7,7 @@ export function useFlyToCart() {
     if (!imageEl) return;
 
     const cartEl = document.querySelector(
-      '[data-cart-icon]'
+      '[data-cart-icon]',
     ) as HTMLElement | null;
 
     if (!cartEl) return;

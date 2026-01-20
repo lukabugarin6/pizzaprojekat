@@ -18,7 +18,6 @@ type HeroVideoProps = {
   className?: string;
   children?: React.ReactNode;
   t: HeroDict;
-  data?: any;
 };
 
 export default function HeroVideo({
@@ -27,7 +26,6 @@ export default function HeroVideo({
   overlayOpacity = 0.35,
   className,
   children,
-  data,
   t,
 }: HeroVideoProps) {
   const scrollToNextSection = useSmoothScrollToVh(750, 1);
@@ -64,7 +62,6 @@ export default function HeroVideo({
       >
         <LogoSvg />
         <h5 className={clsx(styles.wrapper__logoAndText__text)}>{t.cta}</h5>
-        <p>{data}</p>
       </div>
 
       {/* Background video */}

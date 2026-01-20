@@ -3,8 +3,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CartContext } from './cart-context';
 import { CartItem } from '@/types/cart';
+import { CartDeliveryDict } from '@/app/[lang]/dictionaries';
 
 const STORAGE_KEY = 'cart';
+
+export type DeliveryInfo = {
+  allowed: boolean;
+  reason: DeliveryReason;
+  flags: {
+    hasAllowedPizza: boolean;
+    hasForbiddenItems: boolean;
+    hasOnlyDrinks: boolean;
+  };
+};
+
+export type DeliveryReason =
+  | 'empty'
+  | 'onlyDrinks'
+  | 'needLargePizza'
+  | 'forbiddenItems'
+  | null;
 
 function getDeliveryEligibility(items: CartItem[]) {
   const isPizza = (id: string) => id?.startsWith('pizza-');
@@ -32,14 +50,12 @@ function getDeliveryEligibility(items: CartItem[]) {
 
   const allowed = hasAllowedPizza && !hasForbiddenItems && !hasOnlyDrinks;
 
-  let reason: string | null = null;
-  if (!hasAnyItems) reason = 'Korpa je prazna.';
-  else if (hasOnlyDrinks) reason = 'Dostava nije moguća samo za piće.';
-  else if (!hasAllowedPizza)
-    reason = 'Za dostavu je potrebna bar jedna pizza 32cm ili 50cm.';
-  else if (hasForbiddenItems)
-    reason = 'Male pice (24cm) i sendviče ne dostavljamo :(';
-  else reason = null;
+  let reason: DeliveryReason = null;
+
+  if (!hasAnyItems) reason = 'empty';
+  else if (hasOnlyDrinks) reason = 'onlyDrinks';
+  else if (!hasAllowedPizza) reason = 'needLargePizza';
+  else if (hasForbiddenItems) reason = 'forbiddenItems';
 
   return {
     allowed,
@@ -48,7 +64,13 @@ function getDeliveryEligibility(items: CartItem[]) {
   };
 }
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({
+  children,
+  deliveryDict,
+}: {
+  children: React.ReactNode;
+  deliveryDict: CartDeliveryDict;
+}) {
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === 'undefined') return [];
     try {

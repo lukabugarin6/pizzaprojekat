@@ -84,7 +84,14 @@
   },
   "cart": {
     "title": "Cart",
-    "subtitle": "Order overview and delivery/pickup details."
+    "subtitle": "Order overview and delivery/pickup details.",
+    "delivery": {
+      "empty": "The basket is empty.",
+      "onlyDrinks": "Drinks only delivery is not possible.",
+      "needLargePizza": "At least one 32 cm or 50 cm pizza is required for delivery.",
+      "forbiddenItems": "We do not deliver small pizzas (24 cm) and sandwiches.",
+      "allowed": "Shipping is available for the contents of the basket."
+    }
   },
   "cartPage": {
     "back": "Back to home",

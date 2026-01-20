@@ -13,6 +13,7 @@ export async function getDictionary(lang: Lang): Promise<Dictionary> {
   return dictionaries[lang]();
 }
 
+export type CartDeliveryDict = Dictionary['cart']['delivery'];
 // export type NavbarDict = Dictionary['navbar'];
 // export type HeroDict = Dictionary['hero'];
 // export type StaSuEmeniceDict = Dictionary['whatAreEmenice'];
