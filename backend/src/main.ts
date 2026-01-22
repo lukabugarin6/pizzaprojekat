@@ -3,17 +3,30 @@ import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { seedSuperUser } from './database/seed/superuser.seed';
 import { ValidationPipe } from '@nestjs/common';
+import { seedCategories } from './database/seed/category.seed';
+import * as express from 'express';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const uploadsDir = join(process.cwd(), 'uploads', 'images');
+  if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  app.use('/uploads/images', express.static(uploadsDir));
+
   const dataSource = app.get(DataSource);
   await seedSuperUser(dataSource);
+  await seedCategories(dataSource);
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
@@ -27,6 +40,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 4000, '0.0.0.0');
 }
 bootstrap();

@@ -125,7 +125,7 @@ export default function ProductCard({
         <div className={styles['product-card__img-wrapper']}>
           <Image
             ref={imageRef}
-            src={item?.image || '/images/pp-logo.jpg'}
+            src={item.image ? `/media${item.image}` : '/images/pp-logo.jpg'}
             alt={item?.name}
             width={1000}
             height={1000}

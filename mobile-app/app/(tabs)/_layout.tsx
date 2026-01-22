@@ -11,6 +11,7 @@ export default function TabsLayout() {
   if (!isLoggedIn) return <Redirect href="/(auth)/login" />;
 
   const isSuperuser = role === "superuser";
+  const isAdminOrSuperuser = role === "admin" || role === "superuser";
 
   return (
     <Tabs screenOptions={{ headerShown: false }}>
@@ -23,12 +24,25 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* PRODUCTS – admin + superuser */}
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: "Products",
+          href: isAdminOrSuperuser ? "/products" : null, // 👈 key line
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" color={color} size={size} />
+          ),
+        }}
+      />
+
+      {/* USERS – samo superuser */}
       <Tabs.Screen
         name="users"
         options={{
           title: "Users",
-          // ✅ this is the important part:
-          href: isSuperuser ? "/users" : null, // hides tab + blocks deep link
+          href: isSuperuser ? "/users" : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-outline" color={color} size={size} />
           ),

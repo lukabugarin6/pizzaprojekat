@@ -6,6 +6,13 @@ import { User } from './users/user.entity';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
+import { Category } from './categories/category.entity';
+import { CategoryTranslation } from './categories/category-translation.entity';
+import { Product } from './products/product.entity';
+import { ProductTranslation } from './products/product-translation.entity';
+import { ProductVariant } from './products/product-variant.entity';
+import { ProductsModule } from './products/products.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -20,13 +27,22 @@ import { UsersModule } from './users/users.module';
         username: cfg.get('DB_USER'),
         password: cfg.get('DB_PASS'),
         database: cfg.get('DB_NAME'),
-        entities: [User],
+        entities: [
+          User,
+          Category,
+          CategoryTranslation,
+          Product,
+          ProductTranslation,
+          ProductVariant,
+        ],
         synchronize: true,
       }),
     }),
 
     AuthModule,
     UsersModule,
+    ProductsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

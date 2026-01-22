@@ -2,11 +2,11 @@ export default {
   expo: {
     owner: "luka.bugarin",
     jsEngine: "hermes",
-    name: "Pizzaproject",
+    name: "Pizza Project",
     slug: "pizzaproject",
     version: "1.0.4",
     orientation: "portrait",
-    icon: "./assets/logo.png",
+    icon: "./assets/ic_launcher_foreground.png",
     scheme: "com.pizzaproject",
     userInterfaceStyle: "automatic",
 
@@ -31,7 +31,7 @@ export default {
 
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/logo.png",
+        foregroundImage: "./assets/ic_launcher_foreground.png",
         backgroundColor: "#ffffff",
       },
       package: "com.pizzaproject",
@@ -60,7 +60,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/logo.png",
+          image: "./assets/splash.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
