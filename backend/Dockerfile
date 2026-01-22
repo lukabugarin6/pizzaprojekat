@@ -36,4 +36,4 @@ COPY --chown=node:node --from=build /app/package.json ./package.json
 # Nest obično sluša na 3000
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
