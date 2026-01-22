@@ -2,9 +2,9 @@ import 'server-only';
 import axios, { AxiosError } from 'axios';
 
 const baseURL = process.env.API_URL?.replace(/\/$/, '');
-if (!baseURL) {
-  throw new Error('Missing API_URL in environment');
-}
+// if (!baseURL) {
+//   throw new Error('Missing API_URL in environment');
+// }
 
 export const api = axios.create({
   baseURL,

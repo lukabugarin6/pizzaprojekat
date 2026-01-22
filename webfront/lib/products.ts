@@ -35,24 +35,41 @@ function getApiBaseUrl() {
 
 export async function getProductsGrouped(
   lang: Lang,
-): Promise<ProductsGroupedResponseDto> {
+): Promise<ProductsGroupedResponseDto | null> {
   const base = getApiBaseUrl();
 
-  const res = await fetch(
-    `${base}/products/grouped?lang=${encodeURIComponent(lang)}`,
-    {
-      // choose ONE strategy:
-      cache: 'no-store',
-      // or: next: { revalidate: 60 },
-    },
-  );
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to fetch products/grouped (${res.status}): ${text}`,
+  try {
+    const res = await fetch(
+      `${base}/products/grouped?lang=${encodeURIComponent(lang)}`,
+      {
+        cache: 'no-store',
+        // or: next: { revalidate: 60 },
+      },
     );
-  }
 
-  return res.json();
+    if (!res.ok) {
+      console.error(
+        'products/grouped failed',
+        res.status,
+        await res.text().catch(() => ''),
+      );
+      return null;
+    }
+
+    // dodatna zaštita: ponekad proxy/NGINX vrati HTML
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      console.error(
+        'products/grouped non-json',
+        ct,
+        await res.text().catch(() => ''),
+      );
+      return null;
+    }
+
+    return (await res.json()) as ProductsGroupedResponseDto;
+  } catch (err) {
+    console.error('products/grouped fetch error', err);
+    return null;
+  }
 }

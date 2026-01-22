@@ -20,23 +20,25 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
         overlayOpacity={0.65}
       />
       <ProductsFloatingNav selector=".productGridSection" scrollOffsetPx={0} />
-      {home.categories.map((cat) => {
-        return (
-          <div
-            key={cat.id}
-            className="productGridSection"
-            data-nav-id={cat.slug}
-            data-nav-label={cat.name}
-            title={cat.name}
-          >
-            <PizzaGrid>
-              {cat.items.map((item) => (
-                <ProductCard key={item.slug} item={item} />
-              ))}
-            </PizzaGrid>
-          </div>
-        );
-      })}
+      {home &&
+        home.categories.length > 0 &&
+        home.categories.map((cat) => {
+          return (
+            <div
+              key={cat.id}
+              className="productGridSection"
+              data-nav-id={cat.slug}
+              data-nav-label={cat.name}
+              title={cat.name}
+            >
+              <PizzaGrid>
+                {cat.items.map((item) => (
+                  <ProductCard key={item.slug} item={item} />
+                ))}
+              </PizzaGrid>
+            </div>
+          );
+        })}
 
       <CarouselDemo t={dict.home.carousel} />
     </main>
