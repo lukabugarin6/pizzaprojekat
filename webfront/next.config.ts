@@ -3,7 +3,7 @@ const nextConfig = {
     return [
       {
         source: '/media/:path*',
-        destination: `${process.env.MEDIA_ORIGIN}/:path*`,
+        destination: `${process.env.API_URL}/:path*`,
       },
     ];
   },
