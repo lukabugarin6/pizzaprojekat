@@ -284,4 +284,34 @@ export class ProductsService {
       console.error('Failed to delete image file:', error);
     }
   }
+
+  async remove(id: string) {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: {
+        translations: true,
+        variants: true,
+      },
+    });
+
+    if (!product) throw new NotFoundException('Product not found');
+
+    // 1) obriši sliku sa diska (ako postoji)
+    if (product.image) {
+      await this.deleteImageFile(product.image);
+    }
+
+    // 2) obriši child tabele (sigurno radi čak i bez cascade)
+    if (product.translations?.length) {
+      await this.translationRepo.remove(product.translations);
+    }
+    if (product.variants?.length) {
+      await this.variantRepo.remove(product.variants);
+    }
+
+    // 3) obriši product
+    await this.productRepo.remove(product);
+
+    return { ok: true };
+  }
 }

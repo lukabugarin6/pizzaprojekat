@@ -156,4 +156,11 @@ export class ProductsController {
   addVariant(@Param('id') id: string, @Body() dto: AddProductVariantDto) {
     return this.productsService.addVariant(id, dto);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERUSER)
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.productsService.remove(id);
+  }
 }
