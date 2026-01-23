@@ -3,7 +3,6 @@ services:
     build:
       context: ./webfront
       dockerfile: Dockerfile
-      # ako ti treba build-time za NEXT_PUBLIC_*:
       args:
         NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL}"
     ports:
@@ -24,7 +23,7 @@ services:
       - "127.0.0.1:3001:3000"
     restart: unless-stopped
     env_file:
-      - ./webfront/.env.stage
+      - ./webfront/.env
     depends_on:
       - backend
 
@@ -38,8 +37,9 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+    volumes:
+      - ./uploads:/app/uploads
 
   db:
     image: mysql:8.0
