@@ -140,4 +140,14 @@ export class UsersService {
     const user = await this.findById(targetUserId);
     await this.userRepository.remove(user);
   }
+
+  async updateRefreshTokenHash(
+    userId: number,
+    hash: string | null,
+  ): Promise<void> {
+    await this.userRepository.update(
+      { id: userId },
+      { refreshTokenHash: hash },
+    );
+  }
 }

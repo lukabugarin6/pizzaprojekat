@@ -1,6 +1,6 @@
 import { getDictionary, type Lang } from './dictionaries';
 import HeroVideo from '@/components/ui/hero-video';
-import PizzaGrid from '@/modules/products-grid';
+import ProductsGrid from '@/modules/products-grid';
 import ProductCard from '@/components/ui/product-card';
 import CarouselDemo from '@/components/ui/carousel-demo';
 import ProductsFloatingNav from '@/components/ui/products-floating-nav';
@@ -23,23 +23,27 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
       {home &&
         home.categories.length > 0 &&
         home.categories.map((cat) => {
+          const { slug } = cat;
           return (
             <div
               key={cat.id}
               className="productGridSection"
               data-nav-id={cat.slug}
               data-nav-label={cat.name}
-              title={cat.name}
             >
-              <PizzaGrid>
+              <ProductsGrid
+                title={slug === 'pizza' ? '' : cat.name}
+                titleClassName={slug === 'drink' ? 'drinksTitle' : ''}
+              >
                 {cat.items.map((item) => (
                   <ProductCard
                     key={item.slug}
                     item={item}
                     t={dict.productCard}
+                    smaller={slug === 'drink'}
                   />
                 ))}
-              </PizzaGrid>
+              </ProductsGrid>
             </div>
           );
         })}

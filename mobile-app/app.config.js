@@ -6,7 +6,7 @@ export default {
     slug: "pizzaproject",
     version: "1.0.4",
     orientation: "portrait",
-    icon: "./assets/ic_launcher_foreground.png",
+    icon: "./assets/adaptive-icon.png",
     scheme: "com.pizzaproject",
     userInterfaceStyle: "automatic",
 
@@ -31,7 +31,7 @@ export default {
 
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/ic_launcher_foreground.png",
+        foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
       package: "com.pizzaproject",

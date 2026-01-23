@@ -28,6 +28,10 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  // ✅ novo
+  @Column({ type: 'varchar', nullable: true })
+  refreshTokenHash: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

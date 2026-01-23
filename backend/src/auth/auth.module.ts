@@ -13,8 +13,12 @@ import { LocalStrategy } from './strategies/local.strategy';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'super-secret-key',
-      signOptions: { expiresIn: '1d' },
+      // ✅ default = access token
+      secret:
+        process.env.JWT_ACCESS_SECRET ||
+        process.env.JWT_SECRET ||
+        'super-secret-key',
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy],
