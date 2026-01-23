@@ -176,5 +176,13 @@
 
     "totalLabel": "Total:",
     "addAllToCart": "Add all to cart"
+  },
+  "productCard": {
+    "sizeLabel": "Size",
+    "sizeCmSuffix": "cm",
+    "addToCart": "Add to cart",
+    "addedToCart": "Added to cart successfully!",
+    "increaseQtyAria": "Increase quantity",
+    "decreaseQtyAria": "Decrease quantity"
   }
 }

@@ -24,6 +24,10 @@ export class Product {
   @Column({ default: true })
   isActive: boolean;
 
+  // ✅ NEW
+  @Column({ default: 0 })
+  sortOrder: number;
+
   @ManyToOne(() => Category, (c) => c.products)
   category: Category;
 

@@ -144,20 +144,24 @@ export default function CartPageClient({
     return formatCount(t[key], totalItems);
   }, [t, totalItems]);
 
+  // ✅ CART LOGIKA (kao sidebar / random order): radimo po variantId
   const handleIncrease = (item: any) => {
     const current = item.quantity ?? 1;
     const next = Math.min(current + 1, 10);
-    updateItemQuantity(item.productId, item.size, next);
+    if (!item?.variantId) return;
+    updateItemQuantity(item.variantId, next);
   };
 
   const handleDecrease = (item: any) => {
     const current = item.quantity ?? 1;
     const next = Math.max(current - 1, 1);
-    updateItemQuantity(item.productId, item.size, next);
+    if (!item?.variantId) return;
+    updateItemQuantity(item.variantId, next);
   };
 
   const handleRemove = (item: any) => {
-    removeFromCart(item.productId, item.size);
+    if (!item?.variantId) return;
+    removeFromCart(item.variantId);
   };
 
   const saveCustomerToLocalStorage = (customer: SavedCustomer) => {
@@ -286,19 +290,21 @@ export default function CartPageClient({
 
               {hasItems ? (
                 <div className={styles['cart-page__items']}>
-                  {items.map((item: any) => {
+                  {items.map((item: any, idx: number) => {
                     const qty = item.quantity ?? 1;
                     const unitPrice = item.price ?? 0;
                     const lineTotal = unitPrice * qty;
 
-                    const imageSrc =
-                      item.image && item.image.trim() !== ''
-                        ? item.image
-                        : '/images/pp-logo.jpg';
+                    const imageSrc = item.image
+                      ? `/media${item.image}`
+                      : '/images/pp-logo.jpg';
 
                     return (
                       <div
-                        key={`${item.productId}-${item.size}`}
+                        key={
+                          item?.variantId ??
+                          `${item.productId}-${item.size}-${idx}`
+                        }
                         className={styles['cart-page__item']}
                       >
                         <div className={styles['cart-page__item-main']}>
@@ -315,17 +321,25 @@ export default function CartPageClient({
                               {item.name}
                             </div>
 
-                            <div className={styles['cart-page__item-meta']}>
-                              <span className={styles['cart-page__meta-icon']}>
-                                <CiRuler size={20} />
-                              </span>
-                              <span className={styles['cart-page__meta-label']}>
-                                {t.sizeLabel}
-                              </span>
-                              <span className={styles['cart-page__meta-value']}>
-                                — {item?.size} cm
-                              </span>
-                            </div>
+                            {item?.size && (
+                              <div className={styles['cart-page__item-meta']}>
+                                <span
+                                  className={styles['cart-page__meta-icon']}
+                                >
+                                  <CiRuler size={20} />
+                                </span>
+                                <span
+                                  className={styles['cart-page__meta-label']}
+                                >
+                                  {t.sizeLabel}
+                                </span>
+                                <span
+                                  className={styles['cart-page__meta-value']}
+                                >
+                                  — {item?.size} cm
+                                </span>
+                              </div>
+                            )}
 
                             {item?.description && (
                               <p className={styles['cart-page__item-desc']}>

@@ -176,5 +176,13 @@
 
     "totalLabel": "Итого:",
     "addAllToCart": "Добавить всё в корзину"
+  },
+  "productCard": {
+    "sizeLabel": "Размер",
+    "sizeCmSuffix": "см",
+    "addToCart": "Добавить",
+    "addedToCart": "Товар добавлен в корзину!",
+    "increaseQtyAria": "Увеличить количество",
+    "decreaseQtyAria": "Уменьшить количество"
   }
 }

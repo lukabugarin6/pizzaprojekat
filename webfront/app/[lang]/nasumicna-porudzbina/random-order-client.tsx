@@ -13,7 +13,7 @@ import ClientLink from '@/components/ui/client-link';
 import { HiOutlineArrowLongLeft } from 'react-icons/hi2';
 
 type GeneratedPizza = any & {
-  selectedVariant?: { size: number; price: number };
+  selectedVariant?: { id?: string; size?: number; price?: number } | null;
   rowQty: number;
 };
 
@@ -25,11 +25,8 @@ type RandomOrderT = {
   decreaseQtyAria: string;
 
   sizeCmSuffix: string; // "cm"
-
   confirmCta: string;
-
   sizeLabel: string;
-
   unitPriceSuffix: string; // "cena po komadu"
 
   increaseRowQtyAria: string;
@@ -100,9 +97,28 @@ export default function RandomOrderClient({
     requestAnimationFrame(step);
   };
 
-  const getRandomPizza = () => {
-    const index = Math.floor(Math.random() * pizzas.length);
-    return pizzas[index];
+  // ✅ shuffle (Fisher–Yates)
+  const shuffle = <T,>(arr: T[]) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // ✅ pick N random WITHOUT replacement (koliko može), ostatak popuni random
+  const pickRandomUnique = <T,>(arr: T[], n: number) => {
+    if (!arr.length) return [];
+    if (n <= arr.length) return shuffle(arr).slice(0, n);
+
+    const base = shuffle(arr);
+    const extra = Array.from({ length: n - arr.length }, () => {
+      const idx = Math.floor(Math.random() * arr.length);
+      return arr[idx];
+    });
+
+    return [...base, ...extra];
   };
 
   const handleConfirm = () => {
@@ -112,9 +128,15 @@ export default function RandomOrderClient({
     setLockUi(true);
     setIsRolling(true);
 
-    const newPizzas: GeneratedPizza[] = Array.from({ length: quantity }, () => {
-      const pizza = getRandomPizza();
-      const variant = pizza.variants.find((v: any) => v.size === selectedSize);
+    const picked = pickRandomUnique(pizzas, quantity);
+
+    const newPizzas: GeneratedPizza[] = picked.map((pizza: any) => {
+      const variants = pizza?.variants ?? [];
+      const variant =
+        variants.find((v: any) => v?.size === selectedSize) ??
+        variants[0] ??
+        null;
+
       return { ...pizza, selectedVariant: variant, rowQty: 1 };
     });
 
@@ -139,16 +161,27 @@ export default function RandomOrderClient({
 
   const handleAddAllToCart = () => {
     generatedPizzas.forEach((pizza) => {
-      if (!pizza.selectedVariant) return;
+      const selectedVariant = pizza.selectedVariant ?? null;
+
+      // ✅ cena: variant.price ima prioritet, fallback pizza.price
+      const unitPrice =
+        selectedVariant?.price != null
+          ? Number(selectedVariant.price) || 0
+          : pizza?.price != null
+            ? Number(pizza.price) || 0
+            : 0;
+
+      if (!unitPrice) return;
 
       addToCart({
-        productId: pizza.name,
+        productId: pizza.slug, // ✅ kao u ProductCard
+        variantId: selectedVariant?.id, // ✅ kao u ProductCard
         name: pizza.name,
         image: pizza.image,
-        size: pizza.selectedVariant.size,
-        price: pizza.selectedVariant.price,
-        quantity: pizza.rowQty,
         description: pizza.description,
+        size: selectedVariant?.size, // ✅ ako postoji
+        price: unitPrice, // ✅ unit price
+        quantity: pizza.rowQty ?? 1,
       });
     });
 
@@ -172,7 +205,8 @@ export default function RandomOrderClient({
   };
 
   // gornji counter (koliko da generiše)
-  const increaseQty = () => setQuantity((prev) => Math.min(prev + 1, 10));
+  const maxQty = Math.min(10, pizzas.length);
+  const increaseQty = () => setQuantity((prev) => Math.min(prev + 1, maxQty));
   const decreaseQty = () => setQuantity((prev) => Math.max(prev - 1, 1));
 
   // per-row counter
@@ -194,7 +228,13 @@ export default function RandomOrderClient({
 
   const totalAll = useMemo(() => {
     return generatedPizzas.reduce((sum, p) => {
-      const unit = p.selectedVariant?.price ?? 0;
+      const unit =
+        p.selectedVariant?.price != null
+          ? Number(p.selectedVariant.price) || 0
+          : p?.price != null
+            ? Number(p.price) || 0
+            : 0;
+
       const q = p.rowQty ?? 1;
       return sum + unit * q;
     }, 0);
@@ -285,7 +325,7 @@ export default function RandomOrderClient({
           type="button"
           className={styles['random-order__counter-btn']}
           onClick={increaseQty}
-          disabled={quantity === 10}
+          disabled={quantity >= maxQty || maxQty <= 1}
           aria-label={t.increaseQtyAria}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -362,18 +402,28 @@ export default function RandomOrderClient({
           )}
         >
           {generatedPizzas.map((pizza, idx) => {
-            const unitPrice = pizza.selectedVariant?.price ?? 0;
+            const unitPrice =
+              pizza.selectedVariant?.price != null
+                ? Number(pizza.selectedVariant.price) || 0
+                : pizza?.price != null
+                  ? Number(pizza.price) || 0
+                  : 0;
+
             const rowQty = pizza.rowQty ?? 1;
             const rowTotal = unitPrice * rowQty;
 
             return (
               <div
-                key={`${pizza.name}-${idx}`}
+                key={`${pizza.slug}-${pizza.selectedVariant?.id ?? 'no-variant'}-${idx}`}
                 className={styles['random-order__row']}
               >
                 <div className={styles['random-order__row-media']}>
                   <Image
-                    src={pizza?.image || '/images/pp-logo.jpg'}
+                    src={
+                      pizza.image
+                        ? `/media${pizza.image}`
+                        : '/images/pp-logo.jpg'
+                    }
                     alt={pizza?.name}
                     width={260}
                     height={260}

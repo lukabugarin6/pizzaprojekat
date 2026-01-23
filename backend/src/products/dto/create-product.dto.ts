@@ -34,7 +34,6 @@ export class CreateProductVariantDto {
   @IsNumber()
   price: number;
 
-  // opcionalno: sku ako ti treba (za pizze ti je korisno)
   @IsOptional()
   @IsString()
   sku?: string;
@@ -55,6 +54,11 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  // ✅ NEW
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
 
   @IsOptional()
   @IsArray()

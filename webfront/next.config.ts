@@ -2,8 +2,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/media/:path*',
-        destination: `${process.env.API_URL}/:path*`,
+        source: '/media/uploads/:path*',
+        destination: `${process.env.API_URL}/uploads/:path*`,
       },
     ];
   },

@@ -14,6 +14,7 @@ export async function getDictionary(lang: Lang): Promise<Dictionary> {
 }
 
 export type CartDeliveryDict = Dictionary['cart']['delivery'];
+export type ProductCardT = Dictionary['productCard'];
 // export type NavbarDict = Dictionary['navbar'];
 // export type HeroDict = Dictionary['hero'];
 // export type StaSuEmeniceDict = Dictionary['whatAreEmenice'];

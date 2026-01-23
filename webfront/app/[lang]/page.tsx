@@ -33,7 +33,11 @@ export default async function HomePage({ params }: { params: { lang: Lang } }) {
             >
               <PizzaGrid>
                 {cat.items.map((item) => (
-                  <ProductCard key={item.slug} item={item} />
+                  <ProductCard
+                    key={item.slug}
+                    item={item}
+                    t={dict.productCard}
+                  />
                 ))}
               </PizzaGrid>
             </div>

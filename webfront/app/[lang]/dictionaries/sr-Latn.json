@@ -174,5 +174,13 @@
     "totalLabel": "Ukupno:",
     "addAllToCart": "Dodaj sve u korpu",
     "sizeLabel": "Veličina"
+  },
+  "productCard": {
+    "sizeLabel": "Veličina",
+    "sizeCmSuffix": "cm",
+    "addToCart": "Dodaj u korpu",
+    "addedToCart": "Uspešno ste dodali u korpu!",
+    "increaseQtyAria": "Povećaj količinu",
+    "decreaseQtyAria": "Smanji količinu"
   }
 }

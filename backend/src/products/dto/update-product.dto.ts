@@ -60,6 +60,11 @@ export class UpdateProductDto {
   @IsBoolean()
   isActive?: boolean;
 
+  // ✅ NEW
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
   /**
    * ✅ signal za delete slike:
    * - ako u data pošalješ: { "image": null } => controller prosledi imageUrl = null

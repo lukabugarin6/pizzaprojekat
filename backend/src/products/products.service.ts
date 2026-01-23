@@ -1,4 +1,3 @@
-// src/products/products.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -39,6 +38,7 @@ export class ProductsService {
       slug: dto.slug,
       image: imageUrl ?? null,
       isActive: dto.isActive ?? true,
+      sortOrder: dto.sortOrder ?? 0, // ✅ NEW
       category,
       translations: dto.translations ?? [],
       variants: dto.variants ?? [],
@@ -63,7 +63,7 @@ export class ProductsService {
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    // IMAGE handling (isto kao MenuItem)
+    // IMAGE handling
     if (imageUrl !== undefined) {
       if (imageUrl === null) {
         if (product.image) await this.deleteImageFile(product.image);
@@ -86,29 +86,32 @@ export class ProductsService {
     if (dto.slug !== undefined) product.slug = dto.slug;
     if (dto.isActive !== undefined) product.isActive = dto.isActive;
 
+    // ✅ NEW
+    if (dto.sortOrder !== undefined) product.sortOrder = dto.sortOrder;
+
     // ✅ TRANSLATIONS upsert + delete removed
     if (dto.translations) {
       const incomingIds = dto.translations
         .filter((x) => x.id)
         .map((x) => x.id!);
 
-      // obriši one koje su izbačene iz payload-a
       const toRemove = (product.translations ?? []).filter(
         (t) => !incomingIds.includes(t.id),
       );
       if (toRemove.length) await this.translationRepo.remove(toRemove);
 
-      // upsert
       const next = dto.translations.map((tr) => {
         const existing = tr.id
           ? product.translations.find((x) => x.id === tr.id)
           : undefined;
+
         if (existing) {
           existing.language = tr.language;
           existing.name = tr.name;
           existing.description = tr.description;
           return existing;
         }
+
         return this.translationRepo.create({ ...tr, product });
       });
 
@@ -128,13 +131,21 @@ export class ProductsService {
         const existing = vr.id
           ? product.variants.find((x) => x.id === vr.id)
           : undefined;
+
         if (existing) {
           if (vr.size !== undefined) {
             existing.size = vr.size;
           }
           existing.price = vr.price;
+
+          // sku ako imaš u entity-ju (ako nema, obriši ovo)
+          if ((vr as any).sku !== undefined) {
+            (existing as any).sku = (vr as any).sku;
+          }
+
           return existing;
         }
+
         return this.variantRepo.create({ ...vr, product });
       });
 
@@ -166,7 +177,6 @@ export class ProductsService {
   }
 
   async findAllPublicGrouped(lang = 'sr-Latn') {
-    // (tvoj kod ostaje isti)
     const rawLang = (lang ?? 'sr-Latn').toString().trim();
     const langLower = rawLang.toLowerCase();
     const base = langLower.split('-')[0];
@@ -204,7 +214,8 @@ export class ProductsService {
       .where('p.isActive = true')
       .andWhere('c.isActive = true')
       .orderBy('c.sortOrder', 'ASC')
-      .addOrderBy('p.id', 'ASC')
+      .addOrderBy('p.sortOrder', 'ASC') // ✅ NEW
+      .addOrderBy('p.id', 'ASC') // fallback stabilnost
       .getMany();
 
     const map = new Map<
@@ -231,8 +242,10 @@ export class ProductsService {
       const prodDesc = (prodTr as any)?.description ?? '';
 
       const item = {
+        id: p.id,
         slug: p.slug,
         image: p.image,
+        sortOrder: (p as any).sortOrder ?? 0, // ✅ možeš i samo p.sortOrder
         name: prodName,
         description: prodDesc,
         variants: (p.variants ?? [])
@@ -253,6 +266,7 @@ export class ProductsService {
       map.get(key)!.items.push(item);
     }
 
+    // kategorije su već sortirane iz SQL-a, ali zadržavam tvoj postojeći sort
     const categories = Array.from(map.values()).sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
     );
@@ -267,6 +281,10 @@ export class ProductsService {
         translations: true,
         variants: true,
       },
+      order: {
+        // ✅ ako hoćeš da i ovde bude stabilno sortiranje
+        sortOrder: 'ASC' as any,
+      } as any,
     });
   }
 
@@ -280,7 +298,6 @@ export class ProductsService {
     try {
       await fs.unlink(filePath);
     } catch (error) {
-      // ne rušimo request ako fajl ne postoji
       console.error('Failed to delete image file:', error);
     }
   }
@@ -296,12 +313,10 @@ export class ProductsService {
 
     if (!product) throw new NotFoundException('Product not found');
 
-    // 1) obriši sliku sa diska (ako postoji)
     if (product.image) {
       await this.deleteImageFile(product.image);
     }
 
-    // 2) obriši child tabele (sigurno radi čak i bez cascade)
     if (product.translations?.length) {
       await this.translationRepo.remove(product.translations);
     }
@@ -309,7 +324,6 @@ export class ProductsService {
       await this.variantRepo.remove(product.variants);
     }
 
-    // 3) obriši product
     await this.productRepo.remove(product);
 
     return { ok: true };

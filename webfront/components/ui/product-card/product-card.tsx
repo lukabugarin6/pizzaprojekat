@@ -9,13 +9,16 @@ import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import { CiRuler } from 'react-icons/ci';
 import { useFlyToCart } from '@/hooks/useFlyToCart';
 import { useCart } from '@/context/cart/cart-context';
+import { Dictionary, ProductCardT } from '@/app/[lang]/dictionaries';
 
 export default function ProductCard({
   item,
   smaller,
+  t,
 }: {
   item?: any;
   smaller?: boolean;
+  t: ProductCardT;
 }) {
   const [overlayQuantity, setOverlayQuantity] = useState(0);
   const { addToCart } = useCart();
@@ -27,17 +30,14 @@ export default function ProductCard({
 
   const variants = item?.variants || [];
 
-  // ima li varijanti uopšte
   const hasVariants = variants.length > 0;
 
-  // da li varijante imaju "size" (pizze), ili nemaju (sendviči)
   const variantsHaveSize = useMemo(() => {
     return variants.some((v: any) => v?.size != null);
   }, [variants]);
 
   const hasMultipleVariants = variantsHaveSize && variants.length > 1;
 
-  // init selectedSize samo ako varijante imaju size
   const [selectedSize, setSelectedSize] = useState<number | null>(() => {
     if (!hasVariants) return null;
     if (!variants.some((v: any) => v?.size != null)) return null;
@@ -78,22 +78,17 @@ export default function ProductCard({
   const decreaseQty = () => setQuantity((prev) => Math.max(prev - 1, 1));
 
   const handleAddToCart = () => {
-    // mora da ima cenu (bar 1 din) da bi imalo smisla
     if (!unitPrice) return;
 
     flyToCart(imageRef.current);
 
     addToCart({
-      productId: item.id,
+      productId: item.slug,
+      variantId: selectedVariant.id,
       name: item.name,
       image: item.image,
       description: item.description,
-
-      // ✅ size samo kad postoji (pizze)
-      ...(variantsHaveSize && selectedVariant?.size != null
-        ? { size: selectedVariant.size }
-        : {}),
-
+      size: selectedVariant.size,
       price: unitPrice,
       quantity,
     });
@@ -104,10 +99,6 @@ export default function ProductCard({
     setTimeout(() => setShowOverlay(false), 2000);
 
     setQuantity(1);
-
-    // reset size samo kod pizza (da ostane na najvećoj ili kako želiš)
-    // setSelectedSize(variantsHaveSize ? selectedSize : null);
-
     setOverlayQuantity(justAdded);
   };
 
@@ -140,7 +131,7 @@ export default function ProductCard({
           {hasMultipleVariants && (
             <div className={styles['product-card__variants-wrapper']}>
               <h5>
-                <CiRuler size={34} /> Veličina
+                <CiRuler size={34} /> {t.sizeLabel}
               </h5>
               <div className={styles['product-card__sizes']}>
                 {variants.map((variant: any) => (
@@ -154,7 +145,7 @@ export default function ProductCard({
                         styles['product-card__size-btn--active'],
                     )}
                   >
-                    {variant.size} cm
+                    {variant.size} {t.sizeCmSuffix}
                   </button>
                 ))}
               </div>
@@ -163,12 +154,13 @@ export default function ProductCard({
 
           <div className={styles['product-card__price']}>{totalPrice} RSD</div>
 
-          {/* ✅ prikazuj footer ako ima cenu (sendviči i pića rade) */}
           {unitPrice > 0 && (
             <div className={styles['product-card__footer']}>
               {showOverlay && (
                 <div className={styles['product-card__overlay']}>
-                  <span>Uspešno ste dodali u korpu! (+{overlayQuantity})</span>
+                  <span>
+                    {t.addedToCart} (+{overlayQuantity})
+                  </span>
                 </div>
               )}
 
@@ -178,7 +170,7 @@ export default function ProductCard({
                   type="button"
                   onClick={handleAddToCart}
                 >
-                  Dodaj u korpu <HandPointerSvg />
+                  {t.addToCart} <HandPointerSvg />
                 </button>
 
                 <div className={styles['product-card__quantity']}>
@@ -188,7 +180,7 @@ export default function ProductCard({
                     <button
                       onClick={increaseQty}
                       disabled={quantity === 10}
-                      aria-label="Increase quantity"
+                      aria-label={t.increaseQtyAria ?? 'Increase quantity'}
                       className={styles['product-card__quantity-btn']}
                       type="button"
                     >
@@ -211,7 +203,7 @@ export default function ProductCard({
                     <button
                       onClick={decreaseQty}
                       disabled={quantity === 1}
-                      aria-label="Decrease quantity"
+                      aria-label={t.decreaseQtyAria ?? 'Decrease quantity'}
                       className={styles['product-card__quantity-btn']}
                       type="button"
                     >

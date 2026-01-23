@@ -1,0 +1,27 @@
+{
+  "slug": "pizza-kapricoza",
+  "categoryId": "6963a436-75bb-4b8d-a605-836d7effd930",
+  "isActive": true,
+  "translations": [
+    {
+      "language": "sr-Latn",
+      "name": "Kaprićoza",
+      "description": "Pelat, šunka, sir, šampinjoni, origano"
+    },
+    {
+      "language": "en",
+      "name": "test",
+      "description": "Tomato sauce, ham, cheese, mushrooms, oregano"
+    },
+    {
+      "language": "ru",
+      "name": "test",
+      "description": "Томатный соус, ветчина, сыр, шампиньоны, орегано"
+    }
+  ],
+  "variants": [
+    { "size": 24, "price": 460 },
+    { "size": 32, "price": 800 },
+    { "size": 50, "price": 1500 }
+  ]
+}

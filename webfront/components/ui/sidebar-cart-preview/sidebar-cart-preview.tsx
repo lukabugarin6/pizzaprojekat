@@ -98,6 +98,12 @@ export default function SidebarCartPreview({
   }, []);
 
   useEffect(() => {
+    if (mounted && items.length === 0) {
+      onMouseLeave();
+    }
+  }, [items.length, mounted, onMouseLeave]);
+
+  useEffect(() => {
     if (orderType === 'delivery' && !delivery.allowed) {
       setOrderType('pickup');
       setAddress(''); // opcionalno: očisti adresu kad nije dostava
@@ -109,19 +115,17 @@ export default function SidebarCartPreview({
   const hasItems = items.length > 0;
 
   const handleIncrease = (item: any) => {
-    const current = item.quantity ?? 1;
-    const next = Math.min(current + 1, 10);
-    updateItemQuantity(item.productId, item.size, next);
+    const next = Math.min((item.quantity ?? 1) + 1, 10);
+    updateItemQuantity(item.variantId, next);
   };
 
   const handleDecrease = (item: any) => {
-    const current = item.quantity ?? 1;
-    const next = Math.max(current - 1, 1);
-    updateItemQuantity(item.productId, item.size, next);
+    const next = Math.max((item.quantity ?? 1) - 1, 1);
+    updateItemQuantity(item.variantId, next);
   };
 
   const handleRemove = (item: any) => {
-    removeFromCart(item.productId, item.size);
+    removeFromCart(item.variantId);
   };
 
   // LAST-WINS update za kupca po email-u
@@ -270,7 +274,11 @@ export default function SidebarCartPreview({
                     >
                       <div className={styles['sidebar-cart__item-main']}>
                         <Image
-                          src={imageSrc}
+                          src={
+                            item.image
+                              ? `/media${item.image}`
+                              : '/images/pp-logo.jpg'
+                          }
                           alt={item.name}
                           width={1000}
                           height={1000}

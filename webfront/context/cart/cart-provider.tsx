@@ -106,39 +106,35 @@ export function CartProvider({
 
   const addToCart = (item: CartItem) => {
     setItems((prev) => {
-      const existing = prev.find(
-        (p) => p.productId === item.productId && p.size === item.size,
-      );
+      const existing = prev.find((p) => p.variantId === item.variantId);
       if (existing) {
         return prev.map((p) =>
-          p === existing ? { ...p, quantity: p.quantity + item.quantity } : p,
+          p.variantId === item.variantId
+            ? { ...p, quantity: Math.min(p.quantity + item.quantity, 10) }
+            : p,
         );
       }
-      return [...prev, item];
+      return [...prev, { ...item, quantity: Math.min(item.quantity, 10) }];
     });
   };
 
-  const removeFromCart = (productId: string, size: number) => {
-    setItems((prev) =>
-      prev.filter((p) => !(p.productId === productId && p.size === size)),
-    );
+  const removeFromCart = (variantId: string) => {
+    setItems((prev) => prev.filter((p) => p.variantId !== variantId));
   };
 
-  const clearCart = () => setItems([]);
-
-  const updateItemQuantity = (
-    productId: string,
-    size: number,
-    quantity: number,
-  ) => {
+  const updateItemQuantity = (variantId: string, quantity: number) => {
     setItems((prev) =>
       prev
         .map((p) =>
-          p.productId === productId && p.size === size ? { ...p, quantity } : p,
+          p.variantId === variantId
+            ? { ...p, quantity: Math.min(Math.max(quantity, 1), 10) }
+            : p,
         )
         .filter((p) => p.quantity > 0),
     );
   };
+
+  const clearCart = () => setItems([]);
 
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
