@@ -35,7 +35,7 @@ import { CategoriesModule } from './categories/categories.module';
           ProductTranslation,
           ProductVariant,
         ],
-        synchronize: true,
+        synchronize: false,
       }),
     }),
 
