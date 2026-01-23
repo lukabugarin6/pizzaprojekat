@@ -15,6 +15,7 @@ import {
   FileTypeValidator,
   BadRequestException,
   Req,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
