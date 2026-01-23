@@ -19,6 +19,7 @@ async function bootstrap() {
   app.use('/uploads/images', express.static(uploadsDir));
 
   const dataSource = app.get(DataSource);
+  await dataSource.synchronize(false);
   await seedSuperUser(dataSource);
   await seedCategories(dataSource);
 
