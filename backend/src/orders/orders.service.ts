@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -20,6 +21,7 @@ import { RejectOrderDto } from './dto/reject-order.dto';
 import { ProductVariant } from '../products/product-variant.entity';
 import { Language } from '../common/enums/language.enum';
 import { User } from '../users/user.entity';
+import { AdminListOrdersDto } from './dto/admin-list.dto';
 
 @Injectable()
 export class OrdersService {
@@ -251,5 +253,96 @@ export class OrdersService {
     // fallback: prvi koji ima name
     const anyTr = translations.find((t) => t?.name);
     return anyTr?.name ?? null;
+  }
+
+  async adminList(q: AdminListOrdersDto) {
+    const status = q.status ?? OrderStatus.PENDING;
+
+    const orders = await this.orderRepo.find({
+      where: { status } as any,
+      relations: { items: true, handledBy: true } as any,
+      order: { createdAt: 'DESC' as any } as any,
+      take: 50,
+    });
+
+    return orders.map((o) => ({
+      id: o.id,
+      publicCode: o.publicCode,
+      type: o.type,
+      addressText: o.addressText,
+      note: o.note,
+      status: o.status,
+      etaMinutes: o.etaMinutes,
+      total: o.total,
+      createdAt: o.createdAt,
+      handledAt: o.handledAt,
+      handledBy: o.handledBy
+        ? { id: o.handledBy.id, email: o.handledBy.email }
+        : null,
+      items: (o.items ?? []).map((i) => ({
+        id: i.id,
+        productName: i.productName,
+        variantSize: i.variantSize,
+        unitPrice: i.unitPrice,
+        quantity: i.quantity,
+        lineTotal: i.lineTotal,
+      })),
+    }));
+  }
+
+  async adminAccept(orderId: string, dto: AcceptOrderDto, adminUserId: number) {
+    if (!adminUserId) throw new UnauthorizedException();
+
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId } as any,
+      relations: { items: true } as any,
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Order is not pending');
+    }
+
+    order.status = OrderStatus.ACCEPTED;
+    order.etaMinutes = dto.etaMinutes;
+    order.handledAt = new Date();
+    order.handledBy = { id: adminUserId } as User;
+
+    await this.orderRepo.save(order);
+
+    return {
+      ok: true,
+      id: order.id,
+      publicCode: order.publicCode,
+      status: order.status,
+      etaMinutes: order.etaMinutes,
+    };
+  }
+
+  async adminReject(orderId: string, dto: RejectOrderDto, adminUserId: number) {
+    if (!adminUserId) throw new UnauthorizedException();
+
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId } as any,
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Order is not pending');
+    }
+
+    order.status = OrderStatus.REJECTED;
+    order.etaMinutes = null;
+    order.handledAt = new Date();
+    order.handledBy = { id: adminUserId } as User;
+
+    await this.orderRepo.save(order);
+
+    return {
+      ok: true,
+      id: order.id,
+      publicCode: order.publicCode,
+      status: order.status,
+    };
   }
 }

@@ -8,10 +8,11 @@ import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { ProductVariant } from '../products/product-variant.entity';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { OrdersAdminController } from './orders.admin.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Order, OrderItem, ProductVariant])],
-  controllers: [OrdersController],
+  controllers: [OrdersController, OrdersAdminController],
   providers: [OrdersService, RolesGuard],
   exports: [OrdersService],
 })
