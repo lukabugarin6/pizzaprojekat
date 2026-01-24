@@ -8,6 +8,7 @@ import Toast from "react-native-toast-message";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { OrdersRealtimeProvider } from "../realtime/OrdersRealtimeProvider";
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -19,26 +20,28 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <RootSiblingParent>
-        <View style={styles.flex} onLayout={onRootLayout}>
-          <AuthProvider>
-            <StatusBar
-              style="light"
-              translucent
-              backgroundColor="transparent"
-            />
+      <OrdersRealtimeProvider>
+        <RootSiblingParent>
+          <View style={styles.flex} onLayout={onRootLayout}>
+            <AuthProvider>
+              <StatusBar
+                style="light"
+                translucent
+                backgroundColor="transparent"
+              />
 
-            <BottomSheetModalProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-              </Stack>
-            </BottomSheetModalProvider>
+              <BottomSheetModalProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                </Stack>
+              </BottomSheetModalProvider>
 
-            <Toast topOffset={200} />
-          </AuthProvider>
-        </View>
-      </RootSiblingParent>
+              <Toast topOffset={200} />
+            </AuthProvider>
+          </View>
+        </RootSiblingParent>
+      </OrdersRealtimeProvider>
     </GestureHandlerRootView>
   );
 }

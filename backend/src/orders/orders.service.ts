@@ -20,8 +20,8 @@ import { RejectOrderDto } from './dto/reject-order.dto';
 
 import { ProductVariant } from '../products/product-variant.entity';
 import { Language } from '../common/enums/language.enum';
-import { User } from '../users/user.entity';
 import { AdminListOrdersDto } from './dto/admin-list.dto';
+import { OrdersGateway } from './orders.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -31,6 +31,7 @@ export class OrdersService {
     @InjectRepository(OrderItem) private itemRepo: Repository<OrderItem>,
     @InjectRepository(ProductVariant)
     private variantRepo: Repository<ProductVariant>,
+    private ordersGateway: OrdersGateway,
   ) {}
 
   // ========= PUBLIC (GUEST) =========
@@ -126,6 +127,14 @@ export class OrdersService {
     });
 
     const saved = await this.orderRepo.save(order);
+
+    this.ordersGateway.emitNewOrderToAdmins({
+      id: saved.id,
+      publicCode: saved.publicCode,
+      type: saved.type,
+      total: saved.total,
+      createdAt: saved.createdAt,
+    });
 
     return {
       publicCode: saved.publicCode,
@@ -263,6 +272,16 @@ export class OrdersService {
 
       await repo.save(order);
 
+      this.ordersGateway.emitOrderUpdate(order.publicCode, {
+        publicCode: order.publicCode,
+        status: order.status,
+        etaMinutes: order.etaMinutes,
+        type: order.type,
+        addressText: order.addressText,
+        total: order.total,
+        createdAt: order.createdAt,
+      });
+
       return {
         ok: true,
         id: order.id,
@@ -295,6 +314,16 @@ export class OrdersService {
       order.handledBy = { id: adminUserId } as any;
 
       await repo.save(order);
+
+      this.ordersGateway.emitOrderUpdate(order.publicCode, {
+        publicCode: order.publicCode,
+        status: order.status,
+        etaMinutes: order.etaMinutes,
+        type: order.type,
+        addressText: order.addressText,
+        total: order.total,
+        createdAt: order.createdAt,
+      });
 
       return {
         ok: true,
