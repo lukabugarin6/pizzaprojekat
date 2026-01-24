@@ -1,3 +1,4 @@
+// src/orders/orders.admin.controller.ts
 import {
   Body,
   Controller,
@@ -5,11 +6,9 @@ import {
   Param,
   Post,
   Query,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
-
 import { OrdersService } from './orders.service';
 import { Role } from '../common/enums/role.enum';
 import { AdminListOrdersDto } from './dto/admin-list.dto';
@@ -26,28 +25,31 @@ import { Roles } from '../common/decorators/roles.decorator';
 export class OrdersAdminController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  // GET /orders/admin?status=pending
   @Get()
   list(@Query() q: AdminListOrdersDto) {
     return this.ordersService.adminList(q);
   }
 
+  // POST /orders/admin/:id/accept
   @Post(':id/accept')
   accept(
     @Param('id') id: string,
     @Body() dto: AcceptOrderDto,
-    @Req() req: Request,
+    @Req() req: any,
   ) {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     return this.ordersService.adminAccept(id, dto, userId);
   }
 
+  // POST /orders/admin/:id/reject
   @Post(':id/reject')
   reject(
     @Param('id') id: string,
     @Body() dto: RejectOrderDto,
-    @Req() req: Request,
+    @Req() req: any,
   ) {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     return this.ordersService.adminReject(id, dto, userId);
   }
 }

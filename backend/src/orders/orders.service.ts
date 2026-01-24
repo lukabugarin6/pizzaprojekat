@@ -141,7 +141,6 @@ export class OrdersService {
     const order = await this.orderRepo.findOne({
       where: { publicCode, accessToken: token },
       relations: { items: true },
-      order: { createdAt: 'DESC' as any } as any,
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -162,60 +161,6 @@ export class OrdersService {
       })),
       createdAt: order.createdAt,
     };
-  }
-
-  // ========= ADMIN =========
-
-  async accept(orderId: string, dto: AcceptOrderDto, actor: User) {
-    return this.dataSource.transaction(async (manager) => {
-      const repo = manager.getRepository(Order);
-
-      const order = await repo.findOne({
-        where: { id: orderId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (!order) throw new NotFoundException('Order not found');
-      if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException('Order already handled');
-      }
-
-      order.status = OrderStatus.ACCEPTED;
-      order.etaMinutes = dto.etaMinutes;
-      order.handledBy = actor;
-      order.handledAt = new Date();
-
-      await repo.save(order);
-
-      // TODO: emit event (ws/sse) + send email (async job)
-      return order;
-    });
-  }
-
-  async reject(orderId: string, dto: RejectOrderDto, actor: User) {
-    return this.dataSource.transaction(async (manager) => {
-      const repo = manager.getRepository(Order);
-
-      const order = await repo.findOne({
-        where: { id: orderId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (!order) throw new NotFoundException('Order not found');
-      if (order.status !== OrderStatus.PENDING) {
-        throw new ConflictException('Order already handled');
-      }
-
-      order.status = OrderStatus.REJECTED;
-      order.etaMinutes = null;
-      order.handledBy = actor;
-      order.handledAt = new Date();
-
-      await repo.save(order);
-
-      // TODO: store reject reason somewhere (OrderStatusEvent) ako želiš audit
-      return order;
-    });
   }
 
   // ========= helpers =========
@@ -293,56 +238,65 @@ export class OrdersService {
   async adminAccept(orderId: string, dto: AcceptOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
-    const order = await this.orderRepo.findOne({
-      where: { id: orderId } as any,
-      relations: { items: true } as any,
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(Order);
+
+      const order = await repo.findOne({
+        where: { id: orderId } as any,
+        lock: { mode: 'pessimistic_write' }, // štiti od duplog accept-a
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException('Order already handled');
+      }
+
+      order.status = OrderStatus.ACCEPTED;
+      order.etaMinutes = dto.etaMinutes;
+      order.handledAt = new Date();
+      order.handledBy = { id: adminUserId } as any;
+
+      await repo.save(order);
+
+      return {
+        ok: true,
+        id: order.id,
+        publicCode: order.publicCode,
+        status: order.status,
+        etaMinutes: order.etaMinutes,
+      };
     });
-    if (!order) throw new NotFoundException('Order not found');
-
-    if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException('Order is not pending');
-    }
-
-    order.status = OrderStatus.ACCEPTED;
-    order.etaMinutes = dto.etaMinutes;
-    order.handledAt = new Date();
-    order.handledBy = { id: adminUserId } as User;
-
-    await this.orderRepo.save(order);
-
-    return {
-      ok: true,
-      id: order.id,
-      publicCode: order.publicCode,
-      status: order.status,
-      etaMinutes: order.etaMinutes,
-    };
   }
 
   async adminReject(orderId: string, dto: RejectOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
-    const order = await this.orderRepo.findOne({
-      where: { id: orderId } as any,
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(Order);
+
+      const order = await repo.findOne({
+        where: { id: orderId } as any,
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException('Order already handled');
+      }
+
+      order.status = OrderStatus.REJECTED;
+      order.etaMinutes = null;
+      order.handledAt = new Date();
+      order.handledBy = { id: adminUserId } as any;
+
+      await repo.save(order);
+
+      return {
+        ok: true,
+        id: order.id,
+        publicCode: order.publicCode,
+        status: order.status,
+      };
     });
-    if (!order) throw new NotFoundException('Order not found');
-
-    if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException('Order is not pending');
-    }
-
-    order.status = OrderStatus.REJECTED;
-    order.etaMinutes = null;
-    order.handledAt = new Date();
-    order.handledBy = { id: adminUserId } as User;
-
-    await this.orderRepo.save(order);
-
-    return {
-      ok: true,
-      id: order.id,
-      publicCode: order.publicCode,
-      status: order.status,
-    };
   }
 }
