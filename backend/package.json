@@ -21,7 +21,10 @@
     "typeorm": "ts-node ./node_modules/typeorm/cli.js -d src/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate src/migrations/CreateOrdersTables",
     "migration:run": "npm run typeorm -- migration:run",
-    "migration:show": "npm run typeorm -- migration:show"
+    "migration:show": "npm run typeorm -- migration:show",
+    "typeorm:prod": "node ./node_modules/typeorm/cli.js -d dist/data-source.prod.js",
+    "migration:run:prod": "npm run typeorm:prod -- migration:run",
+    "migration:show:prod": "npm run typeorm:prod -- migration:show"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
