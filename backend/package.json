@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build && cp data-source.prod.js dist/data-source.prod.js && cp -r src/migrations dist/migrations",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -19,8 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm:prod": "node ./node_modules/typeorm/cli.js -d dist/data-source.prod.js",
-    "migration:run:prod": "npm run typeorm:prod -- migration:run",
-    "migration:show:prod": "npm run typeorm:prod -- migration:show"
+    "migration:show:prod": "npm run typeorm:prod -- migration:show",
+    "migration:run:prod": "npm run typeorm:prod -- migration:run"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
