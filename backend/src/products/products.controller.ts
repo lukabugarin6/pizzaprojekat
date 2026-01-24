@@ -165,8 +165,8 @@ export class ProductsController {
     return this.productsService.remove(id);
   }
 
-  @Get('public/:id')
-  getPublicById(@Param('id') id: string, @Query('lang') lang?: string) {
+  @Get(':id')
+  getById(@Param('id') id: string, @Query('lang') lang?: string) {
     return this.productsService.findPublicById(id, lang ?? 'sr-Latn');
   }
 }
