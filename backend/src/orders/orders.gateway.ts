@@ -36,22 +36,25 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ---------- connection ----------
   async handleConnection(client: Socket) {
-    // Optional: auto-join admins if JWT provided
     const jwt = this.extractBearer(client);
+    console.log('[orders ws] connect', { hasJwt: !!jwt });
+
     if (!jwt) return;
 
     try {
       const payload: any = await this.jwtService.verifyAsync(jwt);
+      console.log('[orders ws] payload', payload);
+
       const roles: string[] = payload?.roles ?? [];
+      console.log('[orders ws] roles', roles);
+
       const isAdmin =
         roles.includes(Role.ADMIN) || roles.includes(Role.SUPERUSER);
+      console.log('[orders ws] isAdmin', isAdmin);
 
-      if (isAdmin) {
-        client.join('admins');
-        client.data.user = { id: payload?.sub ?? payload?.id, roles };
-      }
-    } catch {
-      // ignore invalid tokens for connection (guest can still use subscribe event)
+      if (isAdmin) client.join('admins');
+    } catch (e) {
+      console.log('[orders ws] jwt verify failed', e?.message);
     }
   }
 
