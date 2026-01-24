@@ -201,13 +201,13 @@ export class OrdersService {
   }
 
   async adminList(q: AdminListOrdersDto) {
-    const status = q.status ?? OrderStatus.PENDING;
+    const where = q.status ? ({ status: q.status } as any) : ({} as any);
 
     const orders = await this.orderRepo.find({
-      where: { status } as any,
+      where,
       relations: { items: true, handledBy: true } as any,
       order: { createdAt: 'DESC' as any } as any,
-      take: 50,
+      take: 200, // ili ostavi 50; za "sve" često je bolje 200 + pagination kasnije
     });
 
     return orders.map((o) => ({
@@ -234,7 +234,6 @@ export class OrdersService {
       })),
     }));
   }
-
   async adminAccept(orderId: string, dto: AcceptOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
