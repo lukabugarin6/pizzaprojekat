@@ -151,6 +151,9 @@ export class OrdersService {
       etaMinutes: order.etaMinutes,
       type: order.type,
       addressText: order.addressText,
+      fullName: order.fullName,
+      phone: order.phone,
+      email: order.email,
       total: order.total,
       items: (order.items ?? []).map((i) => ({
         productName: i.productName,
