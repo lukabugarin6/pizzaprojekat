@@ -45,11 +45,10 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload: any = await this.jwtService.verifyAsync(jwt);
       console.log('[orders ws] payload', payload);
 
-      const roles: string[] = payload?.roles ?? [];
-      console.log('[orders ws] roles', roles);
+      const role: string = payload?.rolee ?? [];
+      console.log('[orders ws] roles', role);
 
-      const isAdmin =
-        roles.includes(Role.ADMIN) || roles.includes(Role.SUPERUSER);
+      const isAdmin = role === Role.ADMIN || role === Role.SUPERUSER;
       console.log('[orders ws] isAdmin', isAdmin);
 
       if (isAdmin) client.join('admins');
