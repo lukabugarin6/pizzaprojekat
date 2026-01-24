@@ -166,7 +166,7 @@ export class ProductsController {
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @Query('lang') lang?: string) {
-    return this.productsService.findPublicById(id, lang ?? 'sr-Latn');
+  getById(@Param('id') id: string) {
+    return this.productsService.findPublicByIdRaw(id);
   }
 }
