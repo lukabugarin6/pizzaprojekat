@@ -202,7 +202,7 @@ export class ProductsService {
         );
         if (hit) return hit;
       }
-      return list[0];
+      return undefined; // ✅ nema fallback-a
     };
 
     const products = await this.productRepo

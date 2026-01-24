@@ -11,9 +11,9 @@ export type ProductTranslation = {
 };
 
 export type ProductVariant = {
-  size?: number; // optional for drinks/sandwiches
+  size?: number;
   price: number;
-  sku?: string; // optional (depends on your DTO/entity)
+  sku?: string;
 };
 
 export type Product = {
@@ -23,7 +23,7 @@ export type Product = {
   isActive?: boolean;
 
   category?: {
-    id: string; // ✅ UUID
+    id: string; // UUID
     slug?: string;
   };
 
@@ -34,18 +34,46 @@ export type Product = {
 export type CreateProductPayload = {
   slug: string;
   image: string;
-  categoryId: string; // ✅ UUID
+  categoryId: string;
   isActive?: boolean;
   translations?: ProductTranslation[];
   variants?: ProductVariant[];
 };
 
-// For your current backend PUT, you likely update only scalar fields.
-// If you extend backend to "replace/sync" translations/variants, this will work too.
 export type UpdateProductPayload = Partial<CreateProductPayload>;
 
+// ✅ Grouped DTOs (kao web app)
+export type ProductVariantDto = {
+  id: string;
+  size: number;
+  price: number;
+};
+
+export type ProductCardItemDto = {
+  slug: string;
+  image?: string | null;
+  name: string;
+  description: string;
+  variants: ProductVariantDto[];
+  sortOrder?: number;
+  id?: string;
+};
+
+export type ProductsCategoryDto = {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+  items: ProductCardItemDto[];
+};
+
+export type ProductsGroupedResponseDto = {
+  categories: ProductsCategoryDto[];
+};
+
 export const productsEndpoints = {
-  list: "/products", // ✅ no trailing slash unless your backend requires it
+  list: "/products",
+  grouped: "/products/grouped",
   details: (id: string) => `/products/${id}`,
 };
 
@@ -84,6 +112,32 @@ export async function fetchProducts(): Promise<Product[]> {
   if (!res.ok) throw new Error(`Products load failed: ${res.status}`);
   const data = await res.json();
   return Array.isArray(data) ? (data as Product[]) : [];
+}
+
+// ✅ NEW: fetch grouped products (public-ish, ali i dalje authedFetch da radi isto kao ostalo)
+export async function fetchProductsGrouped(
+  lang: Language,
+): Promise<ProductsGroupedResponseDto> {
+  const url = `${productsEndpoints.grouped}?lang=${encodeURIComponent(lang)}`;
+
+  const res = await authedFetch(url, { method: "GET" });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(
+      `Products grouped load failed: ${res.status}${txt ? `\n${txt}` : ""}`,
+    );
+  }
+
+  // ✅ safety: nekad proxy vrati HTML
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Products grouped non-json: ${ct}${txt ? `\n${txt}` : ""}`);
+  }
+
+  const data = (await res.json()) as ProductsGroupedResponseDto;
+  return data && Array.isArray(data.categories) ? data : { categories: [] };
 }
 
 export async function createProduct(

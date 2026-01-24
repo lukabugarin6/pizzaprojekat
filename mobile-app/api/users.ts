@@ -11,6 +11,7 @@ export type UserRow = {
 
 export const usersEndpoints = {
   list: "/users/",
+  createAdmin: "/users/admins",
   details: (id: number) => `/users/${id}/`,
 };
 
@@ -58,13 +59,11 @@ export async function deleteUser(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
 }
 
-export async function createUser(payload: {
+export async function createAdmin(payload: {
   email: string;
   password: string;
-  role?: string;
-  name?: string;
 }): Promise<UserRow> {
-  const res = await authedFetch(usersEndpoints.list, {
+  const res = await authedFetch(usersEndpoints.createAdmin, {
     method: "POST",
     body: JSON.stringify(payload),
   });

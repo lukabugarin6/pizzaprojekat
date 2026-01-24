@@ -10,9 +10,9 @@ export const STORAGE = {
 } as const;
 
 export const endpoints = {
-  login: "/auth/login/",
-  refresh: "/auth/refresh/",
-  me: "/auth/me/",
+  login: "/auth/login",
+  refresh: "/auth/refresh",
+  me: "/auth/me",
 };
 
 export type UserRole = "superuser" | "user" | string;
@@ -69,16 +69,18 @@ export async function refreshAccessToken(): Promise<boolean> {
   const res = await apiFetch(endpoints.refresh, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh: refreshToken }),
+    body: JSON.stringify({ refresh_token: refreshToken }),
   });
 
   if (!res.ok) return false;
 
   const data = await res.json().catch(() => null);
-  const newAccess = data?.access;
-  if (!newAccess) return false;
+  const newAccess = data?.access_token;
+  const newRefresh = data?.refresh_token;
 
-  await setTokens(newAccess);
+  if (!newAccess || !newRefresh) return false;
+
+  await setTokens(newAccess, newRefresh);
   return true;
 }
 
@@ -130,7 +132,7 @@ export async function loginRequest(email: string, password: string) {
   const data = await res.json();
 
   const access = data?.access_token;
-  const refresh = data?.access_token;
+  const refresh = data?.refresh_token;
   const user = data?.user as MeResponse | undefined;
 
   if (!access || !refresh) throw new Error("Login response missing tokens");
