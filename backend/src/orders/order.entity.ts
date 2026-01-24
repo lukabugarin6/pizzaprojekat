@@ -66,9 +66,9 @@ export class Order {
   @Column({ type: 'int', default: 0 })
   total: number;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ type: 'datetime' })
   updatedAt: Date;
 }
