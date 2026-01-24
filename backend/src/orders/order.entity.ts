@@ -57,7 +57,7 @@ export class Order {
   @ManyToOne(() => User, { nullable: true })
   handledBy: User | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   handledAt: Date | null;
 
   @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
