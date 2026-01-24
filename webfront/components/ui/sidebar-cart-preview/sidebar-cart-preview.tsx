@@ -20,6 +20,7 @@ import SidebarCartFormField from './sidebar-cart-form-field';
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import { Dictionary } from '@/app/[lang]/dictionaries';
 import { DeliveryReason } from '@/context/cart/cart-provider';
+import { createOrderAction } from '@/app/actions/create-order';
 
 type SidebarCartPreviewProps = {
   isOpen: boolean;
@@ -186,46 +187,29 @@ export default function SidebarCartPreview({
     setNote('');
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!items.length) return;
-    if (orderType === 'delivery' && !delivery.allowed) return;
 
-    const trimmedFullName = fullName.trim();
-    const trimmedEmail = email.trim();
-    const trimmedPhone = phone.trim();
-    const trimmedAddress = address.trim();
-    const trimmedNote = note.trim();
+    const payload = {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      note: note.trim(),
+      type: orderType,
+      addressText: orderType === 'delivery' ? address.trim() : null,
+      items: items.map((x: any) => ({
+        variantId: x.variantId,
+        quantity: x.quantity ?? 1,
+      })),
+    };
 
-    if (trimmedEmail) {
-      const customer: SavedCustomer = {
-        fullName: trimmedFullName,
-        email: trimmedEmail,
-        phone: trimmedPhone,
-        address: trimmedAddress,
-        orderType,
-        note: trimmedNote, // 👈 snimamo i napomenu
-      };
+    const res = await createOrderAction(payload);
 
-      // last-wins po emailu
-      saveCustomerToLocalStorage(customer);
-    }
-
-    console.log('ORDER PAYLOAD', {
-      fullName: trimmedFullName,
-      email: trimmedEmail,
-      phone: trimmedPhone,
-      orderType,
-      address: orderType === 'delivery' ? trimmedAddress : '',
-      note: trimmedNote,
-      items,
-      totalPrice,
-    });
-
-    // kasnije pomeri reset u onSuccess backend poziva
+    // res: { publicCode, token, status, total }
+    // ovde možeš odmah da prikažeš “Order created” + link/QR
     resetForm();
   };
-
   type DeliveryReasonKey = Exclude<DeliveryReason, null>;
 
   const deliveryReasonText = delivery.reason

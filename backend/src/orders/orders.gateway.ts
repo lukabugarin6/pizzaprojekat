@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { OnEvent } from '@nestjs/event-emitter';
 
 import { OrdersService } from './orders.service';
 import { Role } from '../common/enums/role.enum';
@@ -93,6 +94,20 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.leave(this.orderRoom(publicCode));
     return { ok: true };
+  }
+
+  // ---------- event listeners (from OrdersService) ----------
+  @OnEvent('orders.new')
+  handleOrdersNew(payload: any) {
+    this.emitNewOrderToAdmins(payload);
+  }
+
+  @OnEvent('orders.update')
+  handleOrdersUpdate(payload: any) {
+    const publicCode = String(payload?.publicCode ?? '').trim();
+    if (!publicCode) return;
+
+    this.emitOrderUpdate(publicCode, payload);
   }
 
   // ---------- server emit helpers ----------

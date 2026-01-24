@@ -20,10 +20,10 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <OrdersRealtimeProvider>
-        <RootSiblingParent>
-          <View style={styles.flex} onLayout={onRootLayout}>
-            <AuthProvider>
+      <RootSiblingParent>
+        <View style={styles.flex} onLayout={onRootLayout}>
+          <AuthProvider>
+            <OrdersRealtimeProvider>
               <StatusBar
                 style="light"
                 translucent
@@ -38,10 +38,10 @@ export default function RootLayout() {
               </BottomSheetModalProvider>
 
               <Toast topOffset={200} />
-            </AuthProvider>
-          </View>
-        </RootSiblingParent>
-      </OrdersRealtimeProvider>
+            </OrdersRealtimeProvider>
+          </AuthProvider>
+        </View>
+      </RootSiblingParent>
     </GestureHandlerRootView>
   );
 }

@@ -16,9 +16,11 @@ import { CategoriesModule } from './categories/categories.module';
 import { Order } from './orders/order.entity';
 import { OrderItem } from './orders/order-item.entity';
 import { OrdersModule } from './orders/orders.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
 
     TypeOrmModule.forRootAsync({

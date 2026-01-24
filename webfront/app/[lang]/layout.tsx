@@ -8,6 +8,7 @@ import Sidebar from '@/modules/global/sidebar';
 import Preloader from '@/components/ui/preloader';
 import { CartProvider } from '@/context/cart/cart-provider';
 import Navbar from '@/components/ui/navbar';
+import { OrderTrackingProvider } from '@/context/order/order-tracking-context';
 
 const ptSans = localFont({
   src: [
@@ -88,31 +89,33 @@ export default async function RootLayout({
         data-preloader="true"
         className={`${ptSans.variable} ${robotoCondensed.variable} ${planet.variable} antialiased`}
       >
-        <ThemeProvider>
-          {/* prosleđujemo samo deo za navbar */}
-          {/* <Navbar t={dict.navbar} lang={lang} /> */}
-          {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
+        <OrderTrackingProvider apiBase="/api_backend">
+          <ThemeProvider>
+            {/* prosleđujemo samo deo za navbar */}
+            {/* <Navbar t={dict.navbar} lang={lang} /> */}
+            {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
 
-          <CartProvider deliveryDict={dict.cart.delivery}>
-            <div
-              style={{
-                minHeight: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Sidebar
-                t={dict.sidebar}
-                cartT={dict.cart}
-                cartPageT={dict.cartPage}
-              />
-              <Navbar t={dict.navbar} lang={lang} />
-              <div style={{ flexGrow: 1 }}>{children}</div>
-              <Footer t={dict.footer} />
-              <Preloader />
-            </div>
-          </CartProvider>
-        </ThemeProvider>
+            <CartProvider deliveryDict={dict.cart.delivery}>
+              <div
+                style={{
+                  minHeight: '100vh',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <Sidebar
+                  t={dict.sidebar}
+                  cartT={dict.cart}
+                  cartPageT={dict.cartPage}
+                />
+                <Navbar t={dict.navbar} lang={lang} />
+                <div style={{ flexGrow: 1 }}>{children}</div>
+                <Footer t={dict.footer} />
+                <Preloader />
+              </div>
+            </CartProvider>
+          </ThemeProvider>
+        </OrderTrackingProvider>
       </body>
     </html>
   );

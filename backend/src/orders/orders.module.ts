@@ -11,11 +11,12 @@ import { OrderItem } from './order-item.entity';
 import { ProductVariant } from '../products/product-variant.entity';
 
 import { OrdersGateway } from './orders.gateway';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, ProductVariant]),
-    JwtModule.register({}), // koristi tvoj global config ako već imaš
+    AuthModule,
   ],
   controllers: [OrdersController, OrdersAdminController],
   providers: [OrdersService, OrdersGateway],

@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource, In, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 
@@ -21,7 +22,6 @@ import { RejectOrderDto } from './dto/reject-order.dto';
 import { ProductVariant } from '../products/product-variant.entity';
 import { Language } from '../common/enums/language.enum';
 import { AdminListOrdersDto } from './dto/admin-list.dto';
-import { OrdersGateway } from './orders.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -31,7 +31,7 @@ export class OrdersService {
     @InjectRepository(OrderItem) private itemRepo: Repository<OrderItem>,
     @InjectRepository(ProductVariant)
     private variantRepo: Repository<ProductVariant>,
-    private ordersGateway: OrdersGateway,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // ========= PUBLIC (GUEST) =========
@@ -50,6 +50,7 @@ export class OrdersService {
       if (!id) continue;
       merged.set(id, (merged.get(id) ?? 0) + Number(it.quantity ?? 0));
     }
+
     const variantIds = Array.from(merged.keys());
     if (!variantIds.length) {
       throw new BadRequestException('Items are required.');
@@ -128,7 +129,8 @@ export class OrdersService {
 
     const saved = await this.orderRepo.save(order);
 
-    this.ordersGateway.emitNewOrderToAdmins({
+    // ✅ emit event (gateway listens and pushes to WS clients)
+    this.eventEmitter.emit('orders.new', {
       id: saved.id,
       publicCode: saved.publicCode,
       type: saved.type,
@@ -175,42 +177,7 @@ export class OrdersService {
     };
   }
 
-  // ========= helpers =========
-
-  private genPublicCode(len = 8) {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // bez O/0/1/I
-    let out = '';
-    for (let i = 0; i < len; i++) {
-      out += alphabet[Math.floor(Math.random() * alphabet.length)];
-    }
-    return out;
-  }
-
-  private pickLanguage(acceptLanguage?: string): Language {
-    // tvoj enum je Language (sr-Latn, sr-Cyrl, en, ...).
-    // MVP: ako accept-language sadrži "sr" → sr-Latn, else en (ako postoji) ili sr-Latn.
-    const raw = (acceptLanguage ?? '').toLowerCase();
-    if (raw.includes('sr'))
-      return Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
-    return (Language['EN' as any] ?? ('en' as any as Language)) as Language;
-  }
-
-  private pickProductName(
-    translations: any[] | undefined,
-    lang: Language,
-  ): string | null {
-    if (!translations?.length) return null;
-
-    const want = String(lang).toLowerCase();
-    const exact = translations.find(
-      (t) => String(t.language).toLowerCase() === want,
-    );
-    if (exact?.name) return exact.name;
-
-    // fallback: prvi koji ima name
-    const anyTr = translations.find((t) => t?.name);
-    return anyTr?.name ?? null;
-  }
+  // ========= ADMIN =========
 
   async adminList(q: AdminListOrdersDto) {
     const where = q.status ? ({ status: q.status } as any) : ({} as any);
@@ -249,6 +216,7 @@ export class OrdersService {
       })),
     }));
   }
+
   async adminAccept(orderId: string, dto: AcceptOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
@@ -272,7 +240,8 @@ export class OrdersService {
 
       await repo.save(order);
 
-      this.ordersGateway.emitOrderUpdate(order.publicCode, {
+      // ✅ emit event (gateway listens and pushes to WS clients)
+      this.eventEmitter.emit('orders.update', {
         publicCode: order.publicCode,
         status: order.status,
         etaMinutes: order.etaMinutes,
@@ -315,7 +284,8 @@ export class OrdersService {
 
       await repo.save(order);
 
-      this.ordersGateway.emitOrderUpdate(order.publicCode, {
+      // ✅ emit event (gateway listens and pushes to WS clients)
+      this.eventEmitter.emit('orders.update', {
         publicCode: order.publicCode,
         status: order.status,
         etaMinutes: order.etaMinutes,
@@ -332,5 +302,42 @@ export class OrdersService {
         status: order.status,
       };
     });
+  }
+
+  // ========= helpers =========
+
+  private genPublicCode(len = 8) {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // bez O/0/1/I
+    let out = '';
+    for (let i = 0; i < len; i++) {
+      out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+  }
+
+  private pickLanguage(acceptLanguage?: string): Language {
+    // tvoj enum je Language (sr-Latn, sr-Cyrl, en, ...).
+    // MVP: ako accept-language sadrži "sr" → sr-Latn, else en (ako postoji) ili sr-Latn.
+    const raw = (acceptLanguage ?? '').toLowerCase();
+    if (raw.includes('sr'))
+      return Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+    return (Language['EN' as any] ?? ('en' as any as Language)) as Language;
+  }
+
+  private pickProductName(
+    translations: any[] | undefined,
+    lang: Language,
+  ): string | null {
+    if (!translations?.length) return null;
+
+    const want = String(lang).toLowerCase();
+    const exact = translations.find(
+      (t) => String(t.language).toLowerCase() === want,
+    );
+    if (exact?.name) return exact.name;
+
+    // fallback: prvi koji ima name
+    const anyTr = translations.find((t) => t?.name);
+    return anyTr?.name ?? null;
   }
 }
