@@ -164,4 +164,9 @@ export class ProductsController {
   async remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
+
+  @Get('public/:id')
+  getPublicById(@Param('id') id: string, @Query('lang') lang?: string) {
+    return this.productsService.findPublicById(id, lang ?? 'sr-Latn');
+  }
 }

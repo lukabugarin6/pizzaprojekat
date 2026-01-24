@@ -328,4 +328,80 @@ export class ProductsService {
 
     return { ok: true };
   }
+
+  async findPublicById(productId: string, lang = 'sr-Latn') {
+    const rawLang = (lang ?? 'sr-Latn').toString().trim();
+    const langLower = rawLang.toLowerCase();
+    const base = langLower.split('-')[0];
+    const candidates = Array.from(
+      new Set(
+        [
+          langLower,
+          langLower.split('-').slice(0, 2).join('-'),
+          base,
+          `${base}-latn`,
+          `${base}-cyrl`,
+        ].filter(Boolean),
+      ),
+    );
+
+    const pickTranslation = <T extends { language: any }>(
+      list: T[] | undefined,
+    ): T | undefined => {
+      if (!list?.length) return undefined;
+      for (const cand of candidates) {
+        const hit = list.find(
+          (x: any) => String(x.language).toLowerCase() === cand,
+        );
+        if (hit) return hit;
+      }
+      return undefined; // ✅ NO fallback to list[0]
+    };
+
+    const product = await this.productRepo
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.category', 'c')
+      .leftJoinAndSelect('c.translations', 'ct')
+      .leftJoinAndSelect('p.variants', 'v')
+      .leftJoinAndSelect('p.translations', 'pt')
+      .where('p.id = :productId', { productId })
+      .andWhere('p.isActive = true')
+      .andWhere('c.isActive = true')
+      .getOne();
+
+    if (!product) throw new NotFoundException('Product not found');
+
+    const c: any = product.category;
+
+    const catTr = pickTranslation(c?.translations);
+    const catName =
+      (catTr as any)?.name ?? c?.slug ?? c?.name ?? 'Uncategorized';
+
+    const prodTr = pickTranslation(product?.translations);
+    const prodName = (prodTr as any)?.name ?? '';
+    const prodDesc = (prodTr as any)?.description ?? '';
+
+    const item = {
+      id: product.id,
+      slug: product.slug,
+      image: product.image,
+      sortOrder: (product as any).sortOrder ?? 0,
+      name: prodName,
+      description: prodDesc,
+      variants: (product.variants ?? [])
+        .map((vv: any) => ({ id: vv.id, size: vv.size, price: vv.price }))
+        .sort((a: any, b: any) => (a.size ?? 0) - (b.size ?? 0)),
+    };
+
+    // “kao u grupnom response-u”, ali single item:
+    return {
+      category: {
+        id: c?.id ?? 'uncategorized',
+        slug: c?.slug ?? 'uncategorized',
+        name: catName,
+        sortOrder: c?.sortOrder ?? 0,
+      },
+      item,
+    };
+  }
 }
