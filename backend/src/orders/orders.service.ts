@@ -1,0 +1,255 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
+
+import { Order } from './order.entity';
+import { OrderItem } from './order-item.entity';
+import { OrderStatus } from './order-status.enum';
+import { OrderType } from './order-type.enum';
+
+import { CreateOrderDto } from './dto/create-order.dto';
+import { AcceptOrderDto } from './dto/accept-order.dto';
+import { RejectOrderDto } from './dto/reject-order.dto';
+
+import { ProductVariant } from '../products/product-variant.entity';
+import { Language } from '../common/enums/language.enum';
+import { User } from '../users/user.entity';
+
+@Injectable()
+export class OrdersService {
+  constructor(
+    private dataSource: DataSource,
+    @InjectRepository(Order) private orderRepo: Repository<Order>,
+    @InjectRepository(OrderItem) private itemRepo: Repository<OrderItem>,
+    @InjectRepository(ProductVariant)
+    private variantRepo: Repository<ProductVariant>,
+  ) {}
+
+  // ========= PUBLIC (GUEST) =========
+
+  async create(dto: CreateOrderDto, acceptLanguage?: string) {
+    if (dto.type === OrderType.DELIVERY) {
+      if (!dto.addressText?.trim()) {
+        throw new BadRequestException('Address is required for delivery.');
+      }
+    }
+
+    // normalize + merge duplicate variantIds
+    const merged = new Map<string, number>();
+    for (const it of dto.items ?? []) {
+      const id = String(it.variantId).trim();
+      if (!id) continue;
+      merged.set(id, (merged.get(id) ?? 0) + Number(it.quantity ?? 0));
+    }
+    const variantIds = Array.from(merged.keys());
+    if (!variantIds.length) {
+      throw new BadRequestException('Items are required.');
+    }
+
+    // učitaj varijante + product + translations (snapshot name)
+    const variants = await this.variantRepo.find({
+      where: { id: In(variantIds) },
+      relations: {
+        product: { translations: true },
+      } as any,
+    });
+
+    if (variants.length !== variantIds.length) {
+      const found = new Set(variants.map((v) => v.id));
+      const missing = variantIds.filter((id) => !found.has(id));
+      throw new BadRequestException(
+        `Invalid variant(s): ${missing.join(', ')}`,
+      );
+    }
+
+    // (optional) validacija da je product aktivan
+    for (const v of variants) {
+      if (!v.product?.isActive) {
+        throw new BadRequestException(`Product inactive for variant: ${v.id}`);
+      }
+    }
+
+    const lang = this.pickLanguage(acceptLanguage);
+
+    const items: OrderItem[] = [];
+    let total = 0;
+
+    for (const v of variants) {
+      const qty = merged.get(v.id) ?? 0;
+      if (qty <= 0) continue;
+
+      const productName = this.pickProductName(v.product?.translations, lang);
+
+      const unitPrice = Number(v.price);
+      const lineTotal = unitPrice * qty;
+
+      const oi = this.itemRepo.create({
+        productId: v.product.id,
+        variantId: v.id,
+        productName: productName ?? '',
+        variantSize: v.size ?? null,
+        unitPrice,
+        quantity: qty,
+        lineTotal,
+      });
+
+      items.push(oi);
+      total += lineTotal;
+    }
+
+    if (!items.length) throw new BadRequestException('Items are invalid.');
+
+    const publicCode = this.genPublicCode(8);
+    const accessToken = randomBytes(24).toString('hex'); // 48 chars
+
+    const order = this.orderRepo.create({
+      publicCode,
+      accessToken,
+      email: dto.email.trim(),
+      fullName: dto.fullName.trim(),
+      phone: dto.phone.trim(),
+      note: dto.note?.trim() ?? null,
+      type: dto.type,
+      addressText:
+        dto.type === OrderType.DELIVERY ? dto.addressText!.trim() : null,
+      status: OrderStatus.PENDING,
+      items,
+      total,
+    });
+
+    const saved = await this.orderRepo.save(order);
+
+    return {
+      publicCode: saved.publicCode,
+      token: saved.accessToken,
+      status: saved.status,
+      total: saved.total,
+    };
+  }
+
+  async getPublicStatus(publicCode: string, token: string) {
+    if (!token?.trim()) throw new BadRequestException('token is required');
+
+    const order = await this.orderRepo.findOne({
+      where: { publicCode, accessToken: token },
+      relations: { items: true },
+      order: { createdAt: 'DESC' as any } as any,
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    return {
+      publicCode: order.publicCode,
+      status: order.status,
+      etaMinutes: order.etaMinutes,
+      type: order.type,
+      addressText: order.addressText,
+      total: order.total,
+      items: (order.items ?? []).map((i) => ({
+        productName: i.productName,
+        variantSize: i.variantSize,
+        unitPrice: i.unitPrice,
+        quantity: i.quantity,
+        lineTotal: i.lineTotal,
+      })),
+      createdAt: order.createdAt,
+    };
+  }
+
+  // ========= ADMIN =========
+
+  async accept(orderId: string, dto: AcceptOrderDto, actor: User) {
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(Order);
+
+      const order = await repo.findOne({
+        where: { id: orderId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException('Order already handled');
+      }
+
+      order.status = OrderStatus.ACCEPTED;
+      order.etaMinutes = dto.etaMinutes;
+      order.handledBy = actor;
+      order.handledAt = new Date();
+
+      await repo.save(order);
+
+      // TODO: emit event (ws/sse) + send email (async job)
+      return order;
+    });
+  }
+
+  async reject(orderId: string, dto: RejectOrderDto, actor: User) {
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(Order);
+
+      const order = await repo.findOne({
+        where: { id: orderId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== OrderStatus.PENDING) {
+        throw new ConflictException('Order already handled');
+      }
+
+      order.status = OrderStatus.REJECTED;
+      order.etaMinutes = null;
+      order.handledBy = actor;
+      order.handledAt = new Date();
+
+      await repo.save(order);
+
+      // TODO: store reject reason somewhere (OrderStatusEvent) ako želiš audit
+      return order;
+    });
+  }
+
+  // ========= helpers =========
+
+  private genPublicCode(len = 8) {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // bez O/0/1/I
+    let out = '';
+    for (let i = 0; i < len; i++) {
+      out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+  }
+
+  private pickLanguage(acceptLanguage?: string): Language {
+    // tvoj enum je Language (sr-Latn, sr-Cyrl, en, ...).
+    // MVP: ako accept-language sadrži "sr" → sr-Latn, else en (ako postoji) ili sr-Latn.
+    const raw = (acceptLanguage ?? '').toLowerCase();
+    if (raw.includes('sr'))
+      return Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+    return (Language['EN' as any] ?? ('en' as any as Language)) as Language;
+  }
+
+  private pickProductName(
+    translations: any[] | undefined,
+    lang: Language,
+  ): string | null {
+    if (!translations?.length) return null;
+
+    const want = String(lang).toLowerCase();
+    const exact = translations.find(
+      (t) => String(t.language).toLowerCase() === want,
+    );
+    if (exact?.name) return exact.name;
+
+    // fallback: prvi koji ima name
+    const anyTr = translations.find((t) => t?.name);
+    return anyTr?.name ?? null;
+  }
+}

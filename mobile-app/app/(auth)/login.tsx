@@ -156,7 +156,7 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   style={[
                     styles.btn,
-                    { backgroundColor: btnBg },
+                    { backgroundColor: "#e67428" },
                     !canSubmit && disabledStyle,
                   ]}
                   onPress={onLogin}
@@ -164,9 +164,9 @@ export default function LoginScreen() {
                   activeOpacity={0.85}
                 >
                   {loading ? (
-                    <ActivityIndicator color={btnFg} />
+                    <ActivityIndicator color={fg} />
                   ) : (
-                    <Text style={[styles.btnText, { color: "#e67428" }]}>
+                    <Text style={[styles.btnText, { color: fg }]}>
                       Uloguj Se
                     </Text>
                   )}

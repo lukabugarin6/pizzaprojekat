@@ -1,44 +1,74 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+// ProductsScreen.tsx
+// ✅ FIXED: make create/update payloads consistent (no null sizes, strict price parsing)
+// ✅ FIXED: remove duplicate DTO shadowing + tighten typing
+// ✅ FIXED: safer category value handling (avoid null crashes in selects)
+// ✅ FIXED: create/edit variants mapping uses validated numeric conversions
+// ✅ Keeps: edit image keep/delete/replace via editImageRemoved + clear images on modal close
+
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   FlatList,
   TouchableOpacity,
   TextInput,
-  StyleSheet,
   Alert,
   Text,
   ScrollView,
   SafeAreaView,
   useColorScheme,
-  Modal,
-  Animated,
-  Easing,
-  Pressable,
   ActivityIndicator,
-  Image,
-  Platform,
 } from "react-native";
 import { Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import Toast from "react-native-toast-message";
 
+import { fetchCategories, type CategoryDto } from "../../api/categories";
 import {
   fetchProductsGrouped,
+  fetchProductDetails,
   createProduct,
   updateProduct,
+  deleteProduct,
   type Language,
   type ProductTranslation,
   type ProductVariant,
 } from "../../api/products";
 import { useAuth } from "../../context/authContext";
 
-const LANGS: Language[] = ["sr-Latn", "en", "ru"];
+// ✅ extracted components
+import { LangTabs } from "../../components/products/lang-tabs";
+import { ProductImageCard } from "../../components/products/product-image-card";
+import { TranslationEditor } from "../../components/products/translation-editor";
+import { VariantsEditor } from "../../components/products/variants-editor";
+import { ProductCard } from "../../components/products/product-card";
+import { CategorySelect } from "../../components/products/category-select";
+
+// ✅ styles extracted
+import { productsStyles as styles } from "../../styles/products.styles";
+import { GorhomSheetModal } from "../../components/products/bottom-sheet-modal";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const LANG_META: Record<Language, { label: string; flag: string }> = {
   "sr-Latn": { label: "SR", flag: "🇷🇸" },
   en: { label: "EN", flag: "🇬🇧" },
   ru: { label: "RU", flag: "🇷🇺" },
 };
+
+function getCategoryLabel(cat: CategoryDto, lang: Language): string {
+  const t = cat.translations ?? [];
+  const exact = t.find((x) => x.language === lang)?.name;
+  if (exact?.trim()) return exact;
+
+  const sr = t.find((x) => x.language === "sr-Latn")?.name;
+  if (sr?.trim()) return sr;
+
+  const any = t[0]?.name;
+  if (any?.trim()) return any;
+
+  return String(cat.slug || "Kategorija");
+}
 
 function normalizeTranslations(t?: ProductTranslation[]): ProductTranslation[] {
   const base: ProductTranslation[] = [
@@ -52,6 +82,7 @@ function normalizeTranslations(t?: ProductTranslation[]): ProductTranslation[] {
   const map: Record<string, ProductTranslation> = {};
   for (const x of t) {
     map[x.language] = {
+      ...(x as any), // keep id if present
       language: x.language,
       name: x.name ?? "",
       description: x.description ?? "",
@@ -64,7 +95,7 @@ function normalizeTranslations(t?: ProductTranslation[]): ProductTranslation[] {
 function normalizeVariants(v?: ProductVariant[]): ProductVariant[] {
   return Array.isArray(v) && v.length > 0
     ? v.map((x) => ({
-        // Treat "size" as quantity (količina)
+        ...(x as any), // keep id if present
         size:
           typeof x.size === "number" && !Number.isNaN(x.size)
             ? x.size
@@ -76,226 +107,24 @@ function normalizeVariants(v?: ProductVariant[]): ProductVariant[] {
     : [{ size: undefined, price: 0, sku: undefined } as any];
 }
 
-// DTO types for /products/grouped?lang=xx
-type ProductVariantDto = {
-  id: string;
-  size: number | null;
-  price: number;
-  sku?: string | null;
-};
-type ProductCardItemDto = {
-  id: string;
-  slug: string;
-  image?: string | null;
-  sortOrder?: number;
-
-  // translated by requested lang (ONLY ONE language coming from grouped)
-  name: string;
-  description: string;
-
-  variants: ProductVariantDto[];
-};
-type ProductsCategoryDto = {
-  id: string;
-  slug: string;
-  name: string;
-  sortOrder: number;
-  items: ProductCardItemDto[];
-};
-type ProductsGroupedResponseDto = { categories: ProductsCategoryDto[] };
-
-/**
- * ✅ Custom cross-platform select (no native Picker bugs)
- */
-function CategorySelect({
-  value,
-  options,
-  onChange,
-  fg,
-  bg,
-  border,
-  muted,
-}: {
-  value: string | null;
-  options: { id: string; label: string }[];
-  onChange: (id: string) => void;
-  fg: string;
-  bg: string;
-  border: string;
-  muted: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const current = options.find((o) => o.id === value);
-
-  return (
-    <>
-      <TouchableOpacity
-        onPress={() => setOpen(true)}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Izaberi kategoriju"
-        style={{
-          height: 40,
-          borderWidth: 1,
-          borderColor: border,
-          paddingHorizontal: 12,
-          alignItems: "center",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          minWidth: 170,
-          overflow: "hidden",
-        }}
-      >
-        <Text
-          numberOfLines={1}
-          style={{ color: fg, fontWeight: "800", maxWidth: 140 }}
-        >
-          {current?.label ?? "Kategorija"}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color={muted} />
-      </TouchableOpacity>
-
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-        statusBarTranslucent
-      >
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
-          onPress={() => setOpen(false)}
-        >
-          <Pressable
-            onPress={() => {}}
-            style={{
-              marginTop: Platform.OS === "ios" ? 90 : 80,
-              marginHorizontal: 16,
-              borderWidth: 1,
-              borderColor: border,
-              backgroundColor: bg,
-              padding: 10,
-              maxHeight: "60%",
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 8,
-              }}
-            >
-              <Text style={{ color: fg, fontWeight: "900" }}>
-                Izaberi kategoriju
-              </Text>
-              <TouchableOpacity
-                onPress={() => setOpen(false)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="close-outline" size={22} color={fg} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={options}
-              keyExtractor={(x) => x.id}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => {
-                const selected = item.id === value;
-                return (
-                  <TouchableOpacity
-                    onPress={() => {
-                      onChange(item.id);
-                      setOpen(false);
-                    }}
-                    activeOpacity={0.85}
-                    style={{
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: border,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: fg,
-                        fontWeight: selected ? "900" : "700",
-                        paddingRight: 10,
-                        flex: 1,
-                      }}
-                      numberOfLines={2}
-                    >
-                      {item.label}
-                    </Text>
-                    {selected && (
-                      <Ionicons name="checkmark" size={18} color={fg} />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </>
-  );
-}
-
-function LangTabs({
-  active,
-  onChange,
-  fg,
-  border,
-  muted,
-}: {
-  active: Language;
-  onChange: (l: Language) => void;
-  fg: string;
-  border: string;
-  muted: string;
-}) {
-  return (
-    <View style={[styles.langTabsRow, { borderColor: border }]}>
-      {LANGS.map((l) => {
-        const isActive = l === active;
-        return (
-          <TouchableOpacity
-            key={l}
-            onPress={() => onChange(l)}
-            activeOpacity={0.85}
-            style={[
-              styles.langTab,
-              isActive && { borderColor: border, borderBottomWidth: 2 },
-            ]}
-          >
-            <Text style={{ fontSize: 16 }}>{LANG_META[l].flag}</Text>
-            <Text
-              style={{
-                color: isActive ? fg : muted,
-                fontWeight: isActive ? "900" : "800",
-              }}
-            >
-              {LANG_META[l].label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+function showToast(
+  type: "success" | "error" | "info",
+  text1: string,
+  text2?: string,
+) {
+  Toast.show({
+    type,
+    text1,
+    text2,
+    position: "bottom",
+    visibilityTime: 2200,
+  });
 }
 
 async function pickImageFromLibrary(): Promise<string | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert("Dozvola", "Potrebna je dozvola za galeriju.");
+    showToast("error", "Dozvola", "Potrebna je dozvola za galeriju.");
     return null;
   }
 
@@ -313,7 +142,31 @@ async function pickImageFromLibrary(): Promise<string | null> {
 // local cache: we fill translations per product as user switches list language
 type TransCache = Record<string, Partial<Record<Language, ProductTranslation>>>;
 
+function parseSortOrder(input: string): number | null {
+  const s = String(input ?? "").trim();
+  if (!s) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return null;
+  return Math.trunc(n);
+}
+
+// ✅ Strict numeric helpers (avoid NaN payloads)
+function toNumberOrNull(value: any): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const s = String(value).trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function toNumberOrZero(value: any): number {
+  const n = toNumberOrNull(value);
+  return n === null ? 0 : n;
+}
+
 export default function ProductsScreen() {
+  const insets = useSafeAreaInsets();
+
   const { role } = useAuth();
   if (role !== "admin" && role !== "superuser") return <Redirect href="/" />;
 
@@ -330,6 +183,8 @@ export default function ProductsScreen() {
   const accentFg = "#fff";
   const danger = "#EB5757";
 
+  const placeholderImage = "https://via.placeholder.com/800x600?text=No+Image";
+
   const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(
     /\/$/,
     "",
@@ -342,7 +197,7 @@ export default function ProductsScreen() {
     return `${apiBase}${p}`;
   };
 
-  const [grouped, setGrouped] = useState<ProductsGroupedResponseDto>({
+  const [grouped, setGrouped] = useState<{ categories: any[] }>({
     categories: [],
   });
   const [loading, setLoading] = useState(false);
@@ -351,60 +206,53 @@ export default function ProductsScreen() {
     null,
   );
 
+  const [deleting, setDeleting] = useState(false);
+
   // ✅ list language switcher (drives /products/grouped?lang=xx)
   const [listLang, setListLang] = useState<Language>("sr-Latn");
 
   // ✅ translation cache, populated as user switches list language
   const [transCache, setTransCache] = useState<TransCache>({});
 
-  // CREATE
-  const [createOpen, setCreateOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
+  // ✅ categories for modals (fetched from /categories)
+  const [modalCategories, setModalCategories] = useState<CategoryDto[]>([]);
+  const [modalCatsLoading, setModalCatsLoading] = useState(false);
 
-  const [newSlug, setNewSlug] = useState("");
-  const [newImage, setNewImage] = useState<string | null>(null);
-
-  const [newTranslations, setNewTranslations] = useState<ProductTranslation[]>(
-    normalizeTranslations(undefined),
-  );
-  const [newVariants, setNewVariants] = useState<ProductVariant[]>(
-    normalizeVariants(undefined),
-  );
-  const [createLang, setCreateLang] = useState<Language>("sr-Latn");
-
-  // EDIT
-  const [editOpen, setEditOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [editSlug, setEditSlug] = useState("");
-  const [editImage, setEditImage] = useState<string | null>(null);
-
-  const [editTranslations, setEditTranslations] = useState<
-    ProductTranslation[]
-  >(normalizeTranslations(undefined));
-  const [editVariants, setEditVariants] = useState<ProductVariant[]>(
-    normalizeVariants(undefined),
-  );
-  const [editLang, setEditLang] = useState<Language>("sr-Latn");
+  async function loadModalCategories() {
+    setModalCatsLoading(true);
+    try {
+      const cats = await fetchCategories();
+      const sorted = [...(Array.isArray(cats) ? cats : [])].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+      );
+      setModalCategories(sorted);
+    } catch (e: any) {
+      showToast(
+        "error",
+        "Greška",
+        e?.message ?? "Neuspešno učitavanje kategorija.",
+      );
+    } finally {
+      setModalCatsLoading(false);
+    }
+  }
 
   async function load(lang: Language = listLang) {
     setLoading(true);
     try {
-      const data = (await fetchProductsGrouped(
-        lang,
-      )) as ProductsGroupedResponseDto | null;
+      const data = await fetchProductsGrouped(lang);
 
-      const cats = Array.isArray(data?.categories) ? data!.categories : [];
+      const cats = Array.isArray((data as any)?.categories)
+        ? (data as any).categories
+        : [];
       const sortedCats = [...cats].sort(
         (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
       );
 
       setGrouped({ categories: sortedCats });
 
-      // ✅ keep category selected if possible
       setSelectedCategoryId((prev) => {
-        if (prev && sortedCats.some((c) => c.id === prev)) return prev;
+        if (prev && sortedCats.some((c: any) => c.id === prev)) return prev;
         return sortedCats[0]?.id ?? null;
       });
 
@@ -426,7 +274,7 @@ export default function ProductsScreen() {
         return next;
       });
     } catch (e: any) {
-      Alert.alert("Greška", e?.message ?? "Neuspešno učitavanje.");
+      showToast("error", "Greška", e?.message ?? "Neuspešno učitavanje.");
     } finally {
       setLoading(false);
     }
@@ -435,104 +283,258 @@ export default function ProductsScreen() {
   useEffect(() => {
     load(listLang);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // when listLang changes => refetch grouped with that lang
-  useEffect(() => {
-    load(listLang);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listLang]);
+
+  // load modal categories early (so the select is ready)
+  useEffect(() => {
+    loadModalCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categories = grouped.categories ?? [];
 
   const selectedId = useMemo(() => {
     if (!categories.length) return null;
     const exists =
-      selectedCategoryId && categories.some((c) => c.id === selectedCategoryId);
+      selectedCategoryId &&
+      categories.some((c: any) => c.id === selectedCategoryId);
     return exists ? selectedCategoryId : categories[0].id;
   }, [categories, selectedCategoryId]);
 
   const selectedCategory = useMemo(() => {
     if (!categories.length) return null;
-    const byId = categories.find((c) => c.id === selectedId);
+    const byId = categories.find((c: any) => c.id === selectedId);
     return byId ?? categories[0] ?? null;
   }, [categories, selectedId]);
 
   const items = useMemo(() => {
     const list = selectedCategory?.items ?? [];
-    return [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    return [...list].sort(
+      (a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+    );
   }, [selectedCategory]);
 
+  // main screen category options (from grouped response)
   const categoryOptions = useMemo(
     () =>
-      categories.map((c) => ({
+      categories.map((c: any) => ({
         id: c.id,
         label: String(c.name || c.slug || "Kategorija"),
       })),
     [categories],
   );
 
-  // translations maps (CREATE/EDIT UI always shows sr/en/ru)
-  const createTranslationsByLang = useMemo(() => {
-    const map: Record<Language, ProductTranslation> = {
-      "sr-Latn": { language: "sr-Latn", name: "", description: "" },
-      en: { language: "en", name: "", description: "" },
-      ru: { language: "ru", name: "", description: "" },
-    };
-    for (const t of newTranslations) map[t.language] = t;
-    return map;
-  }, [newTranslations]);
+  // modal category options (from /categories) – use translations
+  const modalCategoryOptions = useMemo(() => {
+    return (modalCategories ?? []).map((c) => ({
+      id: c.id,
+      label: getCategoryLabel(c, listLang),
+    }));
+  }, [modalCategories, listLang]);
 
-  const editTranslationsByLang = useMemo(() => {
-    const map: Record<Language, ProductTranslation> = {
-      "sr-Latn": { language: "sr-Latn", name: "", description: "" },
-      en: { language: "en", name: "", description: "" },
-      ru: { language: "ru", name: "", description: "" },
-    };
-    for (const t of editTranslations) map[t.language] = t;
-    return map;
-  }, [editTranslations]);
+  // CREATE
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
-  // ✅ Validation (categoryId hidden, derived from selected category)
+  const [newCategoryId, setNewCategoryId] = useState<string | null>(null);
+  const [newSlug, setNewSlug] = useState("");
+  const [newImage, setNewImage] = useState<string | null>(null);
+  const [newSortOrder, setNewSortOrder] = useState<string>("");
+
+  const [newTranslations, setNewTranslations] = useState<ProductTranslation[]>(
+    normalizeTranslations(undefined),
+  );
+  const [newVariants, setNewVariants] = useState<ProductVariant[]>(
+    normalizeVariants(undefined),
+  );
+  const [createLang, setCreateLang] = useState<Language>("sr-Latn");
+
+  // EDIT
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
+  const [editSlug, setEditSlug] = useState("");
+  const [editImage, setEditImage] = useState<string | null>(null);
+  const [editImageRemoved, setEditImageRemoved] = useState(false);
+  const [editSortOrder, setEditSortOrder] = useState<string>("");
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
+
+  const [editTranslations, setEditTranslations] = useState<
+    ProductTranslation[]
+  >(normalizeTranslations(undefined));
+  const [editVariants, setEditVariants] = useState<ProductVariant[]>(
+    normalizeVariants(undefined),
+  );
+  const [editLang, setEditLang] = useState<Language>("sr-Latn");
+
+  const [editLoading, setEditLoading] = useState(false);
+
+  // ✅ keep modal default category in sync with main screen selection
+  useEffect(() => {
+    if (!createOpen) setNewCategoryId(selectedId ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  // ✅ when modals close, clear their image state
+  useEffect(() => {
+    if (!createOpen) {
+      setNewImage(null);
+    }
+  }, [createOpen]);
+
+  useEffect(() => {
+    if (!editOpen) {
+      setEditImage(null);
+      setEditImageRemoved(false);
+    }
+  }, [editOpen]);
+
+  function validateVariantsFilled(variants: any[], labelPrefix = "Varijanta") {
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return "Morate uneti makar jednu varijantu.";
+    }
+
+    for (let i = 0; i < variants.length; i++) {
+      const v = variants[i];
+
+      // size is optional but if present must be number
+      const rawSize = v?.size;
+      if (
+        rawSize !== null &&
+        rawSize !== undefined &&
+        String(rawSize).trim() !== ""
+      ) {
+        const size = toNumberOrNull(rawSize);
+        if (size === null)
+          return `${labelPrefix} #${i + 1}: Veličina mora biti broj ili prazno`;
+      }
+
+      const price = toNumberOrNull(v?.price);
+      if (price === null) return `${labelPrefix} #${i + 1}: Cena je obavezna`;
+      if (price <= 0)
+        return `${labelPrefix} #${i + 1}: Cena mora biti veća od 0`;
+    }
+
+    return null;
+  }
+
+  async function handleDeleteProduct() {
+    if (!editingId) return;
+
+    Alert.alert(
+      "Brisanje proizvoda",
+      "Da li ste sigurni? Ova akcija se ne može poništiti.",
+      [
+        { text: "Otkaži", style: "cancel" },
+        {
+          text: "Obriši",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteProduct(editingId);
+              await load(listLang);
+
+              setEditOpen(false);
+              setEditingId(null);
+              setEditImageRemoved(false);
+
+              showToast("success", "Obrisano", "Proizvod je obrisan.");
+            } catch (e: any) {
+              showToast(
+                "error",
+                "Brisanje nije uspelo",
+                e?.message ?? "Pokušajte ponovo.",
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   function validateCreate() {
-    if (!selectedCategory?.id) return "Nema izabrane kategorije";
+    const catId = newCategoryId ?? selectedId;
+    if (!catId) return "Nema izabrane kategorije";
     if (!newSlug.trim()) return "Slug je obavezan";
 
-    for (const t of newTranslations) {
-      if (!t.name.trim()) return `Naziv (${t.language}) je obavezan`;
-      if (!t.description.trim()) return `Opis (${t.language}) je obavezan`;
-    }
+    const so = parseSortOrder(newSortOrder);
+    if (newSortOrder.trim() && so === null) return "Sort order mora biti broj.";
 
-    for (let i = 0; i < newVariants.length; i++) {
-      const v = newVariants[i];
-      if (typeof v.price !== "number" || Number.isNaN(v.price))
-        return `Varijanta #${i + 1}: cena je obavezna`;
-    }
+    const variantsErr = validateVariantsFilled(newVariants);
+    if (variantsErr) return variantsErr;
 
     return null;
   }
 
   function validateEdit() {
-    if (!selectedCategory?.id) return "Nema izabrane kategorije";
+    const catId = editCategoryId ?? selectedId;
+    if (!catId) return "Nema izabrane kategorije";
     if (!editSlug.trim()) return "Slug je obavezan";
 
-    for (const t of editTranslations) {
-      if (!t.name.trim()) return `Naziv (${t.language}) je obavezan`;
-      if (!t.description.trim()) return `Opis (${t.language}) je obavezan`;
-    }
+    const so = parseSortOrder(editSortOrder);
+    if (editSortOrder.trim() && so === null)
+      return "Sort order mora biti broj.";
 
-    for (let i = 0; i < editVariants.length; i++) {
-      const v = editVariants[i];
-      if (typeof v.price !== "number" || Number.isNaN(v.price))
-        return `Varijanta #${i + 1}: cena je obavezna`;
-    }
+    const variantsErr = validateVariantsFilled(editVariants);
+    if (variantsErr) return variantsErr;
 
     return null;
   }
 
-  // -------------------------
-  // ✅ Create / Edit Image actions
-  // -------------------------
+  function buildTranslationsPayload(
+    arr: ProductTranslation[] | undefined,
+  ): ProductTranslation[] {
+    const normalized = normalizeTranslations(arr);
+    return normalized.map((t) => ({
+      ...(t as any),
+      language: t.language,
+      name: (t.name ?? "").toString(),
+      description: (t.description ?? "").toString(),
+    }));
+  }
+
+  function buildTranslationsPayloadForEdit(arr: any[] | undefined): any[] {
+    const normalized = normalizeTranslations(arr as any);
+    return normalized.map((t: any) => ({
+      id: t.id ?? undefined,
+      language: t.language,
+      name: (t.name ?? "").toString(),
+      description: (t.description ?? "").toString(),
+    }));
+  }
+
+  // ✅ IMPORTANT FIX: never send `size: null` if backend expects optional number
+  // - If empty -> omit (undefined)
+  // - If number -> send number
+  function buildVariantsPayload(arr: ProductVariant[], keepId: boolean) {
+    return (arr ?? []).map((v: any) => {
+      const rawSize = v?.size;
+      const sizeNum =
+        rawSize === null ||
+        rawSize === undefined ||
+        String(rawSize).trim() === ""
+          ? undefined
+          : (toNumberOrNull(rawSize) ?? undefined);
+
+      const priceNum = toNumberOrNull(v?.price) ?? 0;
+
+      const sku =
+        typeof v?.sku === "string" && v.sku.trim() ? v.sku.trim() : undefined;
+
+      return {
+        ...(keepId ? { id: v?.id ?? undefined } : {}),
+        ...(sizeNum !== undefined ? { size: sizeNum } : {}),
+        price: priceNum,
+        sku,
+      };
+    });
+  }
+
   async function pickCreateImage() {
     const uri = await pickImageFromLibrary();
     if (uri) setNewImage(uri);
@@ -540,127 +542,149 @@ export default function ProductsScreen() {
 
   async function pickEditImage() {
     const uri = await pickImageFromLibrary();
-    if (uri) setEditImage(uri);
+    if (uri) {
+      setEditImage(uri);
+      setEditImageRemoved(false);
+    }
   }
 
-  // -------------------------
-  // ✅ Create
-  // -------------------------
   async function handleCreate() {
     const err = validateCreate();
-    if (err) return Alert.alert("Validacija", err);
+    if (err) return showToast("error", "Validacija", err);
+
+    const catId = newCategoryId ?? selectedId;
+    if (!catId)
+      return showToast("error", "Validacija", "Nema izabrane kategorije.");
 
     setCreating(true);
     try {
+      const so = parseSortOrder(newSortOrder);
+
       await createProduct({
         slug: newSlug.trim(),
-        categoryId: selectedCategory!.id,
+        categoryId: catId,
         image: newImage ?? undefined,
-        translations: newTranslations.map((t) => ({
-          language: t.language,
-          name: t.name.trim(),
-          description: t.description.trim(),
-        })),
-        variants: newVariants.map((v) => ({
-          size:
-            typeof v.size === "number" && !Number.isNaN(v.size)
-              ? v.size
-              : undefined,
-          price: v.price,
-          sku: (v as any).sku?.trim() ? (v as any).sku.trim() : undefined,
-        })),
+        sortOrder: so ?? undefined,
+        isActive: true,
+        translations: buildTranslationsPayload(newTranslations),
+        variants: buildVariantsPayload(newVariants, false),
       } as any);
 
       await load(listLang);
 
       setNewSlug("");
       setNewImage(null);
+      setNewSortOrder("");
       setNewTranslations(normalizeTranslations(undefined));
       setNewVariants(normalizeVariants(undefined));
-      closeCreate();
+      setNewCategoryId(selectedId ?? null);
+      setCreateOpen(false);
+
+      showToast("success", "Kreirano", "Proizvod je kreiran.");
     } catch (e: any) {
-      Alert.alert("Kreiranje nije uspelo", e?.message ?? "Pokušajte ponovo.");
+      showToast(
+        "error",
+        "Kreiranje nije uspelo",
+        e?.message ?? "Pokušajte ponovo.",
+      );
     } finally {
       setCreating(false);
     }
   }
 
-  // -------------------------
-  // ✅ Edit (NO fetch-by-id)
-  // We populate translations from cache (built by switching list language)
-  // -------------------------
-  function openEdit(item: ProductCardItemDto) {
-    setEditingId(item.id);
-
-    setEditImage(item.image ?? null);
-    setEditSlug(item.slug ?? "");
-
-    // Build full sr/en/ru from cache + current item (current listLang always present)
-    const cached = transCache[item.id] ?? {};
-    const merged: ProductTranslation[] = normalizeTranslations([
-      cached["sr-Latn"] ?? { language: "sr-Latn", name: "", description: "" },
-      cached["en"] ?? { language: "en", name: "", description: "" },
-      cached["ru"] ?? { language: "ru", name: "", description: "" },
-      // ensure current lang definitely set from this item
-      {
-        language: listLang,
-        name: item.name ?? "",
-        description: item.description ?? "",
-      },
-    ]);
-
-    setEditTranslations(merged);
-
-    setEditVariants(
-      normalizeVariants(
-        (item.variants ?? []).map((v) => ({
-          size: v.size ?? undefined,
-          price: v.price ?? 0,
-          sku: v.sku ?? undefined,
-        })) as any,
-      ),
-    );
-
-    // default tab = current list language (feels natural)
-    setEditLang(listLang);
-
+  async function openEditById(productId: string) {
+    setEditingId(productId);
+    setEditLoading(true);
     setEditOpen(true);
-    editAnim.setValue(0);
-    Animated.timing(editAnim, {
-      toValue: 1,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+
+    if (!modalCategories.length && !modalCatsLoading) {
+      await loadModalCategories();
+    }
+
+    try {
+      const details: any = await fetchProductDetails(productId);
+
+      const catId = details?.category?.id ?? null;
+      if (catId && categories.some((c: any) => c.id === catId)) {
+        setSelectedCategoryId(catId);
+      }
+
+      setEditCategoryId(catId ?? selectedId ?? null);
+      setEditSlug(details?.slug ?? "");
+
+      setEditImageRemoved(false);
+      setEditImage(details?.image ?? null);
+
+      const so =
+        typeof details?.sortOrder === "number" &&
+        Number.isFinite(details.sortOrder)
+          ? String(details.sortOrder)
+          : "";
+      setEditSortOrder(so);
+
+      setEditIsActive(
+        typeof details?.isActive === "boolean" ? details.isActive : true,
+      );
+
+      const t: any[] = (details?.translations ?? []).map((x: any) => ({
+        id: x.id,
+        language: x.language,
+        name: x.name ?? "",
+        description: x.description ?? "",
+      }));
+      setEditTranslations(normalizeTranslations(t as any) as any);
+
+      const v: ProductVariant[] = (details?.variants ?? []).map((x: any) => ({
+        ...(x as any),
+        size: typeof x.size === "number" ? x.size : undefined,
+        price: typeof x.price === "number" ? x.price : 0,
+        sku: x.sku ?? undefined,
+      }));
+      setEditVariants(normalizeVariants(v));
+
+      setEditLang(listLang);
+    } catch (e: any) {
+      showToast(
+        "error",
+        "Greška",
+        e?.message ?? "Neuspešno učitavanje proizvoda.",
+      );
+      setEditOpen(false);
+      setEditingId(null);
+    } finally {
+      setEditLoading(false);
+    }
   }
 
   async function handleSaveEdit() {
     const err = validateEdit();
-    if (err) return Alert.alert("Validacija", err);
+    if (err) return showToast("error", "Validacija", err);
     if (!editingId) return;
+
+    const catId = editCategoryId ?? selectedId;
+    if (!catId)
+      return showToast("error", "Validacija", "Nema izabrane kategorije.");
 
     setSaving(true);
     try {
+      const so = parseSortOrder(editSortOrder);
+
+      // ✅ image rules:
+      // - removed -> null (delete)
+      // - set to local uri -> replace/upload
+      // - undefined / server path -> keep
+      const imageField = editImageRemoved ? null : (editImage ?? undefined);
+
       await updateProduct(editingId, {
         slug: editSlug.trim(),
-        categoryId: selectedCategory!.id,
-        image: editImage ?? null,
-        translations: editTranslations.map((t) => ({
-          language: t.language,
-          name: t.name.trim(),
-          description: t.description.trim(),
-        })),
-        variants: editVariants.map((v) => ({
-          size:
-            typeof v.size === "number" && !Number.isNaN(v.size)
-              ? v.size
-              : undefined,
-          price: v.price,
-          sku: (v as any).sku?.trim() ? (v as any).sku.trim() : undefined,
-        })),
+        categoryId: catId,
+        image: imageField as any,
+        sortOrder: so ?? undefined,
+        isActive: editIsActive ?? true,
+        translations: buildTranslationsPayloadForEdit(editTranslations as any),
+        variants: buildVariantsPayload(editVariants, true),
       } as any);
 
-      // also update cache immediately (so no need to switch languages to see it)
       setTransCache((prev) => {
         const next = { ...prev };
         const cur = next[editingId] ?? {};
@@ -676,122 +700,29 @@ export default function ProductsScreen() {
       });
 
       await load(listLang);
-      closeEdit();
-      Alert.alert("Sačuvano", "Proizvod je ažuriran.");
+      setEditOpen(false);
+      setEditingId(null);
+
+      showToast("success", "Sačuvano", "Proizvod je ažuriran.");
     } catch (e: any) {
-      Alert.alert("Ažuriranje nije uspelo", e?.message ?? "Pokušajte ponovo.");
+      showToast(
+        "error",
+        "Ažuriranje nije uspelo",
+        e?.message ?? "Pokušajte ponovo.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  // -------------------------
-  // ✅ Variant helpers
-  // -------------------------
-  function updateNewVariant(index: number, patch: Partial<ProductVariant>) {
-    setNewVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, ...patch } : v)),
-    );
-  }
-  function addNewVariant() {
-    setNewVariants((prev) => [...prev, { size: undefined, price: 0 } as any]);
-  }
-  function removeNewVariant(index: number) {
-    setNewVariants((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      return next.length ? next : ([{ size: undefined, price: 0 }] as any);
-    });
-  }
-
-  function updateEditVariant(index: number, patch: Partial<ProductVariant>) {
-    setEditVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, ...patch } : v)),
-    );
-  }
-  function addEditVariant() {
-    setEditVariants((prev) => [...prev, { size: undefined, price: 0 } as any]);
-  }
-  function removeEditVariant(index: number) {
-    setEditVariants((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      return next.length ? next : ([{ size: undefined, price: 0 }] as any);
-    });
-  }
-
-  // -------------------------
-  // ✅ Animated sheets
-  // -------------------------
-  const createAnim = useRef(new Animated.Value(0)).current;
-  const editAnim = useRef(new Animated.Value(0)).current;
-
-  const openCreate = () => {
-    setCreateOpen(true);
-    createAnim.setValue(0);
-    Animated.timing(createAnim, {
-      toValue: 1,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeCreate = () => {
-    Animated.timing(createAnim, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setCreateOpen(false);
-    });
-  };
-
-  const closeEdit = () => {
-    Animated.timing(editAnim, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        setEditOpen(false);
-        setEditingId(null);
-      }
-    });
-  };
-
-  const createBackdropOpacity = createAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.5],
-  });
-  const createSheetTranslateY = createAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
-  const createSheetOpacity = createAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-
-  const editBackdropOpacity = editAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.5],
-  });
-  const editSheetTranslateY = editAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
-  const editSheetOpacity = editAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-
   const disabledStyle = isDark ? { opacity: 0.65 } : { opacity: 0.45 };
+
+  // ✅ avoid passing null into CategorySelect if it can’t handle it
+  const safeSelectedId = selectedId ?? categoryOptions[0]?.id ?? null;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <View style={[styles.container, { backgroundColor: bg }]}>
-        {/* Title + lang switcher */}
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: fg }]}>Proizvodi</Text>
         </View>
@@ -807,9 +738,9 @@ export default function ProductsScreen() {
         </View>
 
         <View style={{ marginBottom: 12 }}>
-          {categoryOptions.length > 0 && (
+          {categoryOptions.length > 0 && safeSelectedId && (
             <CategorySelect
-              value={selectedId}
+              value={safeSelectedId}
               options={categoryOptions}
               onChange={(id) => setSelectedCategoryId(id)}
               fg={fg}
@@ -831,43 +762,18 @@ export default function ProductsScreen() {
               scrollEnabled={false}
               refreshing={loading}
               onRefresh={() => load(listLang)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={[styles.card, { borderColor: border }]}>
-                  <View style={styles.cardHeaderRow}>
-                    <Image
-                      source={{ uri: imageUrl(item.image) }}
-                      style={styles.thumb}
-                      resizeMode="cover"
-                    />
-
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.slug, { color: fg }]}
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.smallMuted, { color: muted }]}>
-                        {item?.description ?? ""}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => openEdit(item)}
-                      activeOpacity={0.85}
-                      accessibilityRole="button"
-                      accessibilityLabel="Izmeni proizvod"
-                      style={styles.iconBtnNoBorder}
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={22}
-                        color={accent}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              keyExtractor={(item: any) => item.id}
+              renderItem={({ item }: any) => (
+                <ProductCard
+                  name={item.name}
+                  description={item.description ?? ""}
+                  imageUri={imageUrl(item.image)}
+                  border={border}
+                  fg={fg}
+                  muted={muted}
+                  accent={accent}
+                  onEdit={() => openEditById(item.id)}
+                />
               )}
               ListEmptyComponent={
                 <View style={{ paddingTop: 18 }}>
@@ -882,7 +788,13 @@ export default function ProductsScreen() {
 
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: accent }]}
-          onPress={openCreate}
+          onPress={() => {
+            setNewCategoryId(safeSelectedId);
+            if (!modalCategories.length && !modalCatsLoading) {
+              loadModalCategories();
+            }
+            setCreateOpen(true);
+          }}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Kreiraj proizvod"
@@ -893,869 +805,416 @@ export default function ProductsScreen() {
         {/* ----------------------- */}
         {/* ✅ CREATE MODAL */}
         {/* ----------------------- */}
-        <Modal
+        <GorhomSheetModal
           visible={createOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={closeCreate}
-          statusBarTranslucent
-        >
-          <View style={StyleSheet.absoluteFill}>
-            <Pressable onPress={closeCreate} style={StyleSheet.absoluteFill}>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    backgroundColor: "rgba(0,0,0,1)",
-                    opacity: createBackdropOpacity,
-                  },
-                ]}
-              />
-            </Pressable>
+          onClose={() => {
+            setCreateOpen(false);
+            setNewImage(null);
+          }}
+          bg={bg}
+          border={border}
+          header={
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: fg }]}>
+                Kreiraj proizvod
+              </Text>
 
-            <Animated.View
-              style={[
-                styles.sheetWrap,
-                {
-                  transform: [{ translateY: createSheetTranslateY }],
-                  opacity: createSheetOpacity,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.modalCard,
-                  { backgroundColor: bg, borderTopColor: border },
-                ]}
+              <TouchableOpacity
+                onPress={() => {
+                  setCreateOpen(false);
+                  setNewImage(null);
+                }}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Zatvori"
+                style={styles.iconBtnNoBorder}
               >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: fg }]}>
-                    Kreiraj proizvod
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={closeCreate}
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel="Zatvori"
-                    style={styles.iconBtnNoBorder}
-                  >
-                    <Ionicons name="close-outline" size={26} color={fg} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  style={{ maxHeight: "78%" }}
-                  contentContainerStyle={{ paddingBottom: 14 }}
-                  keyboardShouldPersistTaps="handled"
+                <Ionicons name="close-outline" size={26} color={fg} />
+              </TouchableOpacity>
+            </View>
+          }
+          footer={
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: "transparent",
+                    borderColor: border,
+                    borderWidth: 1,
+                  },
+                  creating && disabledStyle,
+                ]}
+                onPress={() => {
+                  setCreateOpen(false);
+                  setNewImage(null);
+                }}
+                disabled={creating}
+                activeOpacity={0.85}
+              >
+                <View
+                  style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
                 >
-                  {/* Image card */}
-                  <View style={[styles.imageCard, { borderColor: border }]}>
-                    <Image
-                      source={
-                        newImage
-                          ? { uri: imageUrl(newImage) }
-                          : {
-                              uri: "https://via.placeholder.com/800x600?text=No+Image",
-                            }
-                      }
-                      style={styles.imageCardImg}
-                      resizeMode="cover"
-                    />
-
-                    <View style={styles.imageActions}>
-                      <TouchableOpacity
-                        onPress={pickCreateImage}
-                        style={[styles.imageIconBtn, { borderColor: border }]}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="image-outline" size={18} color={fg} />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => setNewImage(null)}
-                        style={[styles.imageIconBtn, { borderColor: border }]}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color={danger}
-                        />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.imageCardFooter}>
-                      <Text style={{ color: fg, fontWeight: "900" }}>
-                        Slika
-                      </Text>
-                      <Text style={{ color: muted, fontWeight: "700" }}>
-                        Izaberi / obriši po potrebi
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* slug below image */}
-                  <View style={[styles.inputWrap, { borderColor: border }]}>
-                    <TextInput
-                      style={[styles.input, { color: fg }]}
-                      placeholder="Slug"
-                      placeholderTextColor={placeholder}
-                      value={newSlug}
-                      onChangeText={setNewSlug}
-                      selectionColor={accent}
-                      returnKeyType="next"
-                    />
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: fg }]}>
-                      Prevod
-                    </Text>
-
-                    <LangTabs
-                      active={createLang}
-                      onChange={setCreateLang}
-                      fg={fg}
-                      border={border}
-                      muted={muted}
-                    />
-
-                    {(() => {
-                      const t = createTranslationsByLang[createLang];
-                      return (
-                        <View style={[styles.subCard, { borderColor: border }]}>
-                          <Text style={[styles.subTitle, { color: muted }]}>
-                            {LANG_META[createLang].flag} {createLang}
-                          </Text>
-
-                          <View
-                            style={[styles.inputWrap, { borderColor: border }]}
-                          >
-                            <TextInput
-                              style={[styles.input, { color: fg }]}
-                              placeholder="Naziv"
-                              placeholderTextColor={placeholder}
-                              value={t.name}
-                              onChangeText={(v) =>
-                                setNewTranslations((prev) => {
-                                  const list = normalizeTranslations(prev);
-                                  return list.map((x) =>
-                                    x.language === createLang
-                                      ? { ...x, name: v }
-                                      : x,
-                                  );
-                                })
-                              }
-                              selectionColor={accent}
-                            />
-                          </View>
-
-                          <View
-                            style={[styles.inputWrap, { borderColor: border }]}
-                          >
-                            <TextInput
-                              style={[
-                                styles.input,
-                                { color: fg, minHeight: 60 },
-                              ]}
-                              placeholder="Opis"
-                              placeholderTextColor={placeholder}
-                              multiline
-                              value={t.description}
-                              onChangeText={(v) =>
-                                setNewTranslations((prev) => {
-                                  const list = normalizeTranslations(prev);
-                                  return list.map((x) =>
-                                    x.language === createLang
-                                      ? { ...x, description: v }
-                                      : x,
-                                  );
-                                })
-                              }
-                              selectionColor={accent}
-                            />
-                          </View>
-                        </View>
-                      );
-                    })()}
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: fg }]}>
-                      Varijante
-                    </Text>
-
-                    {newVariants.map((v, idx) => (
-                      <View key={idx} style={styles.variantRow}>
-                        <View
-                          style={[styles.variantBlock, { borderColor: border }]}
-                        >
-                          <Text style={[styles.fieldLabel, { color: muted }]}>
-                            Količina
-                          </Text>
-                          <TextInput
-                            style={[styles.input, { color: fg }]}
-                            placeholder="npr. 250"
-                            placeholderTextColor={placeholder}
-                            value={
-                              typeof v.size === "number" ? String(v.size) : ""
-                            }
-                            onChangeText={(txt) =>
-                              updateNewVariant(idx, {
-                                size:
-                                  txt.trim() === "" ? undefined : Number(txt),
-                              })
-                            }
-                            keyboardType="numeric"
-                            selectionColor={accent}
-                          />
-                        </View>
-
-                        <View
-                          style={[styles.variantBlock, { borderColor: border }]}
-                        >
-                          <Text style={[styles.fieldLabel, { color: muted }]}>
-                            Cena
-                          </Text>
-                          <TextInput
-                            style={[styles.input, { color: fg }]}
-                            placeholder="npr. 1200"
-                            placeholderTextColor={placeholder}
-                            value={String(v.price ?? "")}
-                            onChangeText={(txt) =>
-                              updateNewVariant(idx, { price: Number(txt) })
-                            }
-                            keyboardType="numeric"
-                            selectionColor={accent}
-                          />
-                        </View>
-
-                        <TouchableOpacity
-                          style={styles.trashBtn}
-                          onPress={() => removeNewVariant(idx)}
-                          activeOpacity={0.85}
-                          accessibilityRole="button"
-                          accessibilityLabel="Ukloni varijantu"
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color={danger}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-
-                    <TouchableOpacity
-                      style={styles.btnSecondary}
-                      onPress={addNewVariant}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="add-outline" size={18} color={accent} />
-                      <Text style={{ color: accent, fontWeight: "800" }}>
-                        Dodaj varijantu
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.modalBtn,
-                      { backgroundColor: "transparent", borderColor: border },
-                    ]}
-                    onPress={closeCreate}
-                    disabled={creating}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.cancelText, { color: fg }]}>
-                      Otkaži
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.modalBtn,
-                      { backgroundColor: accent, borderColor: accent },
-                      creating && disabledStyle,
-                    ]}
-                    onPress={handleCreate}
-                    disabled={creating}
-                    activeOpacity={0.85}
-                  >
-                    {creating ? (
-                      <ActivityIndicator color={accentFg} />
-                    ) : (
-                      <Text style={[styles.saveText, { color: accentFg }]}>
-                        Kreiraj
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                  <Ionicons name="close-outline" size={18} color={fg} />
+                  <Text style={[styles.cancelText, { color: fg }]}>Otkaži</Text>
                 </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: accent,
+                    borderColor: accent,
+                    borderWidth: 1,
+                    // subtle depth
+                    elevation: 2,
+                    shadowOpacity: 0.12,
+                    shadowRadius: 6,
+                    shadowOffset: { width: 0, height: 2 },
+                  },
+                  creating && disabledStyle,
+                ]}
+                onPress={handleCreate}
+                disabled={creating}
+                activeOpacity={0.9}
+              >
+                {creating ? (
+                  <ActivityIndicator color={accentFg} />
+                ) : (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={accentFg}
+                    />
+                    <Text style={[styles.saveText, { color: accentFg }]}>
+                      Kreiraj
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          }
+        >
+          <View style={{ marginBottom: 12 }}>
+            {modalCatsLoading ? (
+              <View style={{ paddingVertical: 10 }}>
+                <ActivityIndicator color={fg} />
               </View>
-            </Animated.View>
+            ) : modalCategoryOptions.length > 0 ? (
+              (newCategoryId ?? safeSelectedId) && (
+                <CategorySelect
+                  value={newCategoryId ?? safeSelectedId}
+                  options={modalCategoryOptions}
+                  onChange={(id) => setNewCategoryId(id)}
+                  fg={fg}
+                  bg={bg}
+                  border={border}
+                  muted={muted}
+                />
+              )
+            ) : (
+              <Text style={{ color: muted, fontWeight: "700" }}>
+                Nema kategorija.
+              </Text>
+            )}
           </View>
-        </Modal>
+
+          <ProductImageCard
+            title="Slika"
+            subtitle=""
+            imageUri={newImage ? imageUrl(newImage) : null}
+            placeholderUri={placeholderImage}
+            border={border}
+            fg={fg}
+            muted={muted}
+            danger={danger}
+            onPick={pickCreateImage}
+            onClear={() => setNewImage(null)}
+          />
+
+          <View style={{ marginTop: 10 }}>
+            <Text style={[styles.fieldLabel, { color: muted }]}>Slug</Text>
+            <View style={[styles.inputWrap, { borderColor: border }]}>
+              <TextInput
+                style={[styles.input, { color: fg }]}
+                placeholder="npr. protein-bar"
+                placeholderTextColor={placeholder}
+                value={newSlug}
+                onChangeText={setNewSlug}
+                selectionColor={accent}
+                returnKeyType="next"
+              />
+            </View>
+          </View>
+
+          <View style={{ marginTop: 10 }}>
+            <Text style={[styles.fieldLabel, { color: muted }]}>
+              Sort order
+            </Text>
+            <View style={[styles.inputWrap, { borderColor: border }]}>
+              <TextInput
+                style={[styles.input, { color: fg }]}
+                placeholder="npr. 10"
+                placeholderTextColor={placeholder}
+                value={newSortOrder}
+                onChangeText={setNewSortOrder}
+                selectionColor={accent}
+                keyboardType="number-pad"
+                returnKeyType="next"
+              />
+            </View>
+          </View>
+
+          <TranslationEditor
+            activeLang={createLang}
+            onChangeLang={setCreateLang}
+            translations={newTranslations}
+            setTranslations={(fn) => setNewTranslations(fn)}
+            fg={fg}
+            muted={muted}
+            border={border}
+            placeholder={placeholder}
+            accent={accent}
+            hint={undefined}
+            langMeta={LANG_META}
+            normalizeTranslations={normalizeTranslations}
+          />
+
+          <VariantsEditor
+            variants={newVariants}
+            setVariants={(fn) => setNewVariants(fn)}
+            fg={fg}
+            muted={muted}
+            border={border}
+            placeholder={placeholder}
+            accent={accent}
+            danger={danger}
+            normalizeVariants={normalizeVariants}
+          />
+        </GorhomSheetModal>
 
         {/* ----------------------- */}
         {/* ✅ EDIT MODAL */}
         {/* ----------------------- */}
-        <Modal
+        <GorhomSheetModal
           visible={editOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={closeEdit}
-          statusBarTranslucent
-        >
-          <View style={StyleSheet.absoluteFill}>
-            <Pressable onPress={closeEdit} style={StyleSheet.absoluteFill}>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    backgroundColor: "rgba(0,0,0,1)",
-                    opacity: editBackdropOpacity,
-                  },
-                ]}
-              />
-            </Pressable>
+          onClose={() => {
+            setEditOpen(false);
+            setEditingId(null);
+            setEditImageRemoved(false);
+            setEditImage(null);
+          }}
+          bg={bg}
+          border={border}
+          header={
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: fg }]}>
+                Izmeni proizvod
+              </Text>
 
-            <Animated.View
-              style={[
-                styles.sheetWrap,
-                {
-                  transform: [{ translateY: editSheetTranslateY }],
-                  opacity: editSheetOpacity,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.modalCard,
-                  { backgroundColor: bg, borderTopColor: border },
-                ]}
+              <TouchableOpacity
+                onPress={() => {
+                  setEditOpen(false);
+                  setEditingId(null);
+                  setEditImageRemoved(false);
+                  setEditImage(null);
+                }}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Zatvori"
+                style={styles.iconBtnNoBorder}
               >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: fg }]}>
-                    Izmeni proizvod
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={closeEdit}
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel="Zatvori"
-                    style={styles.iconBtnNoBorder}
+                <Ionicons name="close-outline" size={26} color={fg} />
+              </TouchableOpacity>
+            </View>
+          }
+          footer={
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: "transparent", borderColor: danger },
+                  (saving || deleting) && disabledStyle,
+                ]}
+                onPress={handleDeleteProduct}
+                disabled={saving || deleting}
+                activeOpacity={0.85}
+              >
+                {deleting ? (
+                  <ActivityIndicator color={danger} />
+                ) : (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
                   >
-                    <Ionicons name="close-outline" size={26} color={fg} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  style={{ maxHeight: "78%" }}
-                  contentContainerStyle={{ paddingBottom: 14 }}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  <View style={[styles.imageCard, { borderColor: border }]}>
-                    <Image
-                      source={
-                        editImage
-                          ? { uri: imageUrl(editImage) }
-                          : {
-                              uri: "https://via.placeholder.com/800x600?text=No+Image",
-                            }
-                      }
-                      style={styles.imageCardImg}
-                      resizeMode="cover"
-                    />
-
-                    <View style={styles.imageActions}>
-                      <TouchableOpacity
-                        onPress={pickEditImage}
-                        style={[styles.imageIconBtn, { borderColor: border }]}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="create-outline" size={18} color={fg} />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => setEditImage(null)}
-                        style={[styles.imageIconBtn, { borderColor: border }]}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color={danger}
-                        />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.imageCardFooter}>
-                      <Text style={{ color: fg, fontWeight: "900" }}>
-                        Slika
-                      </Text>
-                      <Text style={{ color: muted, fontWeight: "700" }}>
-                        Promeni / obriši po potrebi
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.inputWrap, { borderColor: border }]}>
-                    <TextInput
-                      style={[styles.input, { color: fg }]}
-                      placeholder="Slug"
-                      placeholderTextColor={placeholder}
-                      value={editSlug}
-                      onChangeText={setEditSlug}
-                      selectionColor={accent}
-                      returnKeyType="next"
-                    />
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: fg }]}>
-                      Prevod
+                    <Ionicons name="trash-outline" size={18} color={danger} />
+                    <Text style={[styles.cancelText, { color: danger }]}>
+                      Obriši
                     </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-                    <LangTabs
-                      active={editLang}
-                      onChange={setEditLang}
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: accent, borderColor: accent },
+                  (saving || deleting) && disabledStyle,
+                ]}
+                onPress={handleSaveEdit}
+                disabled={saving || deleting}
+                activeOpacity={0.85}
+              >
+                {saving ? (
+                  <ActivityIndicator color={accentFg} />
+                ) : (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons name="save-outline" size={18} color={accentFg} />
+                    <Text style={[styles.saveText, { color: accentFg }]}>
+                      Sačuvaj
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          }
+        >
+          {editLoading ? (
+            <View style={{ paddingVertical: 18 }}>
+              <ActivityIndicator color={fg} />
+              <Text
+                style={{
+                  color: muted,
+                  textAlign: "center",
+                  marginTop: 10,
+                  fontWeight: "700",
+                }}
+              >
+                Učitavam proizvod…
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={{ marginBottom: 12 }}>
+                {modalCatsLoading ? (
+                  <View style={{ paddingVertical: 10 }}>
+                    <ActivityIndicator color={fg} />
+                  </View>
+                ) : modalCategoryOptions.length > 0 ? (
+                  (editCategoryId ?? safeSelectedId) && (
+                    <CategorySelect
+                      value={editCategoryId ?? safeSelectedId}
+                      options={modalCategoryOptions}
+                      onChange={(id) => setEditCategoryId(id)}
                       fg={fg}
+                      bg={bg}
                       border={border}
                       muted={muted}
                     />
-
-                    {/* tiny hint why some langs may be empty */}
-                    <Text
-                      style={{
-                        color: muted,
-                        fontWeight: "700",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Popunjava se iz keša dok menjaš jezik gore (SR/EN/RU). Ako
-                      nešto fali, samo upiši ručno.
-                    </Text>
-
-                    {(() => {
-                      const t = editTranslationsByLang[editLang];
-                      return (
-                        <View style={[styles.subCard, { borderColor: border }]}>
-                          <Text style={[styles.subTitle, { color: muted }]}>
-                            {LANG_META[editLang].flag} {editLang}
-                          </Text>
-
-                          <View
-                            style={[styles.inputWrap, { borderColor: border }]}
-                          >
-                            <TextInput
-                              style={[styles.input, { color: fg }]}
-                              placeholder="Naziv"
-                              placeholderTextColor={placeholder}
-                              value={t.name}
-                              onChangeText={(v) =>
-                                setEditTranslations((prev) => {
-                                  const list = normalizeTranslations(prev);
-                                  return list.map((x) =>
-                                    x.language === editLang
-                                      ? { ...x, name: v }
-                                      : x,
-                                  );
-                                })
-                              }
-                              selectionColor={accent}
-                            />
-                          </View>
-
-                          <View
-                            style={[styles.inputWrap, { borderColor: border }]}
-                          >
-                            <TextInput
-                              style={[
-                                styles.input,
-                                { color: fg, minHeight: 60 },
-                              ]}
-                              placeholder="Opis"
-                              placeholderTextColor={placeholder}
-                              multiline
-                              value={t.description}
-                              onChangeText={(v) =>
-                                setEditTranslations((prev) => {
-                                  const list = normalizeTranslations(prev);
-                                  return list.map((x) =>
-                                    x.language === editLang
-                                      ? { ...x, description: v }
-                                      : x,
-                                  );
-                                })
-                              }
-                              selectionColor={accent}
-                            />
-                          </View>
-                        </View>
-                      );
-                    })()}
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: fg }]}>
-                      Varijante
-                    </Text>
-
-                    {editVariants.map((v, idx) => (
-                      <View key={idx} style={styles.variantRow}>
-                        <View
-                          style={[styles.variantBlock, { borderColor: border }]}
-                        >
-                          <Text style={[styles.fieldLabel, { color: muted }]}>
-                            Količina
-                          </Text>
-                          <TextInput
-                            style={[styles.input, { color: fg }]}
-                            placeholder="npr. 250"
-                            placeholderTextColor={placeholder}
-                            value={
-                              typeof v.size === "number" ? String(v.size) : ""
-                            }
-                            onChangeText={(txt) =>
-                              updateEditVariant(idx, {
-                                size:
-                                  txt.trim() === "" ? undefined : Number(txt),
-                              })
-                            }
-                            keyboardType="numeric"
-                            selectionColor={accent}
-                          />
-                        </View>
-
-                        <View
-                          style={[styles.variantBlock, { borderColor: border }]}
-                        >
-                          <Text style={[styles.fieldLabel, { color: muted }]}>
-                            Cena
-                          </Text>
-                          <TextInput
-                            style={[styles.input, { color: fg }]}
-                            placeholder="npr. 1200"
-                            placeholderTextColor={placeholder}
-                            value={String(v.price ?? "")}
-                            onChangeText={(txt) =>
-                              updateEditVariant(idx, { price: Number(txt) })
-                            }
-                            keyboardType="numeric"
-                            selectionColor={accent}
-                          />
-                        </View>
-
-                        <TouchableOpacity
-                          style={styles.trashBtn}
-                          onPress={() => removeEditVariant(idx)}
-                          activeOpacity={0.85}
-                          accessibilityRole="button"
-                          accessibilityLabel="Ukloni varijantu"
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color={danger}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-
-                    <TouchableOpacity
-                      style={styles.btnSecondary}
-                      onPress={addEditVariant}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="add-outline" size={18} color={accent} />
-                      <Text style={{ color: accent, fontWeight: "800" }}>
-                        Dodaj varijantu
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
-
-                <TouchableOpacity
-                  style={[
-                    styles.fullBtn,
-                    { backgroundColor: accent, borderColor: accent },
-                    saving && disabledStyle,
-                  ]}
-                  onPress={handleSaveEdit}
-                  activeOpacity={0.85}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <ActivityIndicator color={accentFg} />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="save-outline"
-                        size={18}
-                        color={accentFg}
-                      />
-                      <Text style={{ color: accentFg, fontWeight: "800" }}>
-                        Sačuvaj
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                  )
+                ) : (
+                  <Text style={{ color: muted, fontWeight: "700" }}>
+                    Nema kategorija.
+                  </Text>
+                )}
               </View>
-            </Animated.View>
-          </View>
-        </Modal>
+
+              <ProductImageCard
+                title="Slika"
+                subtitle=""
+                imageUri={editImage ? imageUrl(editImage) : null}
+                placeholderUri={placeholderImage}
+                border={border}
+                fg={fg}
+                muted={muted}
+                danger={danger}
+                onPick={pickEditImage}
+                onClear={() => {
+                  setEditImage(null);
+                  setEditImageRemoved(true);
+                }}
+              />
+
+              <View style={{ marginTop: 10 }}>
+                <Text style={[styles.fieldLabel, { color: muted }]}>Slug</Text>
+                <View style={[styles.inputWrap, { borderColor: border }]}>
+                  <TextInput
+                    style={[styles.input, { color: fg }]}
+                    placeholder="Slug"
+                    placeholderTextColor={placeholder}
+                    value={editSlug}
+                    onChangeText={setEditSlug}
+                    selectionColor={accent}
+                    returnKeyType="next"
+                  />
+                </View>
+              </View>
+
+              <View style={{ marginTop: 10 }}>
+                <Text style={[styles.fieldLabel, { color: muted }]}>
+                  Sort order
+                </Text>
+                <View style={[styles.inputWrap, { borderColor: border }]}>
+                  <TextInput
+                    style={[styles.input, { color: fg }]}
+                    placeholder="Broj (sortOrder)"
+                    placeholderTextColor={placeholder}
+                    value={editSortOrder}
+                    onChangeText={setEditSortOrder}
+                    selectionColor={accent}
+                    keyboardType="number-pad"
+                    returnKeyType="next"
+                  />
+                </View>
+              </View>
+
+              <TranslationEditor
+                activeLang={editLang}
+                onChangeLang={setEditLang}
+                translations={editTranslations}
+                setTranslations={(fn) => setEditTranslations(fn)}
+                fg={fg}
+                muted={muted}
+                border={border}
+                placeholder={placeholder}
+                accent={accent}
+                // hint="Učitano sa servera (SR/EN/RU)."
+                langMeta={LANG_META}
+                normalizeTranslations={normalizeTranslations}
+              />
+
+              <VariantsEditor
+                variants={editVariants}
+                setVariants={(fn) => setEditVariants(fn)}
+                fg={fg}
+                muted={muted}
+                border={border}
+                placeholder={placeholder}
+                accent={accent}
+                danger={danger}
+                normalizeVariants={normalizeVariants}
+              />
+            </>
+          )}
+        </GorhomSheetModal>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, paddingTop: 60 },
-  container: { flex: 1, padding: 16, paddingTop: 24 },
-
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    gap: 10,
-  },
-  title: { fontSize: 24, fontWeight: "800", flex: 1 },
-
-  card: {
-    borderBottomWidth: 1,
-    borderRadius: 0,
-    padding: 12,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  thumb: {
-    width: 70,
-    height: 70,
-    borderRadius: 0,
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
-  slug: { fontSize: 15, fontWeight: "800" },
-  smallMuted: { fontSize: 12, fontWeight: "700" },
-
-  inputWrap: {
-    borderWidth: 1,
-    borderRadius: 0,
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  input: {
-    borderRadius: 0,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === "ios" ? 12 : 10,
-    fontSize: 16,
-  },
-
-  rowBetween: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-
-  section: { marginTop: 8, marginBottom: 8 },
-  sectionTitle: { fontWeight: "800", marginBottom: 6 },
-
-  // language tabs
-  langTabsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 10,
-  },
-  langTab: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 0,
-  },
-
-  subCard: {
-    borderWidth: 1,
-    borderRadius: 0,
-    padding: 10,
-    marginBottom: 10,
-  },
-  subTitle: { fontWeight: "800", marginBottom: 8 },
-
-  // variants with labels
-  variantRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    marginBottom: 8,
-  },
-  variantBlock: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 0,
-    overflow: "hidden",
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 2,
-  },
-
-  trashBtn: {
-    width: 40,
-    height: 46,
-    borderRadius: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  iconBtnNoBorder: {
-    width: 40,
-    height: 40,
-    borderRadius: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  btnSecondary: {
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-
-  fullBtn: {
-    marginTop: 10,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 0,
-    borderWidth: 1,
-    height: 46,
-    width: "100%",
-  },
-
-  fab: {
-    position: "absolute",
-    right: 18,
-    bottom: 18,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-  },
-
-  sheetWrap: { flex: 1, justifyContent: "flex-end" },
-  modalCard: {
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderTopWidth: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  modalTitle: { fontSize: 18, fontWeight: "800" },
-
-  modalActions: { flexDirection: "row", gap: 10, marginTop: 6 },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 0,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 46,
-  },
-  cancelText: { fontWeight: "800" },
-  saveText: { fontWeight: "800" },
-
-  // image row (preview + actions)
-  imageRow: {
-    borderWidth: 1,
-    borderRadius: 0,
-    padding: 10,
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  imagePreview: {
-    width: 140,
-    height: 90,
-    borderRadius: 0,
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
-  smallActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-  },
-  langPillRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  langPill: {
-    height: 40,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  // image card (create/edit modals)
-  imageCard: {
-    borderWidth: 1,
-    overflow: "hidden",
-    marginBottom: 10,
-  },
-  imageCardImg: {
-    width: "100%",
-    height: 170,
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
-  imageActions: {
-    position: "absolute",
-    right: 10,
-    top: 10,
-    flexDirection: "row",
-    gap: 10,
-  },
-  imageIconBtn: {
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
-  imageCardFooter: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-});

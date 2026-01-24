@@ -13,6 +13,9 @@ import { ProductTranslation } from './products/product-translation.entity';
 import { ProductVariant } from './products/product-variant.entity';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
+import { Order } from './orders/order.entity';
+import { OrderItem } from './orders/order-item.entity';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -34,6 +37,8 @@ import { CategoriesModule } from './categories/categories.module';
           Product,
           ProductTranslation,
           ProductVariant,
+          Order,
+          OrderItem,
         ],
         synchronize: false,
       }),
@@ -43,6 +48,7 @@ import { CategoriesModule } from './categories/categories.module';
     UsersModule,
     ProductsModule,
     CategoriesModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -54,7 +54,7 @@ export default function TabsLayout() {
         options={{
           title: "Porudžbine",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" color={color} size={size} />
+            <Ionicons name="receipt-outline" color={color} size={size} />
           ),
         }}
       />
@@ -63,7 +63,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="products"
         options={{
-          title: "Proizvodi",
+          title: "Artikli",
           href: isAdminOrSuperuser ? "/products" : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="pizza-outline" color={color} size={size} />
