@@ -26,6 +26,12 @@ export type HandledByDto = {
 export type AdminOrderDto = {
   id: string;
   publicCode: string;
+
+  // ✅ added customer fields (from Order entity)
+  email: string;
+  fullName: string;
+  phone: string;
+
   type: OrderType;
   addressText: string | null;
   note: string | null;

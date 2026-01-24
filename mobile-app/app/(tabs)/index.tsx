@@ -173,8 +173,8 @@ export default function HomeTab() {
 
   const emptyText = useMemo(() => {
     if (loading) return "";
-    if (tab === "all") return "Nema narudžbina.";
-    return `Nema narudžbina za status: ${statusLabel(tab)}.`;
+    if (tab === "all") return "Nema Porudžbina.";
+    return `Nema Porudžbina za status: ${statusLabel(tab)}.`;
   }, [loading, tab]);
 
   function openDetails(o: AdminOrderDto) {
@@ -230,7 +230,7 @@ export default function HomeTab() {
   }
 
   function confirmReject(o: AdminOrderDto) {
-    Alert.alert("Odbij narudžbinu", `Da li si siguran?\nKod: ${o.publicCode}`, [
+    Alert.alert("Odbij Porudžbinu", `Da li si siguran?\nKod: ${o.publicCode}`, [
       { text: "Otkaži", style: "cancel" },
       {
         text: "Odbij",
@@ -385,7 +385,7 @@ export default function HomeTab() {
     >
       <View style={[styles.container, { backgroundColor: bg }]}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: fg }]}>Narudžbine</Text>
+          <Text style={[styles.title, { color: fg }]}>Porudžbine</Text>
 
           <TouchableOpacity
             onPress={() => load(tab, "refresh")}
@@ -529,7 +529,7 @@ export default function HomeTab() {
                 ) : null}
 
                 <Text style={[styles.fieldLabel, { color: muted }]}>
-                  Narudžbina
+                  Porudžbina
                 </Text>
 
                 <View style={[styles.kvLine, { borderColor: border }]}>
@@ -592,24 +592,35 @@ export default function HomeTab() {
                   </View>
                 ) : null}
 
-                {detailsOrder.addressText ? (
+                {detailsOrder.fullName ? (
                   <View style={{ marginTop: 12 }}>
                     <Text style={[styles.fieldLabel, { color: muted }]}>
-                      Adresa
+                      Ime i prezime
                     </Text>
                     <Text style={{ color: fg, fontWeight: "700" }}>
-                      {detailsOrder.addressText}
+                      {detailsOrder.fullName}
                     </Text>
                   </View>
                 ) : null}
 
-                {detailsOrder.addressText ? (
+                {detailsOrder.phone ? (
                   <View style={{ marginTop: 12 }}>
                     <Text style={[styles.fieldLabel, { color: muted }]}>
-                      Adresa
+                      Telefon
                     </Text>
                     <Text style={{ color: fg, fontWeight: "700" }}>
-                      {detailsOrder.addressText}
+                      {detailsOrder.phone}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {detailsOrder.email ? (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={[styles.fieldLabel, { color: muted }]}>
+                      Email
+                    </Text>
+                    <Text style={{ color: fg, fontWeight: "700" }}>
+                      {detailsOrder.email}
                     </Text>
                   </View>
                 ) : null}
@@ -621,6 +632,17 @@ export default function HomeTab() {
                     </Text>
                     <Text style={{ color: fg, fontWeight: "700" }}>
                       {detailsOrder.note}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {detailsOrder.addressText ? (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={[styles.fieldLabel, { color: muted }]}>
+                      Adresa
+                    </Text>
+                    <Text style={{ color: fg, fontWeight: "700" }}>
+                      {detailsOrder.addressText}
                     </Text>
                   </View>
                 ) : null}
