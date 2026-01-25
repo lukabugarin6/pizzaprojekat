@@ -329,66 +329,36 @@ export async function createProduct(
   return (await res.json()) as Product;
 }
 
-export async function updateProduct(
-  id: string,
-  payload: UpdateProductPayload,
-): Promise<Product> {
-  const image = payload.image;
+export async function updateProduct(id: string, payload: UpdateProductPayload) {
+  const { fd, image } = toFormDataForProduct(payload);
 
-  const hasLocalImage =
-    typeof image === "string" && image.trim() && isLocalFileUri(image);
-
-  const wantsDelete = image === null;
-
-  // ✅ CASE A: upload/replace -> multipart (FormData + file)
-  if (hasLocalImage) {
-    const { fd } = toFormDataForProduct(payload);
+  if (typeof image === "string" && image.trim() && isLocalFileUri(image)) {
     appendImageIfNeeded(fd, image);
-    const res = await authedFetchForm(productsEndpoints.details(id), {
-      method: "PUT",
-      body: fd as any,
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Update failed: ${res.status}${txt ? `\n${txt}` : ""}`);
-    }
-
-    const ct = res.headers.get("content-type") ?? "";
-    if (!ct.includes("application/json")) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Update non-json: ${ct}${txt ? `\n${txt}` : ""}`);
-    }
-
-    return (await res.json()) as Product;
   }
 
-  // ✅ CASE B: delete image -> JSON with image:null
-  // ✅ CASE C: keep image -> JSON WITHOUT image field
-  const jsonPayload = wantsDelete
-    ? { ...payload, image: null }
-    : (() => {
-        const { image: _ignore, ...rest } = payload as any;
-        return rest;
-      })();
+  const url = productsEndpoints.details(id);
+  console.log("UPDATE ->", url);
+  console.log("FD data:", fd.getAll("data"));
+  console.log("FD parts:", (fd as any)._parts); // super useful in RN
 
-  const res = await authedFetchJson(productsEndpoints.details(id), {
-    method: "PUT",
-    body: JSON.stringify(stripUndefined(jsonPayload)),
-  });
+  try {
+    console.log("FETCH START");
+    const res = await authedFetchForm(url, { method: "PUT", body: fd as any });
+    console.log("FETCH DONE status=", res.status);
 
-  if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`Update failed: ${res.status}${txt ? `\n${txt}` : ""}`);
-  }
+    console.log("RESP TEXT:", txt.slice(0, 500));
 
-  const ct = res.headers.get("content-type") ?? "";
-  if (!ct.includes("application/json")) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Update non-json: ${ct}${txt ? `\n${txt}` : ""}`);
+    // if response is json, parse it
+    try {
+      return JSON.parse(txt);
+    } catch {
+      throw new Error(`Non-JSON response: ${txt}`);
+    }
+  } catch (e) {
+    console.log("FETCH THROW:", e);
+    throw e;
   }
-
-  return (await res.json()) as Product;
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
