@@ -6,11 +6,7 @@ import { io, Socket } from "socket.io-client";
 
 import { getTokens, refreshAccessToken } from "../api/auth";
 
-// NOTE:
-// fetchAdminOrders / acceptAdminOrder / rejectAdminOrder were imported but unused here.
-// Keeping this file focused: realtime + push plumbing.
-
-// --- Types (minimal) ---
+// --- Types ---
 export type NewOrderEvent = {
   id: string;
   publicCode: string;
@@ -54,10 +50,13 @@ function apiBaseNoSlash() {
   return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 }
 
-function toNewOrderEventFromAny(payload: any): NewOrderEvent | null {
+/**
+ * Normalize event from any source (socket payload OR push notification data).
+ * Requires BOTH id and publicCode (admin needs id for accept/reject).
+ */
+function normalizeNewOrderEvent(payload: any): NewOrderEvent | null {
   const id = String(payload?.id ?? payload?.orderId ?? "").trim();
   const publicCode = String(payload?.publicCode ?? payload?.code ?? "").trim();
-
   if (!id || !publicCode) return null;
 
   const total =
@@ -67,40 +66,66 @@ function toNewOrderEventFromAny(payload: any): NewOrderEvent | null {
         ? payload.amount
         : undefined;
 
+  const items = Array.isArray(payload?.items) ? payload.items : undefined;
+
   return {
     id,
     publicCode,
+
     type: payload?.type,
+    status: payload?.status,
     total,
     createdAt: payload?.createdAt,
+
+    fullName: payload?.fullName,
+    phone: payload?.phone,
+    email: payload?.email,
+    addressText: payload?.addressText ?? null,
+    note: payload?.note ?? null,
+
+    items,
   };
 }
 
-// ✅ Local notification (covers the “modal works but no push” scenario)
-// - If your backend also sends push, you'll still get server pushes too.
-// - You can disable this if you only want server pushes.
+// ✅ Local notification fallback
 async function scheduleLocalOrderNotification(ev: NewOrderEvent) {
   try {
     const bodyParts: string[] = [`Kod: ${ev.publicCode}`];
-    if (typeof ev.total === "number") bodyParts.push(`${ev.total} RSD`);
+    if (typeof ev.total === "number")
+      bodyParts.push(`${Math.round(ev.total)} RSD`);
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Nova porudžbina",
-        body: bodyParts.join(" • "),
+        body: bodyParts.join(" "),
+        sound: "default",
+
+        // ✅ important on Android (must match setNotificationChannelAsync)
+        ...(Platform.OS === "android" ? { channelId: "orders" as any } : {}),
+
+        // ✅ store FULL event in data so a tap/receive can re-open with details
         data: {
           orderId: ev.id,
+          id: ev.id,
           publicCode: ev.publicCode,
+
           type: ev.type,
+          status: ev.status,
           total: ev.total,
           createdAt: ev.createdAt,
+
+          fullName: ev.fullName,
+          phone: ev.phone,
+          email: ev.email,
+          addressText: ev.addressText,
+          note: ev.note,
+
+          items: ev.items ?? [],
         },
-        sound: "default",
       },
       trigger: null, // immediately
     });
   } catch (e) {
-    // don't crash realtime on notif errors
     console.log("[orders:local-notif] failed:", e);
   }
 }
@@ -130,7 +155,7 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPushAsync(): Promise<string | null> {
-  if (!Device.isDevice) return null; // simulators usually no push
+  if (!Device.isDevice) return null;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
@@ -142,10 +167,8 @@ export async function registerForPushAsync(): Promise<string | null> {
 
   if (status !== "granted") return null;
 
-  // ✅ When you use EAS builds, this is fine. (Expo Go behaves differently for push.)
   const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-  // ✅ Android channel must match "channelId" used in push payload
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("orders", {
       name: "Orders",
@@ -165,7 +188,6 @@ export async function registerForPushAsync(): Promise<string | null> {
 export async function connectOrdersSocket(opts?: {
   /**
    * If true, create a local notification on socket "orders:new" too.
-   * Useful when backend push isn't wired yet.
    * Default: true
    */
   localNotifyOnSocket?: boolean;
@@ -175,7 +197,6 @@ export async function connectOrdersSocket(opts?: {
   const base = apiBaseNoSlash();
   if (!base) throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
 
-  // prevent duplicates
   if (socket?.connected) return socket;
 
   const { accessToken } = await getTokens();
@@ -199,7 +220,6 @@ export async function connectOrdersSocket(opts?: {
   socket.on("connect_error", async (err: any) => {
     console.log("[orders socket] connect_error:", err?.message ?? err);
 
-    // If token expired, refresh once and update auth
     const msg = String(err?.message ?? "").toLowerCase();
     if (msg.includes("jwt") || msg.includes("token")) {
       const ok = await refreshAccessToken();
@@ -213,30 +233,20 @@ export async function connectOrdersSocket(opts?: {
     }
   });
 
-  socket.on("orders:new", (payload: any) => {
+  socket.on("orders:new", async (payload: any) => {
     console.log("[orders:new] raw payload:", payload);
 
-    const ev: NewOrderEvent = {
-      id: String(payload?.id ?? ""),
-      publicCode: String(payload?.publicCode ?? ""),
+    const ev = normalizeNewOrderEvent(payload);
 
-      type: payload?.type,
-      status: payload?.status,
-      total: typeof payload?.total === "number" ? payload.total : undefined,
-      createdAt: payload?.createdAt,
+    console.log("[orders:new] normalized:", ev);
 
-      fullName: payload?.fullName,
-      phone: payload?.phone,
-      email: payload?.email,
-      addressText: payload?.addressText ?? null,
-      note: payload?.note ?? null,
+    if (!ev) return;
 
-      items: Array.isArray(payload?.items) ? payload.items : [],
-    };
+    emitNewOrder(ev);
 
-    console.log("[orders:new] parsed event:", ev);
-
-    if (ev.id && ev.publicCode) emitNewOrder(ev);
+    if (localNotifyOnSocket) {
+      await scheduleLocalOrderNotification(ev);
+    }
   });
 
   return socket;
@@ -261,41 +271,44 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
     };
   }
 
+  const buildFromNotif = (data: any) => {
+    // data can contain either minimal or full fields; we try full first
+    const ev = normalizeNewOrderEvent({
+      id: data?.orderId ?? data?.id,
+      publicCode: data?.publicCode ?? data?.code,
+
+      type: data?.type,
+      status: data?.status,
+      total: data?.total,
+      createdAt: data?.createdAt,
+
+      fullName: data?.fullName,
+      phone: data?.phone,
+      email: data?.email,
+      addressText: data?.addressText,
+      note: data?.note,
+
+      items: data?.items,
+    });
+
+    return ev;
+  };
+
   pushSubReceived = Notifications.addNotificationReceivedListener((n) => {
-    // app is foreground
     console.log("[push received] content:", n.request.content);
     const data: any = n.request.content.data ?? {};
-
-    const ev =
-      toNewOrderEventFromAny({
-        id: data?.orderId ?? data?.id,
-        publicCode: data?.publicCode,
-        type: data?.type,
-        total: data?.total,
-        createdAt: data?.createdAt,
-      }) ?? null;
-
+    const ev = buildFromNotif(data);
     if (ev) onOpenOrder(ev);
   });
 
   pushSubResponse = Notifications.addNotificationResponseReceivedListener(
     (resp) => {
-      // user tapped notification
       console.log(
         "[push tap] notification:",
         resp.notification.request.content,
       );
       const data: any = resp.notification.request.content.data ?? {};
-
-      const ev =
-        toNewOrderEventFromAny({
-          id: data?.orderId ?? data?.id,
-          publicCode: data?.publicCode,
-          type: data?.type,
-          total: data?.total,
-          createdAt: data?.createdAt,
-        }) ?? null;
-
+      const ev = buildFromNotif(data);
       if (ev) onOpenOrder(ev);
     },
   );

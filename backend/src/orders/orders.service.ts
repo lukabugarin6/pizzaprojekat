@@ -107,7 +107,7 @@ export class OrdersService {
       }
     }
 
-    const lang = this.pickLanguage(acceptLanguage);
+    const lang = Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
 
     const items: OrderItem[] = [];
     let total = 0;

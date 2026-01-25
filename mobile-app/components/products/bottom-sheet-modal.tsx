@@ -21,7 +21,6 @@ type Props = {
 
   snapPoints?: (string | number)[];
 
-  // ✅ NEW
   nonClosable?: boolean; // default false
 };
 
@@ -39,6 +38,12 @@ export function GorhomSheetModal({
   const ref = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
 
+  // ✅ keep latest visible to avoid stale closures
+  const visibleRef = useRef<boolean>(visible);
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
+
   const points = useMemo<(string | number)[]>(
     () => snapPoints ?? ["100%"],
     [snapPoints],
@@ -54,7 +59,6 @@ export function GorhomSheetModal({
       {...props}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
-      // ✅ if nonClosable -> clicking backdrop does nothing
       pressBehavior={nonClosable ? "none" : "close"}
       opacity={0.5}
     />
@@ -76,15 +80,14 @@ export function GorhomSheetModal({
       snapPoints={points}
       topInset={insets.top}
       backdropComponent={renderBackdrop}
-      // ✅ if nonClosable -> cannot swipe down to close
       enablePanDownToClose={!nonClosable}
       onDismiss={() => {
-        // ✅ if nonClosable, ignore dismiss events
-        if (nonClosable) {
-          // present again in case something tried to dismiss it
+        // ✅ only "fight" dismiss if user tried to close while we still want it open
+        if (nonClosable && visibleRef.current) {
           ref.current?.present();
           return;
         }
+        // when parent says visible=false, allow dismiss + notify
         onClose();
       }}
       handleIndicatorStyle={{
