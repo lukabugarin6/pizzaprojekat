@@ -1,15 +1,9 @@
 // components/order-status-modal.tsx
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { HiMiniXMark } from 'react-icons/hi2';
-import {
-  connectOrderSocket,
-  type OrderUpdatePayload,
-} from '@/lib/orders-socket';
-
-// ⚠️ koristi svoje styles ako imaš; ovo je minimalna klasa struktura
 import styles from './order-status-modal.module.scss';
 
 type Props = {
@@ -20,12 +14,10 @@ type Props = {
   token: string;
   apiBase: string;
 
-  // ✅ optional initial state (for global provider + persistence)
   initialStatus?: 'pending' | 'accepted' | 'rejected';
   initialEta?: number | null;
   initialReason?: string | null;
 
-  // ✅ called when user dismisses accepted/rejected (so provider can clear storage)
   onDone?: () => void;
 };
 
@@ -41,7 +33,7 @@ export default function OrderStatusModal({
   onClose,
   publicCode,
   token,
-  apiBase,
+  apiBase, // unused now, but keeping prop so you don't have to refactor callers yet
   initialStatus = 'pending',
   initialEta = null,
   initialReason = null,
@@ -53,60 +45,16 @@ export default function OrderStatusModal({
   const [eta, setEta] = useState<number | null>(initialEta);
   const [reason, setReason] = useState<string | null>(initialReason);
 
-  // if you want to show “connected / retrying”
-  const [socketConnected, setSocketConnected] = useState(false);
-
-  // keep a stable room key
-  const key = useMemo(() => `${publicCode}:${token}`, [publicCode, token]);
-
+  // ✅ only sync UI state from props when modal opens / props change
   useEffect(() => {
     if (!open) return;
-
-    // reset to initial when modal opens (important for navigation/back)
     setStatus(initialStatus);
     setEta(initialEta ?? null);
     setReason(initialReason ?? null);
+  }, [open, initialStatus, initialEta, initialReason]);
 
-    // if already handled, no need to keep socket open
-    if (initialStatus !== 'pending') return;
-
-    const cleanup = connectOrderSocket({
-      apiBase,
-      publicCode,
-      token,
-      onUpdate: (p: OrderUpdatePayload) => {
-        // safety: ignore updates for other orders
-        if (p.publicCode !== publicCode) return;
-
-        setStatus(p.status);
-        setEta(p.etaMinutes ?? null);
-        setReason(p.reason ?? null);
-      },
-      // optional hooks (if you added them; safe to ignore if not supported)
-      onConnect: () => setSocketConnected(true),
-      onDisconnect: () => setSocketConnected(false),
-    } as any);
-
-    return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    open,
-    apiBase,
-    key,
-    publicCode,
-    token,
-    initialStatus,
-    initialEta,
-    initialReason,
-  ]);
-
-  // Close behavior:
-  // - pending: just close (keep tracking in provider)
-  // - accepted/rejected: close + call onDone (provider should clear)
   const handleClose = () => {
-    if (status !== 'pending') {
-      onDone?.();
-    }
+    if (status !== 'pending') onDone?.();
     onClose();
   };
 
@@ -119,15 +67,12 @@ export default function OrderStatusModal({
       aria-modal="true"
       aria-label="Order status"
       onMouseDown={(e) => {
-        // click outside closes (optional). keep it strict if you want:
         if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div className={styles.modal}>
-        {/* header */}
         <div className={styles.header}>
-          <div className={styles.headerLeft}></div>
-
+          <div className={styles.headerLeft} />
           <button
             type="button"
             className={styles.closeBtn}
@@ -138,7 +83,6 @@ export default function OrderStatusModal({
           </button>
         </div>
 
-        {/* body */}
         <div className={styles.body}>
           {status === 'pending' && (
             <div className={styles.section}>
@@ -152,9 +96,7 @@ export default function OrderStatusModal({
               <div className={styles.loadingRow}>
                 <div className={styles.spinner} />
                 <div className={styles.loadingMeta}>
-                  <div className={styles.loadingLabel}>
-                    {socketConnected ? 'Povezano' : 'Povezujem…'}
-                  </div>
+                  <div className={styles.loadingLabel}>Pratimo status…</div>
                   <div className={styles.loadingHint}>
                     Možeš zatvoriti ovaj prozor i nastaviti da pretražuješ —
                     status ostaje aktivan.
@@ -202,7 +144,6 @@ export default function OrderStatusModal({
           )}
         </div>
 
-        {/* footer */}
         <div className={styles.footer}>
           {status === 'pending' ? (
             <button
