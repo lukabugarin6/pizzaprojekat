@@ -126,12 +126,7 @@ export default function OrderStatusModal({
       <div className={styles.modal}>
         {/* header */}
         <div className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.kicker}>Porudžbina</div>
-            <div className={styles.code}>
-              Kod: <b>{publicCode}</b>
-            </div>
-          </div>
+          <div className={styles.headerLeft}></div>
 
           <button
             type="button"

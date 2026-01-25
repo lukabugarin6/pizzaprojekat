@@ -21,6 +21,9 @@ import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import { Dictionary } from '@/app/[lang]/dictionaries';
 import { DeliveryReason } from '@/context/cart/cart-provider';
 import { createOrderAction } from '@/app/actions/create-order';
+import { useOrderTracking } from '@/context/order/order-tracking-context';
+
+// ✅ tracking provider hook
 
 type SidebarCartPreviewProps = {
   isOpen: boolean;
@@ -36,7 +39,7 @@ type SavedCustomer = {
   phone: string;
   address: string;
   orderType: 'delivery' | 'pickup';
-  note?: string; // 👈 sada i napomena ide u profil
+  note?: string;
 };
 
 const STORAGE_KEY = 'pp_saved_customers';
@@ -56,20 +59,27 @@ export default function SidebarCartPreview({
     delivery,
   } = useCart();
 
+  // ✅ order tracking
+  const { startTracking } = useOrderTracking();
+
   const [mounted, setMounted] = useState(false);
 
   // form state
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [orderType, setOrderType] = useState<'delivery' | 'pickup'>('pickup'); // default pickup
+  const [orderType, setOrderType] = useState<'delivery' | 'pickup'>('pickup');
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
 
-  // sačuvani kupci (jedinstveni po emailu)
+  // saved customers (unique by email)
   const [savedCustomers, setSavedCustomers] = useState<SavedCustomer[]>([]);
 
-  // mount guard + učitavanje sačuvanih kupaca
+  // ✅ submit/loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // mount guard + load saved customers
   useEffect(() => {
     setMounted(true);
 
@@ -107,7 +117,7 @@ export default function SidebarCartPreview({
   useEffect(() => {
     if (orderType === 'delivery' && !delivery.allowed) {
       setOrderType('pickup');
-      setAddress(''); // opcionalno: očisti adresu kad nije dostava
+      setAddress('');
     }
   }, [orderType, delivery.allowed]);
 
@@ -129,14 +139,12 @@ export default function SidebarCartPreview({
     removeFromCart(item.variantId);
   };
 
-  // LAST-WINS update za kupca po email-u
+  // last-wins update for customer by email
   const saveCustomerToLocalStorage = (customer: SavedCustomer) => {
     if (typeof window === 'undefined') return;
 
     const emailKey = customer.email?.trim().toLowerCase();
-    if (!emailKey) {
-      return;
-    }
+    if (!emailKey) return;
 
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -144,14 +152,12 @@ export default function SidebarCartPreview({
 
       const uniqueByEmail = new Map<string, SavedCustomer>();
 
-      // 1) upiši sve postojeće
       for (const c of existing) {
         if (!c || !c.email) continue;
         const key = c.email.trim().toLowerCase();
         uniqueByEmail.set(key, c);
       }
 
-      // 2) upiši NOVOG kupca – pregazi starog za taj email
       uniqueByEmail.set(emailKey, customer);
 
       const uniqueList = Array.from(uniqueByEmail.values());
@@ -173,7 +179,6 @@ export default function SidebarCartPreview({
         : customer.orderType || 'pickup';
 
     setOrderType(nextOrderType);
-
     setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
   };
@@ -189,7 +194,10 @@ export default function SidebarCartPreview({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!items.length) return;
+    if (!items.length || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     const payload = {
       fullName: fullName.trim(),
@@ -204,12 +212,39 @@ export default function SidebarCartPreview({
       })),
     };
 
-    const res = await createOrderAction(payload);
+    try {
+      const res = await createOrderAction(payload);
 
-    // res: { publicCode, token, status, total }
-    // ovde možeš odmah da prikažeš “Order created” + link/QR
-    resetForm();
+      // expected: { publicCode, token, status, total }
+      if (!res?.publicCode || !res?.token) {
+        throw new Error('Order created but missing publicCode/token.');
+      }
+
+      // ✅ save customer profile (optional)
+      saveCustomerToLocalStorage({
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.addressText ?? '',
+        orderType,
+        note: payload.note ?? '',
+      });
+
+      // ✅ start global tracking + open modal
+      startTracking({ publicCode: res.publicCode, token: res.token });
+
+      resetForm();
+
+      // optional UX: close cart panel
+      onMouseLeave();
+    } catch (err: any) {
+      console.error('createOrderAction failed', err);
+      setSubmitError(err?.message ?? 'Failed to create order.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
   type DeliveryReasonKey = Exclude<DeliveryReason, null>;
 
   const deliveryReasonText = delivery.reason
@@ -246,14 +281,10 @@ export default function SidebarCartPreview({
                 {items.map((item: any) => {
                   const qty = item.quantity ?? 1;
                   const lineTotal = (item.price ?? 0) * qty;
-                  const imageSrc =
-                    item.image && item.image.trim() !== ''
-                      ? item.image
-                      : '/images/pp-logo.jpg';
 
                   return (
                     <div
-                      key={`${item.productId}-${item.size}`}
+                      key={`${item.productId}-${item.size}-${item.variantId}`}
                       className={styles['sidebar-cart__item']}
                     >
                       <div className={styles['sidebar-cart__item-main']}>
@@ -272,6 +303,7 @@ export default function SidebarCartPreview({
                           <div className={styles['sidebar-cart__item-name']}>
                             {item.name}
                           </div>
+
                           {item?.size && (
                             <div className={styles['sidebar-cart__item-meta']}>
                               <span
@@ -300,7 +332,7 @@ export default function SidebarCartPreview({
                             type="button"
                             className={styles['sidebar-cart__item-counter-btn']}
                             onClick={() => handleDecrease(item)}
-                            disabled={qty === 1}
+                            disabled={qty === 1 || isSubmitting}
                             aria-label={cartPageT.decreaseQty}
                           >
                             <svg
@@ -331,7 +363,7 @@ export default function SidebarCartPreview({
                             type="button"
                             className={styles['sidebar-cart__item-counter-btn']}
                             onClick={() => handleIncrease(item)}
-                            disabled={qty === 10}
+                            disabled={qty === 10 || isSubmitting}
                             aria-label={cartPageT.increaseQty}
                           >
                             <svg
@@ -360,6 +392,7 @@ export default function SidebarCartPreview({
                           className={styles['sidebar-cart__item-remove']}
                           onClick={() => handleRemove(item)}
                           aria-label={cartPageT.removeFromCart}
+                          disabled={isSubmitting}
                         >
                           <HiMiniXMark size={26} />
                         </button>
@@ -386,6 +419,7 @@ export default function SidebarCartPreview({
                   {totalPrice} RSD
                 </span>
               </div>
+
               {savedCustomers.length > 0 && (
                 <div className={styles['sidebar-cart__saved']}>
                   <div className={styles['sidebar-cart__saved-title']}>
@@ -401,17 +435,17 @@ export default function SidebarCartPreview({
                           type="button"
                           className={styles['sidebar-cart__saved-item']}
                           onClick={() => handleSelectSavedCustomer(c)}
+                          disabled={isSubmitting}
                         >
                           <span
                             className={styles['sidebar-cart__saved-line-main']}
                           >
                             {c.fullName || cartPageT.unknownUser}
-                            {c.phone || cartPageT.noPhone}
                           </span>
                           <span
                             className={styles['sidebar-cart__saved-line-sub']}
                           >
-                            {c.address && `${c.address} • `}
+                            {c.address ? `${c.address} • ` : ''}
                             {c.phone || cartPageT.noPhone}
                           </span>
                         </button>
@@ -425,7 +459,7 @@ export default function SidebarCartPreview({
                 className={styles['sidebar-cart__form']}
                 onSubmit={handleSubmit}
               >
-                {/* red 1: ime + telefon */}
+                {/* row 1: name + phone */}
                 <div
                   className={clsx(
                     styles['sidebar-cart__form-row'],
@@ -439,6 +473,7 @@ export default function SidebarCartPreview({
                     onChange={(e) => setFullName(e.target.value)}
                     required
                     leftIcon={<FiUser size={16} />}
+                    disabled={isSubmitting}
                   />
 
                   <SidebarCartFormField
@@ -448,10 +483,11 @@ export default function SidebarCartPreview({
                     onChange={(e) => setPhone(e.target.value)}
                     required
                     leftIcon={<FiPhone size={16} />}
+                    disabled={isSubmitting}
                   />
                 </div>
 
-                {/* red 2: email + napomena */}
+                {/* row 2: email + note */}
                 <div
                   className={clsx(
                     styles['sidebar-cart__form-row'],
@@ -464,6 +500,7 @@ export default function SidebarCartPreview({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     leftIcon={<FiMail size={16} />}
+                    disabled={isSubmitting}
                   />
 
                   <SidebarCartFormField
@@ -472,10 +509,11 @@ export default function SidebarCartPreview({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     leftIcon={<FiMessageSquare size={16} />}
+                    disabled={isSubmitting}
                   />
                 </div>
 
-                {/* red 3: radio dugmad */}
+                {/* row 3: radios */}
                 <div
                   className={clsx(
                     styles['sidebar-cart__form-row'],
@@ -496,7 +534,7 @@ export default function SidebarCartPreview({
                         value="delivery"
                         checked={orderType === 'delivery'}
                         onChange={() => setOrderType('delivery')}
-                        disabled={!delivery.allowed}
+                        disabled={!delivery.allowed || isSubmitting}
                         className={styles['sidebar-cart__form-radio-input']}
                       />
                       <span
@@ -516,6 +554,7 @@ export default function SidebarCartPreview({
                         value="pickup"
                         checked={orderType === 'pickup'}
                         onChange={() => setOrderType('pickup')}
+                        disabled={isSubmitting}
                         className={styles['sidebar-cart__form-radio-input']}
                       />
                       <span
@@ -529,7 +568,7 @@ export default function SidebarCartPreview({
                     </label>
                   </div>
 
-                  {/* poruka UVEK ispod, razmak 10px */}
+                  {/* message always under, spacing via css */}
                   <div
                     className={clsx(
                       styles['sidebar-cart__delivery-message'],
@@ -541,6 +580,7 @@ export default function SidebarCartPreview({
                   >
                     {delivery.allowed ? null : deliveryReasonText}
                   </div>
+
                   <div
                     className={styles['sidebar-cart__cash-message']}
                     role="note"
@@ -549,7 +589,7 @@ export default function SidebarCartPreview({
                   </div>
                 </div>
 
-                {/* red 4: adresa */}
+                {/* row 4: address */}
                 {orderType === 'delivery' && (
                   <div className={styles['sidebar-cart__form-row']}>
                     <SidebarCartFormField
@@ -559,16 +599,29 @@ export default function SidebarCartPreview({
                       leftIcon={<FiMapPin />}
                       onChange={(e) => setAddress(e.target.value)}
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                 )}
 
+                {/* ✅ submit error */}
+                {submitError ? (
+                  <div
+                    className={styles['sidebar-cart__submit-error']}
+                    role="alert"
+                  >
+                    {submitError}
+                  </div>
+                ) : null}
+
                 <button
                   type="submit"
                   className={styles['sidebar-cart__submit']}
-                  disabled={!hasItems}
+                  disabled={!hasItems || isSubmitting}
                 >
-                  {cartPageT.form.submit}
+                  {isSubmitting
+                    ? (isSubmitting ?? 'Sending…')
+                    : cartPageT.form.submit}
                   <HandPointerSvg />
                 </button>
 

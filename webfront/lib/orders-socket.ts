@@ -1,5 +1,5 @@
 // lib/orders-socket.ts
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
 export type OrderUpdatePayload = {
   publicCode: string;
@@ -13,24 +13,41 @@ export function connectOrderSocket(opts: {
   publicCode: string;
   token: string;
   onUpdate: (p: OrderUpdatePayload) => void;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
 }): () => void {
   const base = opts.apiBase.replace(/\/$/, '');
 
   const socket = io(`${base}/orders`, {
-    transports: ['websocket'],
+    // transports: ['websocket'], // <- ukloni
     auth: { publicCode: opts.publicCode, token: opts.token },
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 800,
+    timeout: 10000,
   });
 
-  const onUpdate = (p: any) => {
+  const handleUpdate = (p: any) => {
     if (!p?.publicCode) return;
     opts.onUpdate(p as OrderUpdatePayload);
   };
 
-  socket.on('order:update', onUpdate);
+  const handleConnect = () => opts.onConnect?.();
+  const handleDisconnect = () => opts.onDisconnect?.();
 
-  // ✅ return proper cleanup
+  socket.on('connect', handleConnect);
+  socket.on('disconnect', handleDisconnect);
+  socket.on('order:update', handleUpdate);
+
+  // helpful for debugging
+  socket.on('connect_error', (err) => {
+    console.error('[orders socket] connect_error', err?.message ?? err);
+  });
+
   return () => {
-    socket.off('order:update', onUpdate);
+    socket.off('connect', handleConnect);
+    socket.off('disconnect', handleDisconnect);
+    socket.off('order:update', handleUpdate);
     socket.disconnect();
   };
 }
