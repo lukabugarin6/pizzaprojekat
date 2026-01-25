@@ -123,6 +123,14 @@ export const productsEndpoints = {
   details: (id: string) => `/products/${id}`,
 };
 
+function stripUndefined(obj: any) {
+  const out: any = {};
+  for (const k of Object.keys(obj ?? {})) {
+    if (obj[k] !== undefined) out[k] = obj[k];
+  }
+  return out;
+}
+
 // ------------------------
 // Auth helpers
 // ------------------------
@@ -325,19 +333,48 @@ export async function updateProduct(
   id: string,
   payload: UpdateProductPayload,
 ): Promise<Product> {
-  const { fd, image } = toFormDataForProduct(payload);
+  const image = payload.image;
 
-  // ✅ update rules:
-  // - image is local string => upload/replace
-  // - image is null => delete (already included in JSON)
-  // - image is undefined or server path => keep (do not upload)
-  if (typeof image === "string" && image.trim() && isLocalFileUri(image)) {
+  const hasLocalImage =
+    typeof image === "string" && image.trim() && isLocalFileUri(image);
+
+  const wantsDelete = image === null;
+
+  // ✅ CASE A: upload/replace -> multipart (FormData + file)
+  if (hasLocalImage) {
+    const { fd } = toFormDataForProduct(payload);
     appendImageIfNeeded(fd, image);
+    const res = await authedFetchForm(productsEndpoints.details(id), {
+      method: "PUT",
+      body: fd as any,
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Update failed: ${res.status}${txt ? `\n${txt}` : ""}`);
+    }
+
+    const ct = res.headers.get("content-type") ?? "";
+    if (!ct.includes("application/json")) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Update non-json: ${ct}${txt ? `\n${txt}` : ""}`);
+    }
+
+    return (await res.json()) as Product;
   }
 
-  const res = await authedFetchForm(productsEndpoints.details(id), {
+  // ✅ CASE B: delete image -> JSON with image:null
+  // ✅ CASE C: keep image -> JSON WITHOUT image field
+  const jsonPayload = wantsDelete
+    ? { ...payload, image: null }
+    : (() => {
+        const { image: _ignore, ...rest } = payload as any;
+        return rest;
+      })();
+
+  const res = await authedFetchJson(productsEndpoints.details(id), {
     method: "PUT",
-    body: fd as any,
+    body: JSON.stringify(stripUndefined(jsonPayload)),
   });
 
   if (!res.ok) {

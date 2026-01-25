@@ -17,8 +17,5 @@ export async function apiFetch(
 ): Promise<Response> {
   const url = absUrl(path);
 
-  console.log({
-    url,
-  });
   return fetch(url, init);
 }

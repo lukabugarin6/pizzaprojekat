@@ -81,10 +81,6 @@ export class ProductsController {
   ) {
     if (!data) throw new BadRequestException('Data is required');
 
-    console.log('content-type:', (req as any).headers['content-type']);
-    console.log('uploaded file:', image);
-    console.log('body data:', data);
-
     const dto: CreateProductDto = JSON.parse(data);
     const imageUrl = image ? `/uploads/images/${image.filename}` : null;
 
@@ -137,8 +133,13 @@ export class ProductsController {
         ? null
         : undefined;
 
-    const dto: UpdateProductDto = updateData;
-    return this.productsService.update(id, dto, imageUrl);
+    try {
+      const dto: UpdateProductDto = updateData;
+      return await this.productsService.update(id, dto, imageUrl);
+    } catch (e) {
+      console.error('UPDATE ERROR:', e);
+      throw e;
+    }
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

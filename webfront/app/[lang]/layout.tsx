@@ -89,13 +89,16 @@ export default async function RootLayout({
         data-preloader="true"
         className={`${ptSans.variable} ${robotoCondensed.variable} ${planet.variable} antialiased`}
       >
-        <OrderTrackingProvider apiBase="https://api.pizzaprojekat.com">
-          <ThemeProvider>
-            {/* prosleđujemo samo deo za navbar */}
-            {/* <Navbar t={dict.navbar} lang={lang} /> */}
-            {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
+        <CartProvider deliveryDict={dict.cart.delivery}>
+          <OrderTrackingProvider
+            apiBase="https://api.pizzaprojekat.com"
+            t={dict.orderStatusModal}
+          >
+            <ThemeProvider>
+              {/* prosleđujemo samo deo za navbar */}
+              {/* <Navbar t={dict.navbar} lang={lang} /> */}
+              {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
 
-            <CartProvider deliveryDict={dict.cart.delivery}>
               <div
                 style={{
                   minHeight: '100vh',
@@ -113,9 +116,9 @@ export default async function RootLayout({
                 <Footer t={dict.footer} />
                 <Preloader />
               </div>
-            </CartProvider>
-          </ThemeProvider>
-        </OrderTrackingProvider>
+            </ThemeProvider>
+          </OrderTrackingProvider>
+        </CartProvider>
       </body>
     </html>
   );

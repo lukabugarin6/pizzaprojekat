@@ -149,7 +149,12 @@ export class ProductsService {
         return this.variantRepo.create({ ...vr, product });
       });
 
-      product.variants = await this.variantRepo.save(next);
+      try {
+        product.variants = await this.variantRepo.save(next);
+      } catch (e) {
+        console.error('VARIANTS SAVE ERROR:', next, e);
+        throw e;
+      }
     }
 
     return this.productRepo.save(product);

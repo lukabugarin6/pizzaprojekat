@@ -184,5 +184,35 @@
     "addedToCart": "Added to cart successfully!",
     "increaseQtyAria": "Increase quantity",
     "decreaseQtyAria": "Decrease quantity"
+  },
+  "orderStatusModal": {
+    "ariaLabel": "Order status",
+    "closeAria": "Close",
+
+    "pending": {
+      "title": "Waiting for confirmation…",
+      "text": "The restaurant needs to accept or reject your order. This usually takes a moment.",
+      "trackingLabel": "Tracking status…",
+      "trackingHint": "You can close this window and keep browsing — tracking will stay active."
+    },
+
+    "accepted": {
+      "title": "Order accepted",
+      "thanks": "Thanks for your trust! We’re preparing your order.",
+      "etaLabel": "Estimated time",
+      "etaUnknown": "—",
+      "minSuffix": "min"
+    },
+
+    "rejected": {
+      "title": "Order rejected",
+      "reasonLabel": "Reason",
+      "noReason": "No reason provided. Please try again or choose pickup."
+    },
+
+    "buttons": {
+      "close": "Close",
+      "ok": "OK"
+    }
   }
 }

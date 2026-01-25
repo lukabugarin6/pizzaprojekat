@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CartContext } from './cart-context';
 import { CartItem } from '@/types/cart';
 import { CartDeliveryDict } from '@/app/[lang]/dictionaries';
@@ -81,6 +81,7 @@ export function CartProvider({
       return [];
     }
   });
+
   const [hydrated, setHydrated] = useState(false);
 
   // ✅ load once
@@ -104,7 +105,8 @@ export function CartProvider({
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addToCart = (item: CartItem) => {
+  // ✅ STABILNE akcije (useCallback) -> nema promene reference svaki render
+  const addToCart = useCallback((item: CartItem) => {
     setItems((prev) => {
       const existing = prev.find((p) => p.variantId === item.variantId);
       if (existing) {
@@ -116,44 +118,64 @@ export function CartProvider({
       }
       return [...prev, { ...item, quantity: Math.min(item.quantity, 10) }];
     });
-  };
+  }, []);
 
-  const removeFromCart = (variantId: string) => {
+  const removeFromCart = useCallback((variantId: string) => {
     setItems((prev) => prev.filter((p) => p.variantId !== variantId));
-  };
+  }, []);
 
-  const updateItemQuantity = (variantId: string, quantity: number) => {
-    setItems((prev) =>
-      prev
-        .map((p) =>
-          p.variantId === variantId
-            ? { ...p, quantity: Math.min(Math.max(quantity, 1), 10) }
-            : p,
-        )
-        .filter((p) => p.quantity > 0),
-    );
-  };
+  const updateItemQuantity = useCallback(
+    (variantId: string, quantity: number) => {
+      setItems((prev) =>
+        prev
+          .map((p) =>
+            p.variantId === variantId
+              ? { ...p, quantity: Math.min(Math.max(quantity, 1), 10) }
+              : p,
+          )
+          .filter((p) => p.quantity > 0),
+      );
+    },
+    [],
+  );
 
-  const clearCart = () => setItems([]);
+  const clearCart = useCallback(() => {
+    setItems([]);
+  }, []);
 
-  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-  const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totalItems = useMemo(
+    () => items.reduce((s, i) => s + i.quantity, 0),
+    [items],
+  );
+  const totalPrice = useMemo(
+    () => items.reduce((s, i) => s + i.price * i.quantity, 0),
+    [items],
+  );
   const delivery = useMemo(() => getDeliveryEligibility(items), [items]);
 
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        clearCart,
-        totalItems,
-        totalPrice,
-        updateItemQuantity,
-        delivery,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+  // ✅ memoized value da kontekst ne pravi nove reference bespotrebno
+  const value = useMemo(
+    () => ({
+      items,
+      addToCart,
+      removeFromCart,
+      clearCart,
+      totalItems,
+      totalPrice,
+      updateItemQuantity,
+      delivery,
+    }),
+    [
+      items,
+      addToCart,
+      removeFromCart,
+      clearCart,
+      totalItems,
+      totalPrice,
+      updateItemQuantity,
+      delivery,
+    ],
   );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

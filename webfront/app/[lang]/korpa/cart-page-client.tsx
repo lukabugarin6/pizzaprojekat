@@ -21,6 +21,9 @@ import clsx from 'clsx';
 import { DeliveryReason } from '@/context/cart/cart-provider';
 import { Dictionary } from '../dictionaries';
 
+import { createOrderAction } from '@/app/actions/create-order';
+import { useOrderTracking } from '@/context/order/order-tracking-context';
+
 type Props = {
   title: string;
   subtitle?: string;
@@ -94,6 +97,10 @@ export default function CartPageClient({
     delivery,
   } = useCart();
 
+  const { startTracking } = useOrderTracking();
+
+  const [mounted, setMounted] = useState(false);
+
   const hasItems = items.length > 0;
 
   // form state
@@ -104,9 +111,20 @@ export default function CartPageClient({
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
 
+  const isDelivery = orderType === 'delivery';
+
   const [savedCustomers, setSavedCustomers] = useState<SavedCustomer[]>([]);
 
+  // ✅ submit/loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // ✅ mount guard + load saved customers
   useEffect(() => {
+    setMounted(true);
+
+    if (typeof window === 'undefined') return;
+
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
@@ -126,7 +144,7 @@ export default function CartPageClient({
     }
   }, []);
 
-  // ✅ ako user prebaci na dostavu, a dostava nije dozvoljena – vrati na pickup
+  // ✅ if user selects delivery but delivery is not allowed -> force pickup
   useEffect(() => {
     if (orderType === 'delivery' && !delivery.allowed) {
       setOrderType('pickup');
@@ -144,8 +162,9 @@ export default function CartPageClient({
     return formatCount(t[key], totalItems);
   }, [t, totalItems]);
 
-  // ✅ CART LOGIKA (kao sidebar / random order): radimo po variantId
+  // ✅ cart operations (variantId)
   const handleIncrease = (item: any) => {
+    if (isSubmitting) return;
     const current = item.quantity ?? 1;
     const next = Math.min(current + 1, 10);
     if (!item?.variantId) return;
@@ -153,6 +172,7 @@ export default function CartPageClient({
   };
 
   const handleDecrease = (item: any) => {
+    if (isSubmitting) return;
     const current = item.quantity ?? 1;
     const next = Math.max(current - 1, 1);
     if (!item?.variantId) return;
@@ -160,11 +180,15 @@ export default function CartPageClient({
   };
 
   const handleRemove = (item: any) => {
+    if (isSubmitting) return;
     if (!item?.variantId) return;
     removeFromCart(item.variantId);
   };
 
+  // last-wins update for customer by email
   const saveCustomerToLocalStorage = (customer: SavedCustomer) => {
+    if (typeof window === 'undefined') return;
+
     const emailKey = customer.email?.trim().toLowerCase();
     if (!emailKey) return;
 
@@ -201,6 +225,8 @@ export default function CartPageClient({
     setOrderType(nextOrderType);
     setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
+
+    setSubmitError(null);
   };
 
   const resetForm = () => {
@@ -212,41 +238,65 @@ export default function CartPageClient({
     setNote('');
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!items.length) return;
+    if (!items.length || isSubmitting) return;
+
+    // ✅ native HTML validation gate (shows browser tooltip messages)
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
 
     if (orderType === 'delivery' && !delivery.allowed) return;
 
-    const trimmedFullName = fullName.trim();
-    const trimmedEmail = email.trim();
-    const trimmedPhone = phone.trim();
-    const trimmedAddress = address.trim();
-    const trimmedNote = note.trim();
+    setSubmitError(null);
+    setIsSubmitting(true);
 
-    if (trimmedEmail) {
-      saveCustomerToLocalStorage({
-        fullName: trimmedFullName,
-        email: trimmedEmail,
-        phone: trimmedPhone,
-        address: trimmedAddress,
-        orderType,
-        note: trimmedNote,
-      });
+    const payload = {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      note: note.trim(),
+      type: orderType,
+      addressText: orderType === 'delivery' ? address.trim() : null,
+      items: items.map((x: any) => ({
+        variantId: x.variantId,
+        quantity: x.quantity ?? 1,
+      })),
+    };
+
+    try {
+      const res = await createOrderAction(payload);
+
+      // expected: { publicCode, token, status, total }
+      if (!res?.publicCode || !res?.token) {
+        throw new Error('Order created but missing publicCode/token.');
+      }
+
+      // ✅ save customer profile (only if email exists)
+      if (payload.email) {
+        saveCustomerToLocalStorage({
+          fullName: payload.fullName,
+          email: payload.email,
+          phone: payload.phone,
+          address: payload.addressText ?? '',
+          orderType,
+          note: payload.note ?? '',
+        });
+      }
+
+      // ✅ start global tracking + open modal
+      startTracking({ publicCode: res.publicCode, token: res.token });
+
+      resetForm();
+    } catch (err: any) {
+      console.error('createOrderAction failed', err);
+      setSubmitError(err?.message ?? 'Failed to create order.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    console.log('ORDER PAYLOAD', {
-      fullName: trimmedFullName,
-      email: trimmedEmail,
-      phone: trimmedPhone,
-      orderType,
-      address: orderType === 'delivery' ? trimmedAddress : '',
-      note: trimmedNote,
-      items,
-      totalPrice,
-    });
-
-    resetForm();
   };
 
   type DeliveryReasonKey = Exclude<DeliveryReason, null>;
@@ -254,6 +304,8 @@ export default function CartPageClient({
   const deliveryReasonText = delivery.reason
     ? deliveryT[delivery.reason as keyof typeof deliveryT]
     : t.form.deliveryNotOkFallback;
+
+  if (!mounted) return null;
 
   return (
     <div className={styles['cart-page']}>
@@ -362,7 +414,7 @@ export default function CartPageClient({
                               type="button"
                               className={styles['cart-page__item-counter-btn']}
                               onClick={() => handleDecrease(item)}
-                              disabled={qty === 1}
+                              disabled={qty === 1 || isSubmitting}
                               aria-label={t.decreaseQty}
                             >
                               <svg
@@ -393,7 +445,7 @@ export default function CartPageClient({
                               type="button"
                               className={styles['cart-page__item-counter-btn']}
                               onClick={() => handleIncrease(item)}
-                              disabled={qty === 10}
+                              disabled={qty === 10 || isSubmitting}
                               aria-label={t.increaseQty}
                             >
                               <svg
@@ -422,6 +474,7 @@ export default function CartPageClient({
                             className={styles['cart-page__item-remove']}
                             onClick={() => handleRemove(item)}
                             aria-label={t.removeFromCart}
+                            disabled={isSubmitting}
                           >
                             <HiMiniXMark size={26} />
                           </button>
@@ -469,6 +522,7 @@ export default function CartPageClient({
                               type="button"
                               className={styles['cart-page__saved-item']}
                               onClick={() => handleSelectSavedCustomer(c)}
+                              disabled={isSubmitting}
                             >
                               <span
                                 className={styles['cart-page__saved-line-main']}
@@ -502,16 +556,23 @@ export default function CartPageClient({
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
+                        minLength={3}
                         leftIcon={<FiUser size={16} />}
+                        disabled={isSubmitting}
                       />
 
                       <SidebarCartFormField
                         type="tel"
                         placeholder={t.form.phone}
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          const raw = (e.target.value ?? '').toString();
+                          setPhone(raw.replace(/\D/g, ''));
+                        }}
                         required
+                        pattern="\d+"
                         leftIcon={<FiPhone size={16} />}
+                        disabled={isSubmitting}
                       />
                     </div>
 
@@ -521,7 +582,9 @@ export default function CartPageClient({
                         placeholder={t.form.email}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        required={isDelivery}
                         leftIcon={<FiMail size={16} />}
+                        disabled={isSubmitting}
                       />
 
                       <SidebarCartFormField
@@ -530,6 +593,7 @@ export default function CartPageClient({
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         leftIcon={<FiMessageSquare size={16} />}
+                        disabled={isSubmitting}
                       />
                     </div>
 
@@ -548,7 +612,7 @@ export default function CartPageClient({
                             value="delivery"
                             checked={orderType === 'delivery'}
                             onChange={() => setOrderType('delivery')}
-                            disabled={!delivery.allowed}
+                            disabled={!delivery.allowed || isSubmitting}
                             className={styles['cart-page__form-radio-input']}
                           />
                           <span
@@ -568,6 +632,7 @@ export default function CartPageClient({
                             value="pickup"
                             checked={orderType === 'pickup'}
                             onChange={() => setOrderType('pickup')}
+                            disabled={isSubmitting}
                             className={styles['cart-page__form-radio-input']}
                           />
                           <span
@@ -610,20 +675,69 @@ export default function CartPageClient({
                           leftIcon={<FiMapPin />}
                           onChange={(e) => setAddress(e.target.value)}
                           required
+                          disabled={isSubmitting}
                         />
                       </div>
                     )}
+
+                    {submitError ? (
+                      <div
+                        className={styles['cart-page__submit-error']}
+                        role="alert"
+                      >
+                        {submitError}
+                      </div>
+                    ) : null}
 
                     <button
                       type="submit"
                       className={styles['cart-page__submit']}
                       disabled={
                         !hasItems ||
-                        (orderType === 'delivery' && !delivery.allowed)
+                        isSubmitting ||
+                        (isDelivery && !delivery.allowed)
                       }
+                      aria-busy={isSubmitting}
                     >
-                      {t.form.submit}
-                      <HandPointerSvg />
+                      {isSubmitting ? (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-label="Loading"
+                          role="img"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            opacity="0.25"
+                          />
+                          <path
+                            d="M21 12a9 9 0 0 0-9-9"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          >
+                            <animateTransform
+                              attributeName="transform"
+                              type="rotate"
+                              from="0 12 12"
+                              to="360 12 12"
+                              dur="0.8s"
+                              repeatCount="indefinite"
+                            />
+                          </path>
+                        </svg>
+                      ) : (
+                        <>
+                          {t.form.submit}
+                          <HandPointerSvg />
+                        </>
+                      )}
                     </button>
 
                     <p className={styles['cart-page__form-note']}>

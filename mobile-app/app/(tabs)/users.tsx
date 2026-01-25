@@ -1,5 +1,5 @@
 // app/(tabs)/users.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Modal,
   TextInput,
   Platform,
   SafeAreaView,
   useColorScheme,
-  Animated,
-  Easing,
-  Pressable,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +23,10 @@ import {
   type UserRow,
 } from "../../api/users";
 import { useAuth } from "../../context/authContext";
+
+// ✅ same modal system as HomeTab
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { GorhomSheetModal } from "../../components/products/bottom-sheet-modal";
 
 export default function UsersTab() {
   const { role, userId } = useAuth() as any;
@@ -57,6 +57,7 @@ export default function UsersTab() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ Add user sheet
   const [addOpen, setAddOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -86,46 +87,15 @@ export default function UsersTab() {
     if (isSuperuser) load();
   }, [isSuperuser]);
 
-  // ✅ Animated modal
-  const anim = useRef(new Animated.Value(0)).current;
-
-  const openModal = () => {
-    setAddOpen(true);
+  function openAdd() {
     setShowPass(false);
-    anim.setValue(0);
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
+    setAddOpen(true);
+  }
 
-  const closeModal = () => {
-    Animated.timing(anim, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setAddOpen(false);
-    });
-  };
-
-  const backdropOpacity = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.5],
-  });
-
-  const sheetTranslateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
-
-  const sheetOpacity = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
+  function closeAdd() {
+    if (saving) return;
+    setAddOpen(false);
+  }
 
   const onDelete = (u: UserRow) => {
     if (userId != null && String(u.id) === String(userId)) {
@@ -161,10 +131,10 @@ export default function UsersTab() {
       });
 
       setUsers((prev) => [created, ...prev]);
-      closeModal();
       setEmail("");
       setPass("");
       setShowPass(false);
+      closeAdd();
     } catch (e: any) {
       Alert.alert("Greška", e?.message ?? "Kreiranje nije uspelo.");
     } finally {
@@ -176,8 +146,7 @@ export default function UsersTab() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
-      {/* ✅ sakrij status bar dok je modal otvoren */}
-      <StatusBar hidden={addOpen} style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={[styles.container, { backgroundColor: bg }]}>
         <View style={styles.header}>
@@ -230,7 +199,7 @@ export default function UsersTab() {
                   <TouchableOpacity
                     style={[
                       styles.trashBtn,
-                      { backgroundColor: "transparent" },
+                      { backgroundColor: "transparent", borderColor: border },
                       isMe && styles.trashBtnDisabled,
                     ]}
                     onPress={() => onDelete(item)}
@@ -257,7 +226,7 @@ export default function UsersTab() {
         {/* ✅ Floating Action Button */}
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: accent }]}
-          onPress={openModal}
+          onPress={openAdd}
           activeOpacity={0.9}
           accessibilityRole="button"
           accessibilityLabel="Dodaj korisnika"
@@ -265,149 +234,151 @@ export default function UsersTab() {
           <Ionicons name="add" size={26} color={accentFg} />
         </TouchableOpacity>
 
-        {/* ✅ Modal */}
-        <Modal
+        {/* ✅ ADD USER SHEET (Gorhom) */}
+        <GorhomSheetModal
           visible={addOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={closeModal}
-          statusBarTranslucent
-        >
-          <View style={StyleSheet.absoluteFill}>
-            <Pressable onPress={closeModal} style={StyleSheet.absoluteFill}>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    backgroundColor: "rgba(0,0,0,1)",
-                    opacity: backdropOpacity,
-                  },
-                ]}
-              />
-            </Pressable>
+          onClose={closeAdd}
+          bg={bg}
+          border={border}
+          header={
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: fg }]}>
+                Kreiraj korisnika
+              </Text>
 
-            <Animated.View
-              style={[
-                styles.sheetWrap,
-                {
-                  transform: [{ translateY: sheetTranslateY }],
-                  opacity: sheetOpacity,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.modalCard,
-                  { backgroundColor: bg, borderTopColor: border },
-                ]}
+              <TouchableOpacity
+                onPress={closeAdd}
+                disabled={saving}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Zatvori"
+                style={[styles.iconBtnNoBorder, saving && disabledStyle]}
               >
-                <Text style={[styles.modalTitle, { color: fg }]}>
-                  Kreiraj korisnika
-                </Text>
-
+                <Ionicons name="close-outline" size={26} color={fg} />
+              </TouchableOpacity>
+            </View>
+          }
+          footer={
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: "transparent", borderColor: border },
+                  saving && disabledStyle,
+                ]}
+                onPress={closeAdd}
+                disabled={saving}
+                activeOpacity={0.85}
+              >
                 <View
-                  style={[
-                    styles.inputWrap,
-                    { borderColor: border, backgroundColor: bg },
-                  ]}
+                  style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
                 >
-                  <TextInput
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    textContentType="emailAddress"
-                    autoComplete="email"
-                    style={[styles.input, { color: fg }]}
-                    placeholderTextColor={placeholder}
-                    selectionColor={accent}
-                    returnKeyType="next"
-                  />
+                  <Ionicons name="close-outline" size={18} color={fg} />
+                  <Text style={[styles.cancelText, { color: fg }]}>Otkaži</Text>
                 </View>
+              </TouchableOpacity>
 
-                {/* ✅ Password sa eye toggle */}
-                <View
-                  style={[
-                    styles.inputWrap,
-                    { borderColor: border, backgroundColor: bg },
-                  ]}
-                >
-                  <TextInput
-                    placeholder="Lozinka"
-                    value={pass}
-                    onChangeText={setPass}
-                    secureTextEntry={!showPass}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    textContentType="password"
-                    autoComplete="password"
-                    style={[styles.input, { color: fg, paddingRight: 44 }]}
-                    placeholderTextColor={placeholder}
-                    selectionColor={accent}
-                    returnKeyType="done"
-                    onSubmitEditing={onCreate}
-                  />
-
-                  <TouchableOpacity
-                    onPress={() => setShowPass((v) => !v)}
-                    style={styles.eyeBtn}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPass ? "Sakrij lozinku" : "Prikaži lozinku"
-                    }
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: accent, borderColor: accent },
+                  !canCreate && disabledStyle,
+                ]}
+                onPress={onCreate}
+                disabled={!canCreate}
+                activeOpacity={0.9}
+              >
+                {saving ? (
+                  <ActivityIndicator color={accentFg} />
+                ) : (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
                   >
                     <Ionicons
-                      name={showPass ? "eye-off-outline" : "eye-outline"}
-                      size={22}
-                      color={
-                        isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.75)"
-                      }
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={accentFg}
                     />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.modalBtn,
-                      { backgroundColor: "transparent", borderColor: border },
-                    ]}
-                    onPress={closeModal}
-                    disabled={saving}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.cancelText, { color: fg }]}>
-                      Otkaži
+                    <Text style={[styles.saveText, { color: accentFg }]}>
+                      Kreiraj
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          }
+        >
+          <BottomSheetScrollView contentContainerStyle={styles.sheetInner}>
+            <View
+              style={[
+                styles.inputWrap,
+                { borderColor: border, backgroundColor: bg },
+              ]}
+            >
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                style={[styles.input, { color: fg }]}
+                placeholderTextColor={placeholder}
+                selectionColor={accent}
+                returnKeyType="next"
+                editable={!saving}
+              />
+            </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.modalBtn,
-                      { backgroundColor: accent, borderColor: accent },
-                      !canCreate && disabledStyle,
-                    ]}
-                    onPress={onCreate}
-                    disabled={!canCreate}
-                    activeOpacity={0.85}
-                  >
-                    {saving ? (
-                      <ActivityIndicator color={accentFg} />
-                    ) : (
-                      <Text style={[styles.saveText, { color: accentFg }]}>
-                        Kreiraj
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Animated.View>
-          </View>
-        </Modal>
+            {/* ✅ Password sa eye toggle */}
+            <View
+              style={[
+                styles.inputWrap,
+                { borderColor: border, backgroundColor: bg },
+              ]}
+            >
+              <TextInput
+                placeholder="Lozinka"
+                value={pass}
+                onChangeText={setPass}
+                secureTextEntry={!showPass}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                autoComplete="password"
+                style={[styles.input, { color: fg, paddingRight: 44 }]}
+                placeholderTextColor={placeholder}
+                selectionColor={accent}
+                returnKeyType="done"
+                onSubmitEditing={onCreate}
+                editable={!saving}
+              />
+
+              <TouchableOpacity
+                onPress={() => setShowPass((v) => !v)}
+                style={styles.eyeBtn}
+                hitSlop={10}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showPass ? "Sakrij lozinku" : "Prikaži lozinku"
+                }
+              >
+                <Ionicons
+                  name={showPass ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color={isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.75)"}
+                />
+              </TouchableOpacity>
+            </View>
+          </BottomSheetScrollView>
+        </GorhomSheetModal>
       </View>
     </SafeAreaView>
   );
@@ -465,24 +436,37 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 56,
     height: 56,
-    borderRadius: 999, // ✅ 50% vibe
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    // optional: little depth without picking colors
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
 
-  sheetWrap: { flex: 1, justifyContent: "flex-end" },
-  modalCard: {
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderTopWidth: 1,
+  // ✅ Gorhom sheet styling (aligned with HomeTab)
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
-  modalTitle: { fontSize: 18, fontWeight: "800", marginBottom: 12 },
+  sheetTitle: { fontSize: 18, fontWeight: "800" },
+
+  iconBtnNoBorder: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sheetInner: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 160,
+  },
 
   inputWrap: {
     borderWidth: 1,
@@ -505,7 +489,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  modalActions: { flexDirection: "row", gap: 10, marginTop: 6 },
+  sheetActions: { flexDirection: "row", gap: 10 },
   modalBtn: {
     flex: 1,
     paddingVertical: 12,

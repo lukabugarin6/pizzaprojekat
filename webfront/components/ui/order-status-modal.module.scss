@@ -1,5 +1,6 @@
 /* components/order-status-modal.module.scss */
 
+/* Backdrop kao sidebar overlay */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -14,16 +15,33 @@
   padding: 18px;
 }
 
+/* Panel u stilu sidebar-cart */
 .modal {
   width: 100%;
-  max-width: 520px;
+  max-width: 640px;
 
-  background: #0b0b0b;
-  color: #fff;
+  background: #fff;
+  color: #000;
 
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-roboto-condensed);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+
+  border: 1px solid #dcdcdc;
+  border-radius: 0;
 
   overflow: hidden;
+
+  /* suptilna animacija */
+  transform: translateY(10px);
+  opacity: 0;
+  animation: modalIn 160ms ease-out forwards;
+}
+
+@keyframes modalIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .header {
@@ -31,9 +49,8 @@
   align-items: flex-start;
   justify-content: space-between;
 
-  padding: 14px 14px 12px 14px;
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 20px;
+  border-bottom: 1px solid #dcdcdc;
 }
 
 .headerLeft {
@@ -44,19 +61,20 @@
 
 .kicker {
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.35px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: #777;
 }
 
 .code {
   font-size: 14px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  color: #111;
+  letter-spacing: 0.02em;
 
   b {
-    font-weight: 900;
+    font-weight: 700;
   }
 }
 
@@ -65,9 +83,10 @@
   height: 40px;
 
   border-radius: 0;
+  border: 1px solid transparent;
 
   background: transparent;
-  color: rgba(255, 255, 255, 0.95);
+  color: #111;
 
   display: inline-flex;
   align-items: center;
@@ -80,10 +99,10 @@
     border-color 120ms ease,
     transform 120ms ease;
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
+  // &:hover {
+  //   background: rgba(0, 0, 0, 0.04);
+  //   border-color: #dcdcdc;
+  // }
 
   &:active {
     transform: scale(0.98);
@@ -91,7 +110,7 @@
 }
 
 .body {
-  padding: 16px 14px;
+  padding: 12px 24px 16px 24px;
 }
 
 .section {
@@ -101,26 +120,39 @@
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   margin: 0;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* dodat: mala “status” ikonica pored naslova (ako je koristiš) */
+.titleIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .text {
   font-size: 14px;
   line-height: 1.45;
   margin: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: #2a2a2a;
 }
 
 .textMuted {
   font-size: 13px;
   line-height: 1.45;
   margin: 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: #777;
 }
 
+/* Loading blok u cart stilu */
 .loadingRow {
   display: flex;
   align-items: flex-start;
@@ -128,10 +160,10 @@
 
   padding: 12px;
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #dcdcdc;
   border-radius: 0;
 
-  background: rgba(255, 255, 255, 0.03);
+  background: #f5f5f5;
 }
 
 .loadingMeta {
@@ -142,14 +174,15 @@
 
 .loadingLabel {
   font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.2px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #111;
 }
 
 .loadingHint {
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.65);
+  color: #777;
 }
 
 .spinner {
@@ -157,8 +190,8 @@
   height: 18px;
 
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.22);
-  border-top-color: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  border-top-color: rgba(0, 0, 0, 0.7);
 
   animation: spin 0.9s linear infinite;
   flex: 0 0 auto;
@@ -171,34 +204,37 @@
   }
 }
 
+/* Info box kao cart item border */
 .infoBox {
   padding: 12px;
+  padding-left: 0;
+  padding-bottom: 0;
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  // border: 1px solid #dcdcdc;
   border-radius: 0;
 
-  background: rgba(255, 255, 255, 0.03);
+  // background: #f5f5f5;
 }
 
 .infoRow {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
 .label {
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.25px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: #777;
 }
 
 .value {
-  font-size: 15px;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
   text-align: right;
 }
 
@@ -206,63 +242,99 @@
   display: flex;
   justify-content: flex-end;
 
-  padding: 12px 14px;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 24px 20px;
+  border-top: 1px solid #dcdcdc;
 }
 
+/* Buttons: cart vibe (flat, border, black/white + accent) */
 .btn {
-  height: 44px;
-  padding: 0 14px;
+  height: 46px;
+  padding: 0 26px;
 
   border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  // border: 1px solid #dcdcdc;
+
+  background-color: var(--black);
+  color: #fff;
 
   cursor: pointer;
-  font-weight: 900;
-  letter-spacing: 0.2px;
+
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 
   transition:
-    transform 120ms ease,
     background 120ms ease,
     border-color 120ms ease,
-    opacity 120ms ease;
+    opacity 120ms ease,
+    transform 120ms ease;
+
+  &:active {
+    transform: translateY(1px);
+  }
 }
 
 .btnGhost {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.95);
+  // background: transparent;
+  // color: #111;
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.22);
-  }
+  // &:hover {
+  //   background: rgba(0, 0, 0, 0.04);
+  // }
 }
 
 .btnPrimary {
-  background: #e67428;
-  border-color: #e67428;
-  color: #fff;
+  // background: #e67428;
+  // border-color: #e67428;
+  // color: #fff;
 
-  &:hover {
-    opacity: 0.92;
-  }
+  // &:hover {
+  //   opacity: 0.92;
+  // }
 }
 
-@media (max-width: 420px) {
+/* mobile */
+@media (max-width: 520px) {
   .modal {
     max-width: 100%;
   }
 
-  .title {
-    font-size: 16px;
+  .header {
+    padding: 14px 16px;
   }
 
-  .value {
-    font-size: 14px;
+  .body {
+    padding: 12px 16px 14px 16px;
   }
+
+  .footer {
+    padding: 14px 16px 16px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+}
+
+.statusIconAccepted,
+.statusIconRejected {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: inline-block;
+}
+
+/* Accepted: subtle green */
+.statusIconAccepted {
+  color: #1a7f37;
+}
+
+/* Rejected: subtle red */
+.statusIconRejected {
+  color: #b42318;
 }

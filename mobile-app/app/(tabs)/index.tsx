@@ -89,7 +89,7 @@ function clampEtaMinutes(v: any) {
   const n = Number(String(v ?? "").trim());
   if (!Number.isFinite(n)) return 30;
   const m = Math.trunc(n);
-  if (m < 5) return 5;
+  // if (m === 0) return 5;
   if (m > 600) return 600;
   return m;
 }
@@ -815,8 +815,8 @@ const styles = StyleSheet.create({
   sheetInner: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    // paddingTop: 12,
+    paddingBottom: 40,
   },
 
   inputWrap: {

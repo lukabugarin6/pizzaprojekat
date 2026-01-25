@@ -182,5 +182,35 @@
     "addedToCart": "Uspešno ste dodali u korpu!",
     "increaseQtyAria": "Povećaj količinu",
     "decreaseQtyAria": "Smanji količinu"
+  },
+  "orderStatusModal": {
+    "ariaLabel": "Status porudžbine",
+    "closeAria": "Zatvori",
+
+    "pending": {
+      "title": "Čekamo potvrdu…",
+      "text": "Restoran treba da prihvati ili odbije porudžbinu. Ovo obično traje kratko.",
+      "trackingLabel": "Pratimo status…",
+      "trackingHint": "Možeš zatvoriti ovaj prozor i nastaviti da pretražuješ — status ostaje aktivan."
+    },
+
+    "accepted": {
+      "title": "Porudžbina je prihvaćena",
+      "thanks": "Hvala na poverenju! Pripremamo tvoju porudžbinu.",
+      "etaLabel": "Očekivano vreme",
+      "etaUnknown": "—",
+      "minSuffix": "min"
+    },
+
+    "rejected": {
+      "title": "Porudžbina je odbijena",
+      "reasonLabel": "Razlog",
+      "noReason": "Nije naveden razlog. Pokušajte ponovo ili izaberite preuzimanje."
+    },
+
+    "buttons": {
+      "close": "Zatvori",
+      "ok": "U redu"
+    }
   }
 }

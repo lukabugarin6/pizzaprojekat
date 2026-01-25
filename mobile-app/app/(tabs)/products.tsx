@@ -514,12 +514,13 @@ export default function ProductsScreen() {
   function buildVariantsPayload(arr: ProductVariant[], keepId: boolean) {
     return (arr ?? []).map((v: any) => {
       const rawSize = v?.size;
-      const sizeNum =
+
+      const sizeVal =
         rawSize === null ||
         rawSize === undefined ||
         String(rawSize).trim() === ""
-          ? undefined
-          : (toNumberOrNull(rawSize) ?? undefined);
+          ? null
+          : toNumberOrNull(rawSize); // number | null
 
       const priceNum = toNumberOrNull(v?.price) ?? 0;
 
@@ -528,7 +529,7 @@ export default function ProductsScreen() {
 
       return {
         ...(keepId ? { id: v?.id ?? undefined } : {}),
-        ...(sizeNum !== undefined ? { size: sizeNum } : {}),
+        size: sizeVal, // ✅ ALWAYS present (null or number)
         price: priceNum,
         sku,
       };

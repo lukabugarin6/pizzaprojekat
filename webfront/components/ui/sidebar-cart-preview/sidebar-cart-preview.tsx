@@ -23,8 +23,6 @@ import { DeliveryReason } from '@/context/cart/cart-provider';
 import { createOrderAction } from '@/app/actions/create-order';
 import { useOrderTracking } from '@/context/order/order-tracking-context';
 
-// ✅ tracking provider hook
-
 type SidebarCartPreviewProps = {
   isOpen: boolean;
   onMouseEnter: () => void;
@@ -59,7 +57,6 @@ export default function SidebarCartPreview({
     delivery,
   } = useCart();
 
-  // ✅ order tracking
   const { startTracking } = useOrderTracking();
 
   const [mounted, setMounted] = useState(false);
@@ -75,9 +72,11 @@ export default function SidebarCartPreview({
   // saved customers (unique by email)
   const [savedCustomers, setSavedCustomers] = useState<SavedCustomer[]>([]);
 
-  // ✅ submit/loading state
+  // submit/loading + server error only
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const isDelivery = orderType === 'delivery';
 
   // mount guard + load saved customers
   useEffect(() => {
@@ -97,9 +96,7 @@ export default function SidebarCartPreview({
       for (const c of parsed) {
         if (!c || !c.email) continue;
         const key = c.email.trim().toLowerCase();
-        if (!uniqueByEmail.has(key)) {
-          uniqueByEmail.set(key, c);
-        }
+        if (!uniqueByEmail.has(key)) uniqueByEmail.set(key, c);
       }
 
       setSavedCustomers(Array.from(uniqueByEmail.values()));
@@ -109,9 +106,7 @@ export default function SidebarCartPreview({
   }, []);
 
   useEffect(() => {
-    if (mounted && items.length === 0) {
-      onMouseLeave();
-    }
+    if (mounted && items.length === 0) onMouseLeave();
   }, [items.length, mounted, onMouseLeave]);
 
   useEffect(() => {
@@ -126,16 +121,19 @@ export default function SidebarCartPreview({
   const hasItems = items.length > 0;
 
   const handleIncrease = (item: any) => {
+    if (isSubmitting) return;
     const next = Math.min((item.quantity ?? 1) + 1, 10);
     updateItemQuantity(item.variantId, next);
   };
 
   const handleDecrease = (item: any) => {
+    if (isSubmitting) return;
     const next = Math.max((item.quantity ?? 1) - 1, 1);
     updateItemQuantity(item.variantId, next);
   };
 
   const handleRemove = (item: any) => {
+    if (isSubmitting) return;
     removeFromCart(item.variantId);
   };
 
@@ -151,11 +149,9 @@ export default function SidebarCartPreview({
       const existing: SavedCustomer[] = raw ? JSON.parse(raw) : [];
 
       const uniqueByEmail = new Map<string, SavedCustomer>();
-
       for (const c of existing) {
         if (!c || !c.email) continue;
-        const key = c.email.trim().toLowerCase();
-        uniqueByEmail.set(key, c);
+        uniqueByEmail.set(c.email.trim().toLowerCase(), c);
       }
 
       uniqueByEmail.set(emailKey, customer);
@@ -181,6 +177,8 @@ export default function SidebarCartPreview({
     setOrderType(nextOrderType);
     setAddress(nextOrderType === 'delivery' ? customer.address || '' : '');
     setNote(customer.note || '');
+
+    setSubmitError(null);
   };
 
   const resetForm = () => {
@@ -196,8 +194,18 @@ export default function SidebarCartPreview({
     e.preventDefault();
     if (!items.length || isSubmitting) return;
 
-    setIsSubmitting(true);
+    // ✅ rely on native HTML validation
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    // delivery not allowed -> block submit
+    if (orderType === 'delivery' && !delivery.allowed) return;
+
     setSubmitError(null);
+    setIsSubmitting(true);
 
     const payload = {
       fullName: fullName.trim(),
@@ -215,27 +223,25 @@ export default function SidebarCartPreview({
     try {
       const res = await createOrderAction(payload);
 
-      // expected: { publicCode, token, status, total }
       if (!res?.publicCode || !res?.token) {
         throw new Error('Order created but missing publicCode/token.');
       }
 
-      // ✅ save customer profile (optional)
-      saveCustomerToLocalStorage({
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone,
-        address: payload.addressText ?? '',
-        orderType,
-        note: payload.note ?? '',
-      });
+      // ✅ save profile only if email exists
+      if (payload.email) {
+        saveCustomerToLocalStorage({
+          fullName: payload.fullName,
+          email: payload.email,
+          phone: payload.phone,
+          address: payload.addressText ?? '',
+          orderType,
+          note: payload.note ?? '',
+        });
+      }
 
-      // ✅ start global tracking + open modal
       startTracking({ publicCode: res.publicCode, token: res.token });
 
       resetForm();
-
-      // optional UX: close cart panel
       onMouseLeave();
     } catch (err: any) {
       console.error('createOrderAction failed', err);
@@ -244,8 +250,6 @@ export default function SidebarCartPreview({
       setIsSubmitting(false);
     }
   };
-
-  type DeliveryReasonKey = Exclude<DeliveryReason, null>;
 
   const deliveryReasonText = delivery.reason
     ? cartT.delivery[delivery.reason as keyof typeof cartT.delivery]
@@ -458,6 +462,7 @@ export default function SidebarCartPreview({
               <form
                 className={styles['sidebar-cart__form']}
                 onSubmit={handleSubmit}
+                noValidate={false}
               >
                 {/* row 1: name + phone */}
                 <div
@@ -480,8 +485,15 @@ export default function SidebarCartPreview({
                     type="tel"
                     placeholder={cartPageT.form.phone}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      const raw = (e.target.value ?? '').toString();
+                      const digitsOnly = raw.replace(/\D/g, '');
+                      setPhone(digitsOnly);
+                    }}
                     required
+                    // ✅ HTML validation for digits only
+                    pattern="\d+"
+                    inputMode="numeric"
                     leftIcon={<FiPhone size={16} />}
                     disabled={isSubmitting}
                   />
@@ -499,6 +511,8 @@ export default function SidebarCartPreview({
                     placeholder={cartPageT.form.email}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    // ✅ required only for delivery
+                    required={isDelivery}
                     leftIcon={<FiMail size={16} />}
                     disabled={isSubmitting}
                   />
@@ -568,7 +582,6 @@ export default function SidebarCartPreview({
                     </label>
                   </div>
 
-                  {/* message always under, spacing via css */}
                   <div
                     className={clsx(
                       styles['sidebar-cart__delivery-message'],
@@ -604,7 +617,7 @@ export default function SidebarCartPreview({
                   </div>
                 )}
 
-                {/* ✅ submit error */}
+                {/* ✅ server submit error only */}
                 {submitError ? (
                   <div
                     className={styles['sidebar-cart__submit-error']}
@@ -617,12 +630,52 @@ export default function SidebarCartPreview({
                 <button
                   type="submit"
                   className={styles['sidebar-cart__submit']}
-                  disabled={!hasItems || isSubmitting}
+                  disabled={
+                    !hasItems ||
+                    isSubmitting ||
+                    (orderType === 'delivery' && !delivery.allowed)
+                  }
+                  aria-busy={isSubmitting}
                 >
-                  {isSubmitting
-                    ? (isSubmitting ?? 'Sending…')
-                    : cartPageT.form.submit}
-                  <HandPointerSvg />
+                  {isSubmitting ? (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-label="Loading"
+                      role="img"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        opacity="0.25"
+                      />
+                      <path
+                        d="M21 12a9 9 0 0 0-9-9"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
+                        <animateTransform
+                          attributeName="transform"
+                          type="rotate"
+                          from="0 12 12"
+                          to="360 12 12"
+                          dur="0.8s"
+                          repeatCount="indefinite"
+                        />
+                      </path>
+                    </svg>
+                  ) : (
+                    <>
+                      {cartPageT.form.submit}
+                      <HandPointerSvg />
+                    </>
+                  )}
                 </button>
 
                 <p className={styles['sidebar-cart__form-note']}>

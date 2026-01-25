@@ -209,17 +209,7 @@ export async function connectOrdersSocket(opts?: {
     reconnectionDelay: 800,
   });
 
-  socket.on("connect", () => {
-    console.log("[orders socket] connected");
-  });
-
-  socket.on("disconnect", () => {
-    console.log("[orders socket] disconnected");
-  });
-
   socket.on("connect_error", async (err: any) => {
-    console.log("[orders socket] connect_error:", err?.message ?? err);
-
     const msg = String(err?.message ?? "").toLowerCase();
     if (msg.includes("jwt") || msg.includes("token")) {
       const ok = await refreshAccessToken();
@@ -234,11 +224,7 @@ export async function connectOrdersSocket(opts?: {
   });
 
   socket.on("orders:new", async (payload: any) => {
-    console.log("[orders:new] raw payload:", payload);
-
     const ev = normalizeNewOrderEvent(payload);
-
-    console.log("[orders:new] normalized:", ev);
 
     if (!ev) return;
 
@@ -295,7 +281,6 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
   };
 
   pushSubReceived = Notifications.addNotificationReceivedListener((n) => {
-    console.log("[push received] content:", n.request.content);
     const data: any = n.request.content.data ?? {};
     const ev = buildFromNotif(data);
     if (ev) onOpenOrder(ev);
@@ -303,10 +288,6 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
 
   pushSubResponse = Notifications.addNotificationResponseReceivedListener(
     (resp) => {
-      console.log(
-        "[push tap] notification:",
-        resp.notification.request.content,
-      );
       const data: any = resp.notification.request.content.data ?? {};
       const ev = buildFromNotif(data);
       if (ev) onOpenOrder(ev);

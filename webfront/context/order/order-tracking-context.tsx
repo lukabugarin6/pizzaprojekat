@@ -13,6 +13,9 @@ import {
 } from '@/lib/orders-socket';
 import OrderStatusModal from '@/components/ui/order-status-modal';
 
+// ✅ add dictionary typing (adjust import path/type to your project)
+import type { Dictionary } from '@/app/[lang]/dictionaries';
+
 type ActiveOrder = {
   publicCode: string;
   token: string;
@@ -39,9 +42,11 @@ const MAX_AGE_MS = 2 * 60 * 60 * 1000;
 export function OrderTrackingProvider({
   children,
   apiBase,
+  t,
 }: {
   children: React.ReactNode;
   apiBase: string; // npr NEXT_PUBLIC_ORDERS_SOCKET_URL
+  t: Dictionary['orderStatusModal']; // ✅ pass modal translations
 }) {
   const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -101,8 +106,6 @@ export function OrderTrackingProvider({
             reason: p.reason ?? null,
           };
 
-          // kad stigne accepted/rejected, možeš ostaviti modal otvoren da pokaže poruku
-          // i tek na "OK" ga obrisati
           return next;
         });
       },
@@ -148,17 +151,15 @@ export function OrderTrackingProvider({
       {/* global modal render */}
       {activeOrder ? (
         <OrderStatusModal
+          t={t} // ✅ pass translations into modal
           open={modalOpen}
           onClose={() => {
             // ako je još pending, samo zatvori modal ali zadrži tracking
-            // (pa kad se user vrati, možeš ponovo otvoriti ručno)
-            // ja bih ovde ostavio samo close:
             closeModal();
           }}
           publicCode={activeOrder.publicCode}
           token={activeOrder.token}
           apiBase={apiBase}
-          // ako ti modal treba ove vrednosti:
           initialStatus={activeOrder.status}
           initialEta={activeOrder.etaMinutes ?? null}
           initialReason={activeOrder.reason ?? null}
