@@ -89,7 +89,7 @@ export default async function RootLayout({
         data-preloader="true"
         className={`${ptSans.variable} ${robotoCondensed.variable} ${planet.variable} antialiased`}
       >
-        <OrderTrackingProvider apiBase="/api_backend">
+        <OrderTrackingProvider apiBase="https://api.pizzaprojekat.com">
           <ThemeProvider>
             {/* prosleđujemo samo deo za navbar */}
             {/* <Navbar t={dict.navbar} lang={lang} /> */}

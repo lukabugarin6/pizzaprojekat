@@ -45,6 +45,12 @@ export default function OrderStatusModal({
   const [eta, setEta] = useState<number | null>(initialEta);
   const [reason, setReason] = useState<string | null>(initialReason);
 
+  console.log({
+    open,
+    initialStatus,
+    initialReason,
+  });
+
   // ✅ only sync UI state from props when modal opens / props change
   useEffect(() => {
     if (!open) return;

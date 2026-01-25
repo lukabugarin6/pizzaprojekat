@@ -37,19 +37,15 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ---------- connection ----------
   async handleConnection(client: Socket) {
     const jwt = this.extractBearer(client);
-    console.log('[orders ws] connect', { hasJwt: !!jwt });
 
     if (!jwt) return;
 
     try {
       const payload: any = await this.jwtService.verifyAsync(jwt);
-      console.log('[orders ws] payload', payload);
 
       const role: string = payload?.role ?? [];
-      console.log('[orders ws] roles', role);
 
       const isAdmin = role === Role.ADMIN || role === Role.SUPERUSER;
-      console.log('[orders ws] isAdmin', isAdmin);
 
       if (isAdmin) client.join('admins');
     } catch (e) {
