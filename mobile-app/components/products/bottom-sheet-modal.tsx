@@ -1,3 +1,4 @@
+// components/products/bottom-sheet-modal.tsx
 import React, { ReactNode, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import {
@@ -5,7 +6,6 @@ import {
   BottomSheetFooter,
   BottomSheetModal,
   BottomSheetScrollView,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,10 +16,13 @@ type Props = {
   border: string;
 
   header?: ReactNode;
-  children: ReactNode; // scrollable content
+  children: ReactNode;
   footer?: ReactNode;
 
   snapPoints?: (string | number)[];
+
+  // ✅ NEW
+  nonClosable?: boolean; // default false
 };
 
 export function GorhomSheetModal({
@@ -31,6 +34,7 @@ export function GorhomSheetModal({
   children,
   footer,
   snapPoints,
+  nonClosable = false,
 }: Props) {
   const ref = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
@@ -50,7 +54,8 @@ export function GorhomSheetModal({
       {...props}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
-      pressBehavior="close"
+      // ✅ if nonClosable -> clicking backdrop does nothing
+      pressBehavior={nonClosable ? "none" : "close"}
       opacity={0.5}
     />
   );
@@ -71,16 +76,27 @@ export function GorhomSheetModal({
       snapPoints={points}
       topInset={insets.top}
       backdropComponent={renderBackdrop}
-      enablePanDownToClose
-      onDismiss={onClose}
-      handleIndicatorStyle={{ backgroundColor: border, opacity: 0.8 }}
+      // ✅ if nonClosable -> cannot swipe down to close
+      enablePanDownToClose={!nonClosable}
+      onDismiss={() => {
+        // ✅ if nonClosable, ignore dismiss events
+        if (nonClosable) {
+          // present again in case something tried to dismiss it
+          ref.current?.present();
+          return;
+        }
+        onClose();
+      }}
+      handleIndicatorStyle={{
+        backgroundColor: border,
+        opacity: nonClosable ? 0.35 : 0.8,
+      }}
       backgroundStyle={[styles.background, { backgroundColor: bg }]}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       footerComponent={renderFooter}
     >
       <View style={[styles.topBorder, { backgroundColor: border }]} />
-
       {header ? <View style={styles.headerWrap}>{header}</View> : null}
 
       <BottomSheetScrollView
@@ -108,7 +124,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 6,
-    paddingBottom: 80, // footer inset handled by BottomSheetFooter
+    paddingBottom: 80,
   },
 
   footerWrap: {

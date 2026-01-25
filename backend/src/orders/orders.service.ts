@@ -34,6 +34,34 @@ export class OrdersService {
     private eventEmitter: EventEmitter2,
   ) {}
 
+  private toAdminNewOrderPayload(o: Order) {
+    return {
+      id: o.id,
+      publicCode: o.publicCode,
+      type: o.type,
+      status: o.status,
+      total: o.total,
+      createdAt: o.createdAt,
+
+      fullName: o.fullName,
+      phone: o.phone,
+      email: o.email,
+      addressText: o.addressText,
+      note: o.note,
+
+      items: (o.items ?? []).map((i) => ({
+        id: i.id,
+        productId: i.productId,
+        variantId: i.variantId,
+        productName: i.productName,
+        variantSize: i.variantSize,
+        unitPrice: i.unitPrice,
+        quantity: i.quantity,
+        lineTotal: i.lineTotal,
+      })),
+    };
+  }
+
   // ========= PUBLIC (GUEST) =========
 
   async create(dto: CreateOrderDto, acceptLanguage?: string) {
@@ -130,13 +158,24 @@ export class OrdersService {
     const saved = await this.orderRepo.save(order);
 
     // ✅ emit event (gateway listens and pushes to WS clients)
-    this.eventEmitter.emit('orders.new', {
-      id: saved.id,
-      publicCode: saved.publicCode,
-      type: saved.type,
-      total: saved.total,
-      createdAt: saved.createdAt,
+    const full = await this.orderRepo.findOne({
+      where: { id: saved.id } as any,
+      relations: { items: true } as any,
     });
+
+    if (full) {
+      this.eventEmitter.emit('orders.new', this.toAdminNewOrderPayload(full));
+    } else {
+      // fallback (shouldn't happen)
+      this.eventEmitter.emit('orders.new', {
+        id: saved.id,
+        publicCode: saved.publicCode,
+        type: saved.type,
+        status: saved.status,
+        total: saved.total,
+        createdAt: saved.createdAt,
+      });
+    }
 
     return {
       publicCode: saved.publicCode,

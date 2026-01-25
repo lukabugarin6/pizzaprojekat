@@ -23,22 +23,22 @@ export default function RootLayout() {
       <RootSiblingParent>
         <View style={styles.flex} onLayout={onRootLayout}>
           <AuthProvider>
-            <OrdersRealtimeProvider>
-              <StatusBar
-                style="light"
-                translucent
-                backgroundColor="transparent"
-              />
+            <BottomSheetModalProvider>
+              <OrdersRealtimeProvider>
+                <StatusBar
+                  style="light"
+                  translucent
+                  backgroundColor="transparent"
+                />
 
-              <BottomSheetModalProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(auth)" />
                   <Stack.Screen name="(tabs)" />
                 </Stack>
-              </BottomSheetModalProvider>
 
-              <Toast topOffset={200} />
-            </OrdersRealtimeProvider>
+                <Toast topOffset={200} />
+              </OrdersRealtimeProvider>
+            </BottomSheetModalProvider>
           </AuthProvider>
         </View>
       </RootSiblingParent>
