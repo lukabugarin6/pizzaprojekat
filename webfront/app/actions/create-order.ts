@@ -11,7 +11,7 @@ type CreateOrderPayload = {
 };
 
 export async function createOrderAction(payload: CreateOrderPayload) {
-  const base = process.env.ORDERS_API_BASE_URL;
+  const base = process.env.API_URL;
   if (!base) throw new Error('Missing ORDERS_API_BASE_URL');
 
   const res = await fetch(`${base.replace(/\/$/, '')}/orders`, {
