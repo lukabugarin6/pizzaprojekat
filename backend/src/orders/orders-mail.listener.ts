@@ -22,25 +22,42 @@ export class OrdersMailListener {
       );
       if (!order) return;
 
+      // ✅ zajednički “details” koji idu u template
+      const common = {
+        to: order.email,
+        fullName: order.fullName,
+        publicCode: order.publicCode,
+        language: order.language,
+
+        // details
+        type: (order as any).type,
+        phone: (order as any).phone ?? null,
+        email: order.email,
+        addressText: (order as any).addressText ?? null,
+        note: (order as any).note ?? null,
+        total: (order as any).total ?? null,
+        createdAt: (order as any).createdAt ?? null,
+        items: Array.isArray((order as any).items)
+          ? (order as any).items.map((i: any) => ({
+              productName: i.productName,
+              variantSize: i.variantSize ?? null,
+              quantity: i.quantity ?? null,
+              lineTotal: i.lineTotal ?? null,
+            }))
+          : [],
+      };
+
       if (order.status === OrderStatus.ACCEPTED) {
         await this.mailService.sendOrderStatusEmail({
-          to: order.email,
-          fullName: order.fullName,
-          publicCode: order.publicCode,
+          ...common,
           status: 'ACCEPTED',
-          language: order.language,
-          etaMinutes: order.etaMinutes,
+          etaMinutes: (order as any).etaMinutes ?? null,
         });
-      }
-
-      if (order.status === OrderStatus.REJECTED) {
+      } else if (order.status === OrderStatus.REJECTED) {
         await this.mailService.sendOrderStatusEmail({
-          to: order.email,
-          fullName: order.fullName,
-          publicCode: order.publicCode,
+          ...common,
           status: 'REJECTED',
-          language: order.language,
-          reason: order.reason,
+          reason: (order as any).reason ?? null,
         });
       }
     } catch (e: any) {
@@ -48,7 +65,6 @@ export class OrdersMailListener {
         `Failed to send order status email for ${payload.publicCode}: ${e?.message ?? e}`,
         e?.stack,
       );
-      // suppressErrors:true već sprečava da ovo “propagates”
     }
   }
 }

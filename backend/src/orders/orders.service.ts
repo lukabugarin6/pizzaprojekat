@@ -393,6 +393,7 @@ export class OrdersService {
   async findByPublicCodeForMail(publicCode: string) {
     return this.orderRepo.findOne({
       where: { publicCode } as any,
+      relations: { items: true } as any,
       // items nisu obavezni za status mail, ali možeš uključiti ako treba
     });
   }
