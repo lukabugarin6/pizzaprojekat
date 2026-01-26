@@ -337,17 +337,10 @@ export async function updateProduct(id: string, payload: UpdateProductPayload) {
   }
 
   const url = productsEndpoints.details(id);
-  console.log("UPDATE ->", url);
-  console.log("FD data:", fd.getAll("data"));
-  console.log("FD parts:", (fd as any)._parts); // super useful in RN
-
   try {
-    console.log("FETCH START");
     const res = await authedFetchForm(url, { method: "PUT", body: fd as any });
-    console.log("FETCH DONE status=", res.status);
 
     const txt = await res.text().catch(() => "");
-    console.log("RESP TEXT:", txt.slice(0, 500));
 
     // if response is json, parse it
     try {

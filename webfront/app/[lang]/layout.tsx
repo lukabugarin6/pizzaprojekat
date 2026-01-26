@@ -11,6 +11,7 @@ import { CartProvider } from '@/context/cart/cart-provider';
 import Navbar from '@/components/ui/navbar';
 import { OrderTrackingProvider } from '@/context/order/order-tracking-context';
 import GoogleAnalytics from '@/components/analytics';
+import { getPublicRestaurantHours } from '@/lib/restaurant';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
@@ -86,6 +87,7 @@ export default async function RootLayout({
 }>) {
   const { lang } = await params;
   const dict = await getDictionary(lang);
+  const hours = await getPublicRestaurantHours();
 
   return (
     <html lang={lang}>
@@ -132,10 +134,11 @@ export default async function RootLayout({
                   t={dict.sidebar}
                   cartT={dict.cart}
                   cartPageT={dict.cartPage}
+                  hours={hours}
                 />
-                <Navbar t={dict.navbar} lang={lang} />
+                <Navbar t={dict.navbar} lang={lang} hours={hours} />
                 <div style={{ flexGrow: 1 }}>{children}</div>
-                <Footer t={dict.footer} />
+                <Footer t={dict.footer} hours={hours} />
                 <Preloader />
               </div>
             </ThemeProvider>

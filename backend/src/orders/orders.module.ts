@@ -12,6 +12,7 @@ import { ProductVariant } from '../products/product-variant.entity';
 
 import { OrdersGateway } from './orders.gateway';
 import { AuthModule } from 'src/auth/auth.module';
+import { OrdersMailListener } from './orders-mail.listener';
 
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { AuthModule } from 'src/auth/auth.module';
     AuthModule,
   ],
   controllers: [OrdersController, OrdersAdminController],
-  providers: [OrdersService, OrdersGateway],
+  providers: [OrdersService, OrdersGateway, OrdersMailListener],
 })
 export class OrdersModule {}

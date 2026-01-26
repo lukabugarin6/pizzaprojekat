@@ -18,6 +18,7 @@ import SidebarCartPreview from '@/components/ui/sidebar-cart-preview';
 import { useDelayedHover } from '@/hooks/useDelayedHover';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { Dictionary } from '@/app/[lang]/dictionaries';
+import { PublicRestaurantHoursResponse } from '@/lib/restaurant';
 
 type SidebarDict = {
   brandTop: string;
@@ -34,9 +35,126 @@ type Props = {
   t: SidebarDict;
   cartT: Dictionary['cart'];
   cartPageT: Dictionary['cartPage'];
+  hours?: PublicRestaurantHoursResponse | null;
 };
 
-export default function Sidebar({ t, cartT, cartPageT }: Props) {
+type DayKey = 1 | 2 | 3 | 4 | 5 | 6 | 7; // Mon..Sun
+
+const dayShort: Record<string, Record<DayKey, string>> = {
+  'sr-Latn': {
+    1: 'Pon',
+    2: 'Uto',
+    3: 'Sre',
+    4: 'Čet',
+    5: 'Pet',
+    6: 'Sub',
+    7: 'Ned',
+  },
+  'en-Us': {
+    1: 'Mon',
+    2: 'Tue',
+    3: 'Wed',
+    4: 'Thu',
+    5: 'Fri',
+    6: 'Sat',
+    7: 'Sun',
+  },
+  ru: { 1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 7: 'Вс' },
+};
+
+function normLang(l: string) {
+  if (l === 'en' || l === 'en-US' || l === 'en-us') return 'en-Us';
+  if (l === 'sr' || l === 'sr-Latn' || l === 'sr-latn') return 'sr-Latn';
+  if (l === 'ru' || l === 'ru-RU' || l === 'ru-ru') return 'ru';
+  return l;
+}
+
+function fmtTimeRange(openTime?: string | null, closeTime?: string | null) {
+  if (!openTime || !closeTime) return '';
+  // em dash ili —, ti već koristiš —
+  return `${openTime}—${closeTime}`;
+}
+
+function sameHoursKey(row: {
+  isClosed: boolean;
+  openTime: any;
+  closeTime: any;
+}) {
+  if (row.isClosed) return 'CLOSED';
+  return `${row.openTime ?? ''}-${row.closeTime ?? ''}`;
+}
+
+/**
+ * Nađe najveći "kontinuirani" blok dana koji imaju identično radno vreme (npr pon-sub).
+ * Preferira blok koji NIJE zatvoren (otvoreni sati).
+ */
+function findBestContinuousRange(weekly: any[]) {
+  // weekly: [{weekday, isClosed, openTime, closeTime}, ...]
+  // Mapiramo 1..7 u niz
+  const byDay = new Map<number, any>();
+  for (const r of weekly ?? []) byDay.set(Number(r.weekday), r);
+
+  const days: number[] = [1, 2, 3, 4, 5, 6, 7];
+  const rows = days.map((d) => ({
+    weekday: d,
+    row: byDay.get(d) ?? {
+      weekday: d,
+      isClosed: true,
+      openTime: null,
+      closeTime: null,
+    },
+  }));
+
+  // helper za najbolje: najduži, a ako je izjednačeno preferiraj OPEN blok
+  let best: {
+    start: number;
+    end: number;
+    key: string;
+    len: number;
+    openPreferred: boolean;
+  } | null = null;
+
+  let i = 0;
+  while (i < rows.length) {
+    const k = sameHoursKey(rows[i].row);
+    let j = i;
+    while (j + 1 < rows.length && sameHoursKey(rows[j + 1].row) === k) j++;
+
+    const len = j - i + 1;
+    const openPreferred = k !== 'CLOSED';
+
+    const candidate = {
+      start: rows[i].weekday,
+      end: rows[j].weekday,
+      key: k,
+      len,
+      openPreferred,
+    };
+
+    if (!best) best = candidate;
+    else {
+      if (candidate.len > best.len) best = candidate;
+      else if (candidate.len === best.len) {
+        // prefer open over closed
+        if (candidate.openPreferred && !best.openPreferred) best = candidate;
+      }
+    }
+
+    i = j + 1;
+  }
+
+  return best;
+}
+
+function formatDayRange(start: number, end: number, lang: string) {
+  const dict = dayShort[normLang(lang)] ?? dayShort['sr-Latn'];
+  const s = dict[start as DayKey] ?? String(start);
+  const e = dict[end as DayKey] ?? String(end);
+  if (start === end) return s;
+  return `${s}–${e}`;
+}
+
+export default function Sidebar({ t, cartT, cartPageT, hours }: Props) {
   const pathname = usePathname() || '/';
 
   // ✅ hydration guard (SSR sees empty cart; wait for client mount)
@@ -66,26 +184,10 @@ export default function Sidebar({ t, cartT, cartPageT }: Props) {
   } = useDelayedHover(700);
 
   // ✅ WORKING HOURS
-  const [isOpenNow, setIsOpenNow] = useState(true);
-
-  useEffect(() => {
-    const compute = () => {
-      const now = new Date();
-      const day = now.getDay(); // 0=Sunday ... 6=Saturday
-      const isSunday = day === 0;
-
-      const minutes = now.getHours() * 60 + now.getMinutes();
-      const start = 15 * 60;
-      const end = 23 * 60;
-
-      const openToday = !isSunday && minutes >= start && minutes < end;
-      setIsOpenNow(openToday);
-    };
-
-    compute();
-    const timer = window.setInterval(compute, 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const isOpenNow = hours ? !!hours.isOpenNow : true; // fallback true da ne sivi sve ako nema data
+  const isClosedNow = hours
+    ? !!hours.effective?.isClosed || !hours.isOpenNow
+    : false;
 
   // if we navigate to cart page, force-close preview
   useEffect(() => {
@@ -147,6 +249,50 @@ export default function Sidebar({ t, cartT, cartPageT }: Props) {
     },
     [isHomePage, scrollToNextSection],
   );
+
+  const langKey = normLang(langFromPath || 'sr-Latn');
+
+  const { hoursLabel, daysLabel } = useMemo(() => {
+    if (!hours?.weekly?.length) {
+      return {
+        hoursLabel: t.workingHours, // fallback na prevod/hardkod ako nema API
+        daysLabel: '',
+      };
+    }
+
+    const best = findBestContinuousRange(hours.weekly);
+    const days = best ? formatDayRange(best.start, best.end, langKey) : '';
+
+    const effective = hours.effective;
+    const time = effective?.isClosed
+      ? '' // ako je zatvoreno, vreme nema smisla
+      : fmtTimeRange(effective?.openTime, effective?.closeTime);
+
+    // Ako je zatvoreno: umesto vremena pokaži npr "Zatvoreno" (možeš i iz t)
+    if (effective?.isClosed) {
+      return {
+        hoursLabel:
+          langKey === 'en-Us'
+            ? 'Closed'
+            : langKey === 'ru'
+              ? 'Закрыто'
+              : 'Zatvoreno',
+        daysLabel: days,
+      };
+    }
+
+    // Ako effective vreme postoji, koristi njega (override može promeniti)
+    // Ako ne postoji, pokušaj iz best bloka
+    if (time) return { hoursLabel: time, daysLabel: days };
+
+    // fallback: iz best bloka
+    if (best && best.key !== 'CLOSED') {
+      const [openTime, closeTime] = best.key.split('-');
+      return { hoursLabel: fmtTimeRange(openTime, closeTime), daysLabel: days };
+    }
+
+    return { hoursLabel: t.workingHours, daysLabel: '' };
+  }, [hours, t.workingHours, langKey]);
 
   return (
     <div className={clsx(styles.wrapper, !isOpenNow && styles.closed)}>
@@ -235,6 +381,7 @@ export default function Sidebar({ t, cartT, cartPageT }: Props) {
             onMouseLeave={handleCartLeaveSafe}
             cartT={cartT}
             cartPageT={cartPageT}
+            hours={hours}
           />
 
           <ClientLink
@@ -267,11 +414,23 @@ export default function Sidebar({ t, cartT, cartPageT }: Props) {
               styles.wrapper__inner__item,
               styles.smaller,
               styles.nonHoverable,
-              !isOpenNow && styles.workingHoursClosed,
+              isClosedNow && styles.workingHoursClosed,
             )}
           >
             <TimeSvg />
-            <span>{t.workingHours}</span>
+            <span>{hoursLabel}</span>
+            {daysLabel ? (
+              <span
+                className={clsx(styles.wrapper__inner__item__subtitle)}
+                style={{
+                  textDecoration: 'none',
+                  position: 'relative',
+                  top: '-6px',
+                }}
+              >
+                {daysLabel}
+              </span>
+            ) : null}
           </div>
         </div>
 

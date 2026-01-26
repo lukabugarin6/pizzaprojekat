@@ -108,6 +108,7 @@ export class OrdersService {
     }
 
     const lang = Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+    const acceptedLang = this.pickLanguage(acceptLanguage);
 
     const items: OrderItem[] = [];
     let total = 0;
@@ -148,6 +149,7 @@ export class OrdersService {
       phone: dto.phone.trim(),
       note: dto.note?.trim() ?? null,
       type: dto.type,
+      language: acceptedLang,
       addressText:
         dto.type === OrderType.DELIVERY ? dto.addressText!.trim() : null,
       status: OrderStatus.PENDING,
@@ -288,6 +290,7 @@ export class OrdersService {
         addressText: order.addressText,
         total: order.total,
         createdAt: order.createdAt,
+        language: order.language,
       });
 
       return {
@@ -334,6 +337,7 @@ export class OrdersService {
         total: order.total,
         createdAt: order.createdAt,
         reason: order.reason,
+        language: order.language,
       });
 
       return {
@@ -380,5 +384,12 @@ export class OrdersService {
     // fallback: prvi koji ima name
     const anyTr = translations.find((t) => t?.name);
     return anyTr?.name ?? null;
+  }
+
+  async findByPublicCodeForMail(publicCode: string) {
+    return this.orderRepo.findOne({
+      where: { publicCode } as any,
+      // items nisu obavezni za status mail, ali možeš uključiti ako treba
+    });
   }
 }

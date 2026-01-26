@@ -12,6 +12,7 @@ import { User } from '../users/user.entity';
 import { OrderStatus } from './order-status.enum';
 import { OrderType } from './order-type.enum';
 import { OrderItem } from './order-item.entity';
+import { Language } from 'src/common/enums/language.enum';
 
 @Entity('orders')
 export class Order {
@@ -35,6 +36,9 @@ export class Order {
 
   @Column({ type: 'varchar', length: 30 })
   phone: string;
+
+  @Column({ type: 'enum', enum: Language, default: Language.SR_LATN })
+  language: Language;
 
   @Column({ type: 'text', nullable: true })
   note: string | null;

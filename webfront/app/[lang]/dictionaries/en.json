@@ -126,7 +126,8 @@
       "deliveryNotOkFallback": "Delivery is not available for your cart.",
       "cashOnly": "We accept cash only.",
       "submit": "Place order",
-      "consent": "By submitting the order, you confirm the information is accurate and you consent to the processing of personal data."
+      "consent": "By submitting the order, you confirm the information is accurate and you consent to the processing of personal data.",
+      "restaurantClosed": "The restaurant is currently closed. Ordering is unavailable."
     }
   },
   "deliveryPricing": {

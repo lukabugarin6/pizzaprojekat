@@ -22,6 +22,7 @@ import { Dictionary } from '@/app/[lang]/dictionaries';
 import { DeliveryReason } from '@/context/cart/cart-provider';
 import { createOrderAction } from '@/app/actions/create-order';
 import { useOrderTracking } from '@/context/order/order-tracking-context';
+import { PublicRestaurantHoursResponse } from '@/lib/restaurant';
 
 type SidebarCartPreviewProps = {
   isOpen: boolean;
@@ -29,6 +30,7 @@ type SidebarCartPreviewProps = {
   onMouseLeave: () => void;
   cartT: Dictionary['cart'];
   cartPageT: Dictionary['cartPage'];
+  hours?: PublicRestaurantHoursResponse | null;
 };
 
 type SavedCustomer = {
@@ -48,6 +50,7 @@ export default function SidebarCartPreview({
   onMouseLeave,
   cartT,
   cartPageT,
+  hours,
 }: SidebarCartPreviewProps) {
   const {
     items = [],
@@ -56,6 +59,10 @@ export default function SidebarCartPreview({
     removeFromCart,
     delivery,
   } = useCart();
+
+  const isRestaurantClosed =
+    !!hours &&
+    (hours.effective?.isClosed === true || hours.isOpenNow === false);
 
   const { startTracking } = useOrderTracking();
 
@@ -192,6 +199,7 @@ export default function SidebarCartPreview({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isRestaurantClosed) return;
     if (!items.length || isSubmitting) return;
 
     // ✅ rely on native HTML validation
@@ -582,24 +590,38 @@ export default function SidebarCartPreview({
                     </label>
                   </div>
 
-                  <div
-                    className={clsx(
-                      styles['sidebar-cart__delivery-message'],
-                      !delivery.allowed &&
+                  {!isRestaurantClosed && (
+                    <div
+                      className={clsx(
+                        styles['sidebar-cart__delivery-message'],
+                        !delivery.allowed &&
+                          styles['sidebar-cart__delivery-message--error'],
+                      )}
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {delivery.allowed ? null : deliveryReasonText}
+                    </div>
+                  )}
+                  {!isRestaurantClosed && (
+                    <div
+                      className={styles['sidebar-cart__cash-message']}
+                      role="note"
+                    >
+                      {cartPageT.form.cashOnly}
+                    </div>
+                  )}
+                  {isRestaurantClosed && (
+                    <div
+                      className={clsx(
+                        styles['sidebar-cart__delivery-message'],
                         styles['sidebar-cart__delivery-message--error'],
-                    )}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {delivery.allowed ? null : deliveryReasonText}
-                  </div>
-
-                  <div
-                    className={styles['sidebar-cart__cash-message']}
-                    role="note"
-                  >
-                    {cartPageT.form.cashOnly}
-                  </div>
+                      )}
+                      role="alert"
+                    >
+                      {cartPageT.form.restaurantClosed}
+                    </div>
+                  )}
                 </div>
 
                 {/* row 4: address */}
@@ -633,6 +655,7 @@ export default function SidebarCartPreview({
                   disabled={
                     !hasItems ||
                     isSubmitting ||
+                    true ||
                     (orderType === 'delivery' && !delivery.allowed)
                   }
                   aria-busy={isSubmitting}

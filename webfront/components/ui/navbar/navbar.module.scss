@@ -458,7 +458,7 @@
 
 .workingTimeRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 
   padding: 6px 10px;
@@ -487,6 +487,12 @@
 
 .workingTimeText {
   line-height: 1;
+}
+
+.workingTimeTextTextWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ✅ short-height phones: shrink menu tiles */

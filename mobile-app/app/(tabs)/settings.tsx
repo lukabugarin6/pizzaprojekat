@@ -8,24 +8,30 @@ import {
   SafeAreaView,
   useColorScheme,
   Alert,
-  TextInput,
   ActivityIndicator,
   ScrollView,
   Switch,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+
 import { useAuth } from "../../context/authContext";
 
 import {
   fetchPublicRestaurantHours,
-  updateRestaurantSettings,
   setRestaurantWeeklyHours,
   createRestaurantOverride,
   deleteRestaurantOverride,
   Weekday,
   WeeklyHoursRow,
   PublicRestaurantHoursResponse,
-} from "../../api/restaurant"; // adjust path if needed
+} from "../../api/restaurant";
+
+import { GorhomSheetModal } from "../../components/products/bottom-sheet-modal";
 
 const weekdayLabel: Record<Weekday, string> = {
   1: "Ponedeljak",
@@ -40,8 +46,8 @@ const weekdayLabel: Record<Weekday, string> = {
 type EditableDay = {
   weekday: Weekday;
   isClosed: boolean;
-  openTime: string;
-  closeTime: string;
+  openTime: string; // "HH:mm"
+  closeTime: string; // "HH:mm"
 };
 
 function normalizeWeekly(weekly: WeeklyHoursRow[]): EditableDay[] {
@@ -62,8 +68,26 @@ function normalizeWeekly(weekly: WeeklyHoursRow[]): EditableDay[] {
 }
 
 function isHHmm(v: string) {
-  // simple client-side guard, backend validates anyway
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+}
+
+function fmtHours(d: EditableDay) {
+  if (d.isClosed) return "Zatvoreno";
+  return `${d.openTime} – ${d.closeTime}`;
+}
+
+function hhmmToDate(hhmm: string) {
+  const [hh, mm] = String(hhmm ?? "")
+    .split(":")
+    .map((x) => Number(x));
+  const d = new Date();
+  d.setHours(Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0, 0);
+  return d;
+}
+function dateToHHmm(d: Date) {
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
 
 export default function SettingsTab() {
@@ -72,16 +96,16 @@ export default function SettingsTab() {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
 
-  // ✅ tokens (isti stil kao ostali screenovi)
   const bg = isDark ? "#000" : "#fff";
   const fg = isDark ? "#fff" : "#000";
   const border = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.22)";
   const muted = isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)";
-  const inputBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
 
+  const accent = "#e67428";
+  const accentFg = "#fff";
   const danger = "#EB5757";
-  const dangerFg = "#fff";
-  const accent = isDark ? "#fff" : "#000";
+
+  const disabledStyle = isDark ? { opacity: 0.65 } : { opacity: 0.45 };
 
   const onLogout = () => {
     Alert.alert("Odjava", "Da li ste sigurni da želite da se odjavite?", [
@@ -98,13 +122,25 @@ export default function SettingsTab() {
     null,
   );
 
-  const [name, setName] = useState("");
-  const [timezone, setTimezone] = useState("Europe/Belgrade");
   const [weekly, setWeekly] = useState<EditableDay[]>([]);
   const [manualClosedToday, setManualClosedToday] = useState(false);
 
   const activeOverrideId = server?.activeOverride?.id ?? null;
   const activeOverrideReason = server?.activeOverride?.reason ?? null;
+
+  // ===== weekly modal state =====
+  const [weeklyModalOpen, setWeeklyModalOpen] = useState(false);
+  const [editingWeekday, setEditingWeekday] = useState<Weekday | null>(null);
+
+  // time picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerField, setPickerField] = useState<"open" | "close">("open");
+  const [pickerValue, setPickerValue] = useState<Date>(new Date());
+
+  const editingDay = useMemo(() => {
+    if (!editingWeekday) return null;
+    return weekly.find((d) => d.weekday === editingWeekday) ?? null;
+  }, [editingWeekday, weekly]);
 
   const load = async () => {
     try {
@@ -112,8 +148,6 @@ export default function SettingsTab() {
       const data = await fetchPublicRestaurantHours();
       setServer(data);
 
-      setName(data.settings?.name ?? "");
-      setTimezone(data.settings?.timezone ?? "Europe/Belgrade");
       setWeekly(normalizeWeekly(data.weekly));
 
       setManualClosedToday(
@@ -135,41 +169,32 @@ export default function SettingsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSaveSettings = async () => {
-    try {
-      setSaving(true);
-      await updateRestaurantSettings({ name, timezone });
-      await load();
-      Alert.alert("Sačuvano", "Podešavanja restorana su sačuvana.");
-    } catch (e: any) {
-      Alert.alert("Greška", e?.message ?? "Snimanje nije uspelo.");
-    } finally {
-      setSaving(false);
+  const validateWeekly = () => {
+    for (const d of weekly) {
+      if (!d.isClosed) {
+        if (!isHHmm(d.openTime) || !isHHmm(d.closeTime)) {
+          Alert.alert(
+            "Neispravno vreme",
+            `Proveri vreme za ${weekdayLabel[d.weekday]} (format HH:mm).`,
+          );
+          return false;
+        }
+        if (d.openTime >= d.closeTime) {
+          Alert.alert(
+            "Neispravan opseg",
+            `Zatvaranje mora biti posle otvaranja (${weekdayLabel[d.weekday]}).`,
+          );
+          return false;
+        }
+      }
     }
+    return true;
   };
 
   const onSaveWeekly = async () => {
-    try {
-      // basic client validation
-      for (const d of weekly) {
-        if (!d.isClosed) {
-          if (!isHHmm(d.openTime) || !isHHmm(d.closeTime)) {
-            Alert.alert(
-              "Neispravno vreme",
-              `Proveri vreme za ${weekdayLabel[d.weekday]} (format HH:mm).`,
-            );
-            return;
-          }
-          if (d.openTime >= d.closeTime) {
-            Alert.alert(
-              "Neispravan opseg",
-              `Zatvaranje mora biti posle otvaranja (${weekdayLabel[d.weekday]}).`,
-            );
-            return;
-          }
-        }
-      }
+    if (!validateWeekly()) return;
 
+    try {
       setSaving(true);
 
       await setRestaurantWeeklyHours({
@@ -191,8 +216,6 @@ export default function SettingsTab() {
   };
 
   const toggleManualClosedToday = async (next: boolean) => {
-    // Guard: if there is some other override active today (Vacation / special),
-    // don’t let “manual closed” fight it.
     const hasOtherOverride =
       server?.effective?.source === "override" &&
       server?.activeOverride &&
@@ -219,7 +242,6 @@ export default function SettingsTab() {
           reason: "MANUAL_CLOSED",
         });
       } else {
-        // only delete if our manual override is active
         if (activeOverrideId && activeOverrideReason === "MANUAL_CLOSED") {
           await deleteRestaurantOverride(activeOverrideId);
         }
@@ -239,11 +261,48 @@ export default function SettingsTab() {
     );
   };
 
+  const openEditDay = (weekday: Weekday) => {
+    setEditingWeekday(weekday);
+    setWeeklyModalOpen(true);
+  };
+
+  const closeWeeklyModal = () => {
+    if (saving) return;
+    setWeeklyModalOpen(false);
+    setEditingWeekday(null);
+    setPickerOpen(false);
+  };
+
+  const openTimePicker = (field: "open" | "close") => {
+    if (!editingDay) return;
+    setPickerField(field);
+    setPickerValue(
+      hhmmToDate(field === "open" ? editingDay.openTime : editingDay.closeTime),
+    );
+    setPickerOpen(true);
+  };
+
+  const onPickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    // Android sends "dismissed" when cancelled
+    if (Platform.OS === "android") {
+      setPickerOpen(false);
+    }
+    if (event.type === "dismissed") return;
+    const d = selected ?? pickerValue;
+    setPickerValue(d);
+
+    if (!editingDay) return;
+    const hhmm = dateToHHmm(d);
+    if (pickerField === "open")
+      updateDay(editingDay.weekday, { openTime: hhmm });
+    else updateDay(editingDay.weekday, { closeTime: hhmm });
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
         <View style={[styles.container, { backgroundColor: bg }]}>
-          <ActivityIndicator />
+          <ActivityIndicator color={fg} />
         </View>
       </SafeAreaView>
     );
@@ -260,8 +319,9 @@ export default function SettingsTab() {
           Upravljanje restoranom i nalogom
         </Text>
 
-        {/* ===== Restaurant settings ===== */}
+        {/* ===== Restaurant ===== */}
         <View style={[styles.card, { borderColor: border }]}>
+          {/* Quick close */}
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={[styles.rowTitle, { color: fg }]}>
@@ -291,97 +351,76 @@ export default function SettingsTab() {
 
           <View style={[styles.divider, { borderColor: border }]} />
 
-          {/* Weekly hours */}
-          <Text style={[styles.sectionTitle, { color: fg }]}>Radno vreme</Text>
-
-          {weekly.map((d) => (
-            <View
-              key={d.weekday}
-              style={[styles.dayRow, { borderColor: border }]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.dayName, { color: fg }]}>
-                  {weekdayLabel[d.weekday]}
-                </Text>
-                <Text style={[styles.dayMeta, { color: muted }]}>
-                  {d.isClosed ? "Zatvoreno" : `${d.openTime} – ${d.closeTime}`}
-                </Text>
-              </View>
-
-              <View style={styles.dayRight}>
-                <TouchableOpacity
-                  onPress={() =>
-                    updateDay(d.weekday, { isClosed: !d.isClosed })
-                  }
-                  style={[
-                    styles.smallBtn,
-                    { borderColor: border, backgroundColor: "transparent" },
-                  ]}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.smallBtnText, { color: fg }]}>
-                    {d.isClosed ? "Otvori" : "Zatvori"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {!d.isClosed ? (
-                <View style={styles.timeRow}>
-                  <TextInput
-                    value={d.openTime}
-                    onChangeText={(t) => updateDay(d.weekday, { openTime: t })}
-                    style={[
-                      styles.timeInput,
-                      {
-                        color: fg,
-                        backgroundColor: inputBg,
-                        borderColor: border,
-                      },
-                    ]}
-                    placeholder="15:00"
-                    placeholderTextColor={muted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <Text style={{ color: muted, paddingHorizontal: 8 }}>—</Text>
-                  <TextInput
-                    value={d.closeTime}
-                    onChangeText={(t) => updateDay(d.weekday, { closeTime: t })}
-                    style={[
-                      styles.timeInput,
-                      {
-                        color: fg,
-                        backgroundColor: inputBg,
-                        borderColor: border,
-                      },
-                    ]}
-                    placeholder="23:00"
-                    placeholderTextColor={muted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              ) : null}
+          {/* Weekly hours preview list */}
+          <View style={styles.rowBetween}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: fg }]}>
+                Radno vreme
+              </Text>
+              <Text
+                style={{
+                  color: muted,
+                  fontWeight: "700",
+                  marginTop: 2,
+                  fontSize: 12,
+                }}
+              >
+                Tapni dan da izmeniš. Sačuvaj kada završiš.
+              </Text>
             </View>
-          ))}
 
-          <TouchableOpacity
-            style={[styles.primaryBtn, { borderColor: border, marginTop: 10 }]}
-            onPress={onSaveWeekly}
-            disabled={saving}
-            activeOpacity={0.85}
-          >
-            {saving ? (
-              <ActivityIndicator />
-            ) : (
-              <>
-                <Ionicons name="time-outline" size={18} color={accent} />
-                <Text style={[styles.primaryText, { color: fg }]}>
-                  Sačuvaj radno vreme
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onSaveWeekly}
+              disabled={saving}
+              activeOpacity={0.85}
+              style={[
+                styles.smallPill,
+                { borderColor: border, backgroundColor: "transparent" },
+                saving && disabledStyle,
+              ]}
+            >
+              {saving ? (
+                <ActivityIndicator color={fg} />
+              ) : (
+                <View
+                  style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
+                >
+                  <Ionicons name="time-outline" size={16} color={fg} />
+                  <Text style={{ color: fg, fontWeight: "900", fontSize: 12 }}>
+                    Sačuvaj
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ marginTop: 8 }}>
+            {weekly.map((d) => (
+              <TouchableOpacity
+                key={d.weekday}
+                onPress={() => openEditDay(d.weekday)}
+                activeOpacity={0.85}
+                style={[styles.weekRow, { borderColor: border }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Izmeni ${weekdayLabel[d.weekday]}`}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.dayName, { color: fg }]}>
+                    {weekdayLabel[d.weekday]}
+                  </Text>
+                  <Text style={[styles.dayMeta, { color: muted }]}>
+                    {fmtHours(d)}
+                  </Text>
+                </View>
+
+                <Ionicons
+                  name="chevron-forward-outline"
+                  size={18}
+                  color={muted}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* ===== Account ===== */}
@@ -393,20 +432,247 @@ export default function SettingsTab() {
 
           <View style={styles.row}>
             <TouchableOpacity
-              style={[styles.logoutBtn, { backgroundColor: danger }]}
+              style={[
+                styles.outlineBtn,
+                { borderColor: danger, backgroundColor: "transparent" },
+              ]}
               onPress={onLogout}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Odjavi se"
             >
-              <Ionicons name="log-out-outline" size={20} color={dangerFg} />
-              <Text style={[styles.logoutText, { color: dangerFg }]}>
+              <Ionicons name="log-out-outline" size={20} color={danger} />
+              <Text style={[styles.outlineText, { color: danger }]}>
                 Odjavi se
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {/* ===== Weekly edit modal (bottom sheet) ===== */}
+      <GorhomSheetModal
+        visible={weeklyModalOpen}
+        onClose={closeWeeklyModal}
+        bg={bg}
+        border={border}
+        header={
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.modalTitle, { color: fg }]}>
+                {editingDay ? weekdayLabel[editingDay.weekday] : "Radno vreme"}
+              </Text>
+              {editingDay ? (
+                <Text style={{ color: muted, marginTop: 2, fontWeight: "700" }}>
+                  {fmtHours(editingDay)}
+                </Text>
+              ) : null}
+            </View>
+
+            <TouchableOpacity
+              onPress={closeWeeklyModal}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Zatvori"
+              style={styles.iconBtnNoBorder}
+            >
+              <Ionicons name="close-outline" size={26} color={fg} />
+            </TouchableOpacity>
+          </View>
+        }
+        footer={
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[
+                styles.modalBtn,
+                {
+                  backgroundColor: "transparent",
+                  borderColor: border,
+                  borderWidth: 1,
+                },
+                saving && disabledStyle,
+              ]}
+              onPress={closeWeeklyModal}
+              disabled={saving}
+              activeOpacity={0.85}
+            >
+              <View
+                style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+              >
+                <Ionicons name="close-outline" size={18} color={fg} />
+                <Text style={[styles.cancelText, { color: fg }]}>Zatvori</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.modalBtn,
+                {
+                  backgroundColor: accent,
+                  borderColor: accent,
+                  borderWidth: 1,
+                  elevation: 2,
+                  shadowOpacity: 0.12,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 2 },
+                },
+                saving && disabledStyle,
+              ]}
+              onPress={async () => {
+                await onSaveWeekly();
+                setWeeklyModalOpen(false);
+                setEditingWeekday(null);
+              }}
+              disabled={saving}
+              activeOpacity={0.9}
+            >
+              {saving ? (
+                <ActivityIndicator color={accentFg} />
+              ) : (
+                <View
+                  style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={18}
+                    color={accentFg}
+                  />
+                  <Text style={[styles.saveText, { color: accentFg }]}>
+                    Sačuvaj
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        }
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.sheetInner}>
+          {!editingDay ? (
+            <View style={{ paddingVertical: 18 }}>
+              <ActivityIndicator color={fg} />
+            </View>
+          ) : (
+            <>
+              {/* Open/Closed toggle */}
+              <View style={[styles.sheetCard, { borderColor: border }]}>
+                <View style={styles.rowBetween}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={[styles.rowTitle, { color: fg }]}>
+                      Zatvoreno
+                    </Text>
+                    <Text style={[styles.rowDesc, { color: muted }]}>
+                      Ako je zatvoreno, vremena se ignorišu.
+                    </Text>
+                  </View>
+
+                  <Switch
+                    value={editingDay.isClosed}
+                    onValueChange={(v) =>
+                      updateDay(editingDay.weekday, { isClosed: v })
+                    }
+                    disabled={saving}
+                  />
+                </View>
+              </View>
+
+              {/* Time pickers */}
+              {!editingDay.isClosed ? (
+                <View
+                  style={[
+                    styles.sheetCard,
+                    { borderColor: border, marginTop: 12 },
+                  ]}
+                >
+                  <Text style={[styles.fieldLabel, { color: muted }]}>
+                    Vreme
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => openTimePicker("open")}
+                    disabled={saving}
+                    activeOpacity={0.85}
+                    style={[
+                      styles.timeRowBtn,
+                      { borderColor: border, backgroundColor: "transparent" },
+                      saving && disabledStyle,
+                    ]}
+                  >
+                    <Text style={{ color: muted, fontWeight: "800" }}>
+                      Otvara
+                    </Text>
+                    <Text style={{ color: fg, fontWeight: "900" }}>
+                      {editingDay.openTime}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => openTimePicker("close")}
+                    disabled={saving}
+                    activeOpacity={0.85}
+                    style={[
+                      styles.timeRowBtn,
+                      { borderColor: border, backgroundColor: "transparent" },
+                      saving && disabledStyle,
+                    ]}
+                  >
+                    <Text style={{ color: muted, fontWeight: "800" }}>
+                      Zatvara
+                    </Text>
+                    <Text style={{ color: fg, fontWeight: "900" }}>
+                      {editingDay.closeTime}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {pickerOpen ? (
+                    <View style={{ marginTop: 8 }}>
+                      <DateTimePicker
+                        mode="time"
+                        value={pickerValue}
+                        onChange={onPickerChange}
+                        is24Hour
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                      />
+                      {Platform.OS === "ios" ? (
+                        <TouchableOpacity
+                          onPress={() => setPickerOpen(false)}
+                          activeOpacity={0.85}
+                          style={[
+                            styles.pickerDoneBtn,
+                            { borderColor: border },
+                            saving && disabledStyle,
+                          ]}
+                          disabled={saving}
+                        >
+                          <Text style={{ color: fg, fontWeight: "900" }}>
+                            Gotovo
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  <Text
+                    style={{
+                      color: muted,
+                      marginTop: 10,
+                      fontWeight: "700",
+                      fontSize: 12,
+                    }}
+                  >
+                    Tip: otvaranje mora biti pre zatvaranja.
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ color: muted, fontWeight: "700" }}>
+                    Dan je zatvoren.
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </BottomSheetScrollView>
+      </GorhomSheetModal>
     </SafeAreaView>
   );
 }
@@ -427,95 +693,125 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: "900" },
   cardSub: { marginTop: 2, fontSize: 12, marginBottom: 12 },
 
-  field: { marginBottom: 12 },
-  label: { fontSize: 12, marginBottom: 6 },
-  hint: { fontSize: 11, marginTop: 6 },
-
-  input: {
-    height: 46,
-    borderWidth: 1,
-    borderRadius: 0,
-    paddingHorizontal: 12,
-    fontSize: 14,
-  },
-
-  primaryBtn: {
-    height: 46,
-    borderRadius: 0,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  primaryText: { fontWeight: "900" },
-
   divider: {
     borderTopWidth: 1,
     marginVertical: 12,
   },
 
-  sectionTitle: { fontSize: 14, fontWeight: "900", marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: "900" },
 
   rowBetween: {
     flexDirection: "row",
     alignItems: "center",
   },
 
+  rowTitle: { fontSize: 15, fontWeight: "800" },
+  rowDesc: { marginTop: 2, fontSize: 12 },
+
   warning: { marginTop: 6, fontSize: 11 },
 
-  dayRow: {
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+
+  // Weekly list
+  weekRow: {
+    paddingVertical: 12,
     borderTopWidth: 1,
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   dayName: { fontSize: 13, fontWeight: "900" },
-  dayMeta: { marginTop: 2, fontSize: 11 },
+  dayMeta: { marginTop: 3, fontSize: 11, fontWeight: "700" },
 
-  dayRight: { justifyContent: "center" },
-
-  smallBtn: {
+  smallPill: {
+    height: 34,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderRadius: 0,
-    paddingHorizontal: 10,
-    height: 34,
     alignItems: "center",
     justifyContent: "center",
   },
-  smallBtnText: { fontWeight: "900", fontSize: 12 },
 
-  timeRow: {
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  timeInput: {
-    width: 88,
-    height: 40,
-    borderWidth: 1,
-    borderRadius: 0,
-    paddingHorizontal: 10,
-    fontSize: 13,
-  },
-
+  // Logout (old style)
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-
-  rowTitle: { fontSize: 15, fontWeight: "800" },
-  rowDesc: { marginTop: 2, fontSize: 12 },
-
-  logoutBtn: {
+  outlineBtn: {
     height: 46,
     paddingHorizontal: 14,
-    borderRadius: 0, // ✅ flat style
+    borderRadius: 0,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
   },
-  logoutText: { fontWeight: "800" },
+  outlineText: { fontWeight: "900" },
 
-  footer: { marginTop: 12, fontSize: 11 },
+  // Modal/sheet styles (aligned with Orders)
+  iconBtnNoBorder: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "800" },
+
+  modalActions: { flexDirection: "row", gap: 10, marginTop: 6 },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 0,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 46,
+  },
+  cancelText: { fontWeight: "800" },
+  saveText: { fontWeight: "800" },
+
+  sheetInner: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
+    paddingLeft: 0,
+  },
+
+  sheetCard: {
+    borderTopWidth: 1,
+    paddingVertical: 12,
+  },
+
+  timeRowBtn: {
+    borderWidth: 1,
+    height: 46,
+    paddingHorizontal: 12,
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  pickerDoneBtn: {
+    borderWidth: 1,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
 });

@@ -126,7 +126,8 @@
       "deliveryNotOkFallback": "Dostava nije dostupna za sadržaj korpe.",
       "cashOnly": "Plaćanje prihvatamo samo u gotovini.",
       "submit": "Poruči",
-      "consent": "Slanjem porudžbine potvrđujete tačnost podataka i dajete saglasnost za obradu ličnih podataka."
+      "consent": "Slanjem porudžbine potvrđujete tačnost podataka i dajete saglasnost za obradu ličnih podataka.",
+      "restaurantClosed": "Restoran je trenutno zatvoren. Poručivanje nije dostupno."
     }
   },
   "deliveryPricing": {

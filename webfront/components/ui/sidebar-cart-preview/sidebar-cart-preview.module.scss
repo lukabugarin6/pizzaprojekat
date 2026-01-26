@@ -417,6 +417,10 @@
         transform: rotate(90deg) translateY(-8px);
       }
     }
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
   }
 
   &__form-note {

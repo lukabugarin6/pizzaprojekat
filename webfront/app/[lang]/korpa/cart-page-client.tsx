@@ -23,12 +23,14 @@ import { Dictionary } from '../dictionaries';
 
 import { createOrderAction } from '@/app/actions/create-order';
 import { useOrderTracking } from '@/context/order/order-tracking-context';
+import { PublicRestaurantHoursResponse } from '@/lib/restaurant';
 
 type Props = {
   title: string;
   subtitle?: string;
   t: CartPageDict;
   deliveryT: Dictionary['cart']['delivery'];
+  hours?: PublicRestaurantHoursResponse | null;
 };
 
 type CartPageDict = {
@@ -65,6 +67,7 @@ type CartPageDict = {
     cashOnly: string;
     submit: string;
     consent: string;
+    restaurantClosed: string;
   };
 };
 
@@ -88,6 +91,7 @@ export default function CartPageClient({
   subtitle,
   t,
   deliveryT,
+  hours,
 }: Props) {
   const {
     items = [],
@@ -97,6 +101,9 @@ export default function CartPageClient({
     delivery,
   } = useCart();
 
+  const isRestaurantClosed =
+    !!hours &&
+    (hours.effective?.isClosed === true || hours.isOpenNow === false);
   const { startTracking } = useOrderTracking();
 
   const [mounted, setMounted] = useState(false);
@@ -241,6 +248,7 @@ export default function CartPageClient({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!items.length || isSubmitting) return;
+    if (isRestaurantClosed) return;
 
     // ✅ native HTML validation gate (shows browser tooltip messages)
     const form = e.currentTarget;
@@ -645,27 +653,39 @@ export default function CartPageClient({
                           </span>
                         </label>
                       </div>
-
+                      {!isRestaurantClosed && (
+                        <div
+                          className={clsx(
+                            styles['cart-page__delivery-message'],
+                            !delivery.allowed &&
+                              styles['cart-page__delivery-message--error'],
+                          )}
+                          role="status"
+                          aria-live="polite"
+                        >
+                          {delivery.allowed ? null : deliveryReasonText}
+                        </div>
+                      )}
+                      {!isRestaurantClosed && (
+                        <div
+                          className={styles['cart-page__cash-message']}
+                          role="note"
+                        >
+                          {t.form.cashOnly}
+                        </div>
+                      )}
+                    </div>
+                    {isRestaurantClosed && (
                       <div
                         className={clsx(
                           styles['cart-page__delivery-message'],
-                          !delivery.allowed &&
-                            styles['cart-page__delivery-message--error'],
+                          styles['cart-page__delivery-message--error'],
                         )}
-                        role="status"
-                        aria-live="polite"
+                        role="alert"
                       >
-                        {delivery.allowed ? null : deliveryReasonText}
+                        {t.form.restaurantClosed}
                       </div>
-
-                      <div
-                        className={styles['cart-page__cash-message']}
-                        role="note"
-                      >
-                        {t.form.cashOnly}
-                      </div>
-                    </div>
-
+                    )}
                     {orderType === 'delivery' && (
                       <div className={styles['cart-page__form-row']}>
                         <SidebarCartFormField
@@ -695,6 +715,7 @@ export default function CartPageClient({
                       disabled={
                         !hasItems ||
                         isSubmitting ||
+                        isRestaurantClosed ||
                         (isDelivery && !delivery.allowed)
                       }
                       aria-busy={isSubmitting}

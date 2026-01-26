@@ -21,6 +21,7 @@ import { RestaurantModule } from './restaurant/restaurant.module';
 import { RestaurantSettings } from './restaurant/restaurant-settings.entity';
 import { RestaurantWorkingHours } from './restaurant/restaurant-working-hours.entity';
 import { RestaurantOverride } from './restaurant/restaurant-override.entity';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { RestaurantOverride } from './restaurant/restaurant-override.entity';
     CategoriesModule,
     OrdersModule,
     RestaurantModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
