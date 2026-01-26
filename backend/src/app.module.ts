@@ -17,6 +17,7 @@ import { Order } from './orders/order.entity';
 import { OrderItem } from './orders/order-item.entity';
 import { OrdersModule } from './orders/orders.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { RestaurantModule } from './restaurant/restaurant.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     ProductsModule,
     CategoriesModule,
     OrdersModule,
+    RestaurantModule,
   ],
   controllers: [AppController],
   providers: [AppService],
