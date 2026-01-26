@@ -1,4 +1,3 @@
-// app/(tabs)/index.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -11,6 +10,7 @@ import {
   TextInput,
   SafeAreaView,
   useColorScheme,
+  Linking,
 } from "react-native";
 import { Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,7 +89,6 @@ function clampEtaMinutes(v: any) {
   const n = Number(String(v ?? "").trim());
   if (!Number.isFinite(n)) return 30;
   const m = Math.trunc(n);
-  // if (m === 0) return 5;
   if (m > 600) return 600;
   return m;
 }
@@ -118,6 +117,122 @@ function labelFromDayKey(key: string, todayKey: string) {
 }
 
 type OrdersSection = { key: string; title: string; data: AdminOrderDto[] };
+
+// --- customer/info helpers (align with your realtime sheet style) ---
+function safeText(v: any) {
+  const s = String(v ?? "").trim();
+  return s ? s : "-";
+}
+
+function isDelivery(type?: string) {
+  const t = String(type ?? "").toLowerCase();
+  return t.includes("delivery");
+}
+
+function normalizeItems(o: any): any[] {
+  const arr = o?.items ?? o?.orderItems ?? o?.lines ?? o?.products ?? [];
+  return Array.isArray(arr) ? arr : [];
+}
+
+// best-effort (works with your realtime schema AND common DTOs)
+function itemName(it: any) {
+  return safeText(
+    it?.productName ?? it?.name ?? it?.title ?? it?.product?.name,
+  );
+}
+function itemSize(it: any) {
+  const v = it?.variantSize ?? it?.size ?? it?.variant?.size;
+  if (v === null || v === undefined) return "";
+  const n = Number(v);
+  if (Number.isFinite(n)) return ` • ${n}cm`;
+  const s = String(v).trim();
+  return s ? ` • ${s}` : "";
+}
+// ✅ preview-friendly size (no bullet - so we don't get double "•")
+function itemSizePreview(it: any) {
+  const v = it?.variantSize ?? it?.size ?? it?.variant?.size;
+  if (v === null || v === undefined) return "";
+  const n = Number(v);
+  if (Number.isFinite(n)) return ` ${n}cm`;
+  const s = String(v).trim();
+  return s ? ` ${s}` : "";
+}
+
+function itemQty(it: any) {
+  const q = it?.quantity ?? it?.qty ?? it?.count;
+  const n = Number(q);
+  return Number.isFinite(n) ? n : null;
+}
+function itemLineTotal(it: any) {
+  const lt = it?.lineTotal ?? it?.total ?? it?.sum;
+  const n = Number(lt);
+  if (Number.isFinite(n)) return n;
+
+  // fallback: qty * unitPrice/price
+  const q = itemQty(it);
+  const p = Number(it?.unitPrice ?? it?.price ?? it?.product?.price);
+  if (q !== null && Number.isFinite(p)) return q * p;
+  return null;
+}
+
+// customer fields (try several common names)
+function customerFullName(o: any) {
+  return (
+    String(o?.fullName ?? "").trim() ||
+    String(o?.customerName ?? "").trim() ||
+    String(o?.customer?.fullName ?? "").trim() ||
+    String(o?.customer?.name ?? "").trim() ||
+    String(o?.user?.fullName ?? "").trim() ||
+    String(o?.user?.name ?? "").trim() ||
+    "-"
+  );
+}
+function customerPhoneRaw(o: any) {
+  return (
+    o?.phone ?? o?.customerPhone ?? o?.customer?.phone ?? o?.user?.phone ?? null
+  );
+}
+function customerEmail(o: any) {
+  return safeText(o?.email ?? o?.customerEmail ?? o?.customer?.email);
+}
+function customerNote(o: any) {
+  const s = String(o?.note ?? o?.comment ?? o?.customerNote ?? "").trim();
+  return s ? s : "";
+}
+function addressText(o: any) {
+  const s = String(
+    o?.addressText ??
+      o?.addressLine ??
+      o?.deliveryAddress ??
+      o?.address?.text ??
+      o?.address?.line ??
+      "",
+  ).trim();
+  return s ? s : "";
+}
+
+// ✅ phone tap helpers
+function toTelUri(raw: any) {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const cleaned = s.replace(/[^\d+]/g, "");
+  return cleaned ? `tel:${cleaned}` : null;
+}
+async function callPhone(rawPhone: any) {
+  const uri = toTelUri(rawPhone);
+  if (!uri) return;
+
+  try {
+    const can = await Linking.canOpenURL(uri);
+    if (!can) {
+      showToast("error", "Ne mogu da otvorim poziv", "Telefon nije dostupan.");
+      return;
+    }
+    await Linking.openURL(uri);
+  } catch {
+    showToast("error", "Ne mogu da otvorim poziv", "Pokušaj ponovo.");
+  }
+}
 
 export default function HomeTab() {
   const { ordersChangedKey } = useOrdersRealtime();
@@ -210,7 +325,6 @@ export default function HomeTab() {
   }, [orders, todayKey]);
 
   const headerCount = useMemo(() => {
-    // only "all" should show "Ukupno danas"
     if (tab === "all") return `Ukupno danas: ${todayOrdersCount}`;
     return `${statusLabel(tab)}: ${orders.length}`;
   }, [orders.length, tab, todayOrdersCount]);
@@ -263,8 +377,9 @@ export default function HomeTab() {
     setAcceptOrder(o);
 
     const initial =
-      typeof o.etaMinutes === "number" && Number.isFinite(o.etaMinutes)
-        ? clampEtaMinutes(o.etaMinutes)
+      typeof (o as any).etaMinutes === "number" &&
+      Number.isFinite((o as any).etaMinutes)
+        ? clampEtaMinutes((o as any).etaMinutes)
         : 30;
     setAcceptEtaMinutes(initial);
 
@@ -286,7 +401,7 @@ export default function HomeTab() {
     try {
       await acceptAdminOrder(acceptOrder.id, { etaMinutes: eta });
 
-      showToast("success", "Prihvaćeno", `ETA: ${eta} min`);
+      showToast("success", "Prihvaćeno", `Očekivano vreme: ${eta} min`);
       closeAccept();
       await load(tab, "refresh");
     } catch (e: any) {
@@ -323,16 +438,41 @@ export default function HomeTab() {
     ]);
   }
 
+  // ✅ group items preview for list row (includes variant size if exists)
+  function itemsPreviewMultiline(order: any) {
+    const items = normalizeItems(order);
+    if (!items.length) return "";
+
+    const lines = items
+      // .slice(0, 2)
+      .map((it) => {
+        const name = itemName(it);
+        const size = itemSizePreview(it);
+        const qty = itemQty(it);
+        if (!name || name === "-") return "";
+        return `${name} •${size}${qty !== null ? ` x${qty}` : ""}`;
+      })
+      .filter(Boolean);
+
+    const extra = items.length - lines.length;
+    if (extra > 0) lines.push(`• +${extra}`);
+
+    return lines.join("\n");
+  }
+
   const renderOrder = ({ item }: { item: AdminOrderDto }) => {
     const sc = statusColor(item.status, accent, ok, danger);
     const showActions = item.status === "pending";
+    const preview = itemsPreviewMultiline(item);
 
     return (
       <View style={[styles.rowCard, { borderColor: border }]}>
         <View style={styles.rowTop}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.code, { color: fg }]}>{item.publicCode}</Text>
-
+            {/* <Text style={[styles.code, { color: fg }]}>{item.publicCode}</Text> */}
+            {preview ? (
+              <Text style={[styles.rowTitle, { color: fg }]}>{preview}</Text>
+            ) : null}
             <View style={styles.metaRow}>
               <Text style={[styles.meta, { color: muted }]}>
                 {formatTime(item.createdAt)}
@@ -341,7 +481,7 @@ export default function HomeTab() {
               <Text style={[styles.dot, { color: muted }]}>•</Text>
 
               <Text style={[styles.meta, { color: muted }]}>
-                {item.type === "delivery" ? "Dostava" : "Preuzimanje"}
+                {(item as any).type === "delivery" ? "Dostava" : "Preuzimanje"}
               </Text>
 
               <Text style={[styles.dot, { color: muted }]}>•</Text>
@@ -350,21 +490,23 @@ export default function HomeTab() {
                 {statusLabel(item.status)}
               </Text>
 
-              {typeof item.etaMinutes === "number" &&
-              Number.isFinite(item.etaMinutes) ? (
+              {typeof (item as any).etaMinutes === "number" &&
+              Number.isFinite((item as any).etaMinutes) ? (
                 <>
                   <Text style={[styles.dot, { color: muted }]}>•</Text>
                   <Text style={[styles.meta, { color: muted }]}>
-                    ETA {item.etaMinutes}m
+                    Očekivano vreme: {(item as any).etaMinutes}m
                   </Text>
                 </>
               ) : null}
             </View>
+
+            {/* ✅ items preview under meta row */}
           </View>
 
           <View style={styles.rightCol}>
             <Text style={[styles.total, { color: fg }]}>
-              {formatMoneyRSD(item.total)}
+              {formatMoneyRSD((item as any).total)}
             </Text>
 
             <TouchableOpacity
@@ -443,6 +585,29 @@ export default function HomeTab() {
       </View>
     );
   };
+
+  // DETAILS helpers derived from current selected order
+  const detailsItems = useMemo(
+    () => normalizeItems(detailsOrder),
+    [detailsOrder],
+  );
+  const showAddress = useMemo(() => {
+    if (!detailsOrder) return false;
+    return (
+      isDelivery((detailsOrder as any).type) &&
+      !!addressText(detailsOrder as any)
+    );
+  }, [detailsOrder]);
+
+  const detailsPhoneRaw = useMemo(() => {
+    if (!detailsOrder) return null;
+    return customerPhoneRaw(detailsOrder as any);
+  }, [detailsOrder]);
+
+  const detailsTelUri = useMemo(
+    () => toTelUri(detailsPhoneRaw),
+    [detailsPhoneRaw],
+  );
 
   return (
     <SafeAreaView
@@ -543,7 +708,29 @@ export default function HomeTab() {
           border={border}
           header={
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: fg }]}>Detalji</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: fg }]}>Detalji</Text>
+                {detailsOrder ? (
+                  <Text
+                    style={{ color: muted, marginTop: 2, fontWeight: "700" }}
+                  >
+                    {(detailsOrder as any).type === "delivery"
+                      ? "Dostava"
+                      : "Preuzimanje"}
+                    {detailsOrder.createdAt
+                      ? ` ${formatTime(detailsOrder.createdAt)}`
+                      : ""}
+                  </Text>
+                ) : null}
+                {typeof (detailsOrder as any)?.etaMinutes === "number" &&
+                Number.isFinite((detailsOrder as any)?.etaMinutes) ? (
+                  <Text
+                    style={{ color: muted, marginTop: 4, fontWeight: "800" }}
+                  >
+                    Očekivano vreme: {(detailsOrder as any)?.etaMinutes} min
+                  </Text>
+                ) : null}
+              </View>
 
               <TouchableOpacity
                 onPress={closeDetails}
@@ -564,8 +751,250 @@ export default function HomeTab() {
               </View>
             ) : (
               <>
-                {/* ⛳ keep your existing details JSX here (unchanged) */}
-                {(detailsOrder.items ?? []).map(() => null)}
+                {/* 0) KOD + STATUS + OČEKIVANO VREME */}
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: border,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: 12,
+                    }}
+                  >
+                    {/* LEFT: items headline */}
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontWeight: "800",
+                          color: muted,
+                          marginBottom: 4,
+                        }}
+                      >
+                        Stavke:
+                      </Text>
+
+                      {detailsItems.length === 0 ? (
+                        <Text
+                          style={{ color: fg, fontWeight: "900", fontSize: 18 }}
+                        >
+                          -
+                        </Text>
+                      ) : (
+                        detailsItems.map((it: any, idx: number) => {
+                          const name = itemName(it);
+                          const size = itemSize(it); // već vraća " • 30cm" format
+                          const qty = itemQty(it);
+                          return (
+                            <Text
+                              key={it?.id ?? `headline:${idx}`}
+                              style={{
+                                color: fg,
+                                fontWeight: "900",
+                                fontSize: 16,
+                                lineHeight: 22,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {name}
+                              {size} {qty !== null ? `x${qty}` : "x-"}
+                            </Text>
+                          );
+                        })
+                      )}
+                    </View>
+
+                    {/* RIGHT: status */}
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={{ fontWeight: "800", color: muted }}>
+                        Status:
+                      </Text>
+                      <Text
+                        style={{
+                          fontWeight: "900",
+                          color: statusColor(
+                            detailsOrder.status,
+                            accent,
+                            ok,
+                            danger,
+                          ),
+                        }}
+                      >
+                        {statusLabel(detailsOrder.status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* opciono: kod prebacimo kao sekundarni info dole */}
+                </View>
+
+                {/* 1) STAVKE */}
+                {/* <View
+                  style={{
+                    paddingVertical: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: border,
+                  }}
+                >
+                  <Text
+                    style={{ fontWeight: "800", color: muted, marginBottom: 8 }}
+                  >
+                    Stavke
+                  </Text>
+
+                  {detailsItems.length === 0 ? (
+                    <Text style={{ color: muted, fontWeight: "700" }}>
+                      Nema stavki u detaljima (moguće da list endpoint ne vraća
+                      items).
+                    </Text>
+                  ) : (
+                    detailsItems.map((it: any, idx: number) => {
+                      const name = itemName(it);
+                      const size = itemSize(it);
+                      const qty = itemQty(it);
+                      const line = itemLineTotal(it);
+
+                      return (
+                        <View
+                          key={
+                            it?.id ?? `${detailsOrder?.id ?? "order"}:${idx}`
+                          }
+                          style={{
+                            paddingVertical: 10,
+                            borderBottomWidth:
+                              idx === detailsItems.length - 1 ? 0 : 1,
+                            borderBottomColor: border,
+                          }}
+                        >
+                          <Text style={{ color: fg, fontWeight: "800" }}>
+                            {name}
+                            {size} {qty !== null ? `x${qty}` : "x-"}
+                          </Text>
+
+                          <Text
+                            style={{
+                              color: fg,
+                              marginTop: 6,
+                              fontWeight: "800",
+                            }}
+                          >
+                            {line !== null ? formatMoneyRSD(line) : "-"}
+                          </Text>
+                        </View>
+                      );
+                    })
+                  )}
+                </View> */}
+
+                {/* 2) UKUPNA CENA */}
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: border,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "800", color: muted }}>
+                        Ukupna cena
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text
+                        style={{ fontWeight: "900", color: fg, fontSize: 18 }}
+                      >
+                        {formatMoneyRSD((detailsOrder as any).total)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* 3) KUPAC (click-to-call) */}
+                <View style={{ paddingVertical: 10 }}>
+                  <Text
+                    style={{ fontWeight: "800", color: muted, marginBottom: 6 }}
+                  >
+                    Kupac
+                  </Text>
+
+                  <Text style={{ color: fg, fontWeight: "800" }}>
+                    {customerFullName(detailsOrder as any)}
+                  </Text>
+
+                  <TouchableOpacity
+                    disabled={!detailsTelUri}
+                    onPress={() => callPhone(detailsPhoneRaw)}
+                    activeOpacity={0.85}
+                    style={{ marginTop: 4, alignSelf: "flex-start" }}
+                  >
+                    <Text
+                      style={[
+                        { color: fg, fontWeight: "700" },
+                        !detailsTelUri ? { opacity: 0.6 } : null,
+                      ]}
+                    >
+                      📞 {safeText(detailsPhoneRaw)}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={{ color: fg, marginTop: 4, fontWeight: "700" }}>
+                    ✉️ {customerEmail(detailsOrder as any)}
+                  </Text>
+
+                  {customerNote(detailsOrder as any) ? (
+                    <View style={{ marginTop: 10 }}>
+                      <Text
+                        style={{
+                          fontWeight: "800",
+                          color: muted,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Napomena
+                      </Text>
+                      <Text style={{ color: fg, fontWeight: "700" }}>
+                        {safeText(customerNote(detailsOrder as any))}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {showAddress ? (
+                    <View style={{ marginTop: 10 }}>
+                      <Text
+                        style={{
+                          fontWeight: "800",
+                          color: muted,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Adresa
+                      </Text>
+                      <Text style={{ color: fg, fontWeight: "700" }}>
+                        {safeText(addressText(detailsOrder as any))}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {detailsOrder.publicCode ? (
+                    <Text
+                      style={{
+                        color: muted,
+                        marginTop: 12,
+                        fontWeight: "800",
+                        borderTopWidth: 1,
+                        borderTopColor: border,
+                        paddingTop: 12,
+                      }}
+                    >
+                      Kod: {detailsOrder.publicCode}
+                    </Text>
+                  ) : null}
+                </View>
               </>
             )}
           </BottomSheetScrollView>
@@ -659,7 +1088,9 @@ export default function HomeTab() {
           }
         >
           <View style={styles.sheetInner}>
-            <Text style={[styles.fieldLabel, { color: muted }]}>ETA (min)</Text>
+            <Text style={[styles.fieldLabel, { color: muted }]}>
+              Očekivano vreme (min)
+            </Text>
 
             <View
               style={[
@@ -729,7 +1160,7 @@ const styles = StyleSheet.create({
   },
 
   safe: { flex: 1 },
-  container: { flex: 1, padding: 16, paddingTop: 24 },
+  container: { flex: 1, padding: 16, paddingTop: 24, paddingBottom: 0 },
 
   titleRow: {
     flexDirection: "row",
@@ -783,7 +1214,7 @@ const styles = StyleSheet.create({
 
   code: { fontSize: 18, fontWeight: "900" },
 
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   meta: { fontSize: 12, fontWeight: "700" },
   dot: { fontSize: 12, fontWeight: "900" },
 
@@ -815,8 +1246,8 @@ const styles = StyleSheet.create({
   sheetInner: {
     flex: 1,
     paddingHorizontal: 16,
-    // paddingTop: 12,
     paddingBottom: 40,
+    paddingLeft: 0,
   },
 
   inputWrap: {
@@ -830,6 +1261,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  itemsPreview: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  rowTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    lineHeight: 22,
   },
 });
 

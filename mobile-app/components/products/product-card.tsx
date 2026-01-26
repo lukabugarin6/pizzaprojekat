@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
   card: { borderBottomWidth: 1, borderRadius: 0, padding: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   thumb: {
-    width: 70,
-    height: 70,
+    width: 90,
+    height: 90,
     borderRadius: 0,
     backgroundColor: "rgba(0,0,0,0.08)",
   },

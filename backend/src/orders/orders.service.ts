@@ -318,6 +318,7 @@ export class OrdersService {
 
       order.status = OrderStatus.REJECTED;
       order.etaMinutes = null;
+      order.reason = dto.reason?.trim() || null;
       order.handledAt = new Date();
       order.handledBy = { id: adminUserId } as any;
 
@@ -332,6 +333,7 @@ export class OrdersService {
         addressText: order.addressText,
         total: order.total,
         createdAt: order.createdAt,
+        reason: order.reason,
       });
 
       return {

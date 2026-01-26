@@ -53,6 +53,9 @@ export class Order {
   @Column({ type: 'int', nullable: true })
   etaMinutes: number | null;
 
+  @Column({ type: 'text', nullable: true })
+  reason: string | null;
+
   // ko je obradio
   @ManyToOne(() => User, { nullable: true })
   handledBy: User | null;

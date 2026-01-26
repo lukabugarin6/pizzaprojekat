@@ -12,6 +12,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useColorScheme,
+  TextInput,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -171,6 +175,31 @@ export function OrdersRealtimeProvider({
     [incoming],
   );
 
+  // ✅ tap-to-edit ETA (same box styles)
+  const [etaEditing, setEtaEditing] = useState(false);
+  const [etaDraft, setEtaDraft] = useState("");
+  const etaInputRef = useRef<TextInput>(null);
+
+  const commitEta = useCallback(() => {
+    const n = clampEtaMinutes(etaDraft);
+
+    // ❗️invalid (empty, 0, NaN) -> keep editing & refocus
+    if (n === null) {
+      requestAnimationFrame(() => etaInputRef.current?.focus());
+      return;
+    }
+
+    setEtaMinutes(() => n);
+    setEtaDraft("");
+    setEtaEditing(false);
+  }, [etaDraft, setEtaMinutes]);
+
+  // ✅ when switching queue item, exit edit mode
+  useEffect(() => {
+    setEtaEditing(false);
+    setEtaDraft("");
+  }, [incoming?.id]);
+
   const openedRef = useRef<Set<string>>(new Set());
   const handledRef = useRef<Set<string>>(new Set());
 
@@ -298,6 +327,30 @@ export function OrdersRealtimeProvider({
     setActiveIndex((i) => Math.min(incomingQueue.length - 1, i + 1));
   }, [incomingQueue.length]);
 
+  // ✅ REJECT confirm modal state
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const rejectInputRef = useRef<TextInput>(null);
+
+  // when order changes, close reject modal
+  useEffect(() => {
+    setRejectOpen(false);
+    setRejectReason("");
+  }, [incoming?.id]);
+
+  const openRejectModal = useCallback(() => {
+    if (busy) return;
+    setRejectReason("");
+    setRejectOpen(true);
+    requestAnimationFrame(() => rejectInputRef.current?.focus());
+  }, [busy]);
+
+  const closeRejectModal = useCallback(() => {
+    if (busy) return;
+    setRejectOpen(false);
+    setRejectReason("");
+  }, [busy]);
+
   async function handleAccept() {
     if (!incoming?.id) return;
 
@@ -322,8 +375,19 @@ export function OrdersRealtimeProvider({
     }
   }
 
-  async function handleReject() {
+  // ✅ final reject after confirm
+  async function confirmReject() {
     if (!incoming?.id) return;
+
+    const reason = rejectReason.trim();
+    if (!reason) {
+      // keep modal open + focus
+      requestAnimationFrame(() => rejectInputRef.current?.focus());
+      return;
+    }
+
+    // close modal first (so UI feels snappy), then continue
+    setRejectOpen(false);
 
     markHandled(incoming);
 
@@ -334,10 +398,12 @@ export function OrdersRealtimeProvider({
 
     setBusy(true);
     try {
-      await rejectAdminOrder(currentId, {});
+      // send reason (API can ignore if it doesn't support it yet)
+      await rejectAdminOrder(currentId, { reason });
       bumpOrdersChanged();
     } finally {
       setBusy(false);
+      setRejectReason("");
     }
   }
 
@@ -377,13 +443,119 @@ export function OrdersRealtimeProvider({
     >
       {children}
 
+      {/* ✅ Reject reason modal (step back if closed) */}
+      <Modal
+        visible={rejectOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeRejectModal}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              padding: 16,
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: bg,
+                borderWidth: 1,
+                borderColor: border,
+                padding: 14,
+              }}
+            >
+              <Text style={{ color: fg, fontWeight: "900", fontSize: 16 }}>
+                Razlog odbijanja
+              </Text>
+              <Text style={{ color: muted, marginTop: 6, fontWeight: "700" }}>
+                Unesi kratko objašnjenje (obavezno).
+              </Text>
+
+              <TextInput
+                ref={rejectInputRef}
+                value={rejectReason}
+                onChangeText={setRejectReason}
+                autoFocus
+                multiline
+                textAlignVertical="top"
+                selectionColor={accent}
+                placeholder="Npr. Nema sastojaka / Ne možemo isporučiti u tom terminu..."
+                placeholderTextColor={muted}
+                style={{
+                  marginTop: 12,
+                  minHeight: 110,
+                  borderWidth: 1,
+                  borderColor: border,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  color: fg,
+                  fontWeight: "700",
+                }}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 10,
+                  marginTop: 12,
+                }}
+              >
+                <TouchableOpacity
+                  disabled={busy}
+                  onPress={closeRejectModal}
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 1,
+                    height: 44,
+                    borderWidth: 1,
+                    borderColor: border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...(busy ? disabledStyle : null),
+                  }}
+                >
+                  <Text style={{ color: fg, fontWeight: "900" }}>Nazad</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  disabled={busy}
+                  onPress={confirmReject}
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 1,
+                    height: 44,
+                    borderWidth: 1,
+                    borderColor: danger,
+                    backgroundColor: danger,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    ...(busy ? disabledStyle : null),
+                  }}
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: "#fff", fontWeight: "900" }}>
+                      Potvrdi odbijanje
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       <GorhomSheetModal
         visible={!!incoming}
         onClose={handleCloseSheet}
         bg={bg}
         nonClosable
         border={border}
-        snapPoints={["65%"]}
+        snapPoints={["100%"]}
         header={
           <View style={styles.modalHeader}>
             <View style={{ flex: 1 }}>
@@ -452,7 +624,7 @@ export function OrdersRealtimeProvider({
                 </TouchableOpacity>
               </View>
 
-              {/* ETA +/- */}
+              {/* ETA +/- + tap-to-edit (fixed 36px height, fixed middle width) */}
               <View
                 style={{
                   flexDirection: "row",
@@ -463,7 +635,7 @@ export function OrdersRealtimeProvider({
                 }}
               >
                 <TouchableOpacity
-                  disabled={busy}
+                  disabled={busy || etaEditing}
                   onPress={() => setEtaMinutes((v) => Math.max(5, v - 5))}
                   style={{
                     width: 36,
@@ -476,14 +648,65 @@ export function OrdersRealtimeProvider({
                   <Ionicons name="remove-outline" size={18} color={fg} />
                 </TouchableOpacity>
 
-                <Text
-                  style={{ color: fg, fontWeight: "900", paddingHorizontal: 8 }}
+                <View
+                  style={{
+                    width: 54,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  {Math.max(1, etaMinutes)}m
-                </Text>
+                  {!etaEditing ? (
+                    <TouchableOpacity
+                      disabled={busy}
+                      onPress={() => {
+                        setEtaDraft(String(Math.max(1, etaMinutes)));
+                        setEtaEditing(true);
+                        requestAnimationFrame(() =>
+                          etaInputRef.current?.focus(),
+                        );
+                      }}
+                      activeOpacity={0.85}
+                      style={{
+                        width: 54,
+                        height: 36,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ color: fg, fontWeight: "900" }}>
+                        {Math.max(1, etaMinutes)}m
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TextInput
+                      ref={etaInputRef}
+                      value={etaDraft}
+                      onChangeText={(t) => setEtaDraft(t.replace(/[^\d]/g, ""))}
+                      onSubmitEditing={commitEta}
+                      onBlur={commitEta}
+                      autoFocus
+                      keyboardType="number-pad"
+                      returnKeyType="done"
+                      selectionColor={accent}
+                      style={{
+                        width: 54,
+                        height: 36,
+                        color: fg,
+                        fontWeight: "900",
+                        textAlign: "center",
+                        textAlignVertical: "center",
+                        paddingVertical: 0,
+                        paddingHorizontal: 0,
+                        margin: 0,
+                        includeFontPadding: false,
+                      }}
+                    />
+                  )}
+                </View>
 
                 <TouchableOpacity
-                  disabled={busy}
+                  disabled={busy || etaEditing}
                   onPress={() => setEtaMinutes((v) => Math.min(600, v + 5))}
                   style={{
                     width: 36,
@@ -502,7 +725,7 @@ export function OrdersRealtimeProvider({
         footer={
           <View style={styles.modalActions}>
             <TouchableOpacity
-              onPress={handleReject}
+              onPress={openRejectModal}
               disabled={busy}
               style={[
                 styles.modalBtn,
@@ -567,79 +790,65 @@ export function OrdersRealtimeProvider({
             borderBottomColor: border,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ flexDirection: "row" }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "800", color: muted }}>Kod:</Text>
-              <Text style={{ fontWeight: "800", color: fg, fontSize: 18 }}>
-                {incoming?.publicCode ?? "-"}
-              </Text>
+              {items.length === 0 ? (
+                <Text style={{ color: muted, fontWeight: "700" }}>
+                  Nema stavki u payload-u.
+                </Text>
+              ) : (
+                items.map((it: any, idx: number) => {
+                  const name = safeText(it?.productName);
+                  const size =
+                    it?.variantSize === null || it?.variantSize === undefined
+                      ? ""
+                      : ` • ${it.variantSize}`;
+
+                  const qty =
+                    typeof it?.quantity === "number" &&
+                    Number.isFinite(it.quantity)
+                      ? it.quantity
+                      : null;
+
+                  const line =
+                    typeof it?.lineTotal === "number" &&
+                    Number.isFinite(it.lineTotal)
+                      ? it.lineTotal
+                      : null;
+
+                  return (
+                    <View
+                      key={it?.id ?? `${incoming?.id ?? "order"}:${idx}`}
+                      style={{
+                        paddingBottom: 10,
+                        borderBottomWidth: idx === items.length - 1 ? 0 : 1,
+                      }}
+                    >
+                      <Text
+                        style={{ color: fg, fontWeight: "800", fontSize: 16 }}
+                      >
+                        {name}
+                        {size && `${size}cm`} {qty !== null ? `x${qty}` : "x-"}
+                      </Text>
+
+                      <Text
+                        style={{ color: fg, marginTop: 2, fontWeight: "800" }}
+                      >
+                        {line !== null ? moneyRsd(line) : "-"}
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
             </View>
 
-            <View style={{ alignItems: "flex-end" }}>
+            <View style={{ alignItems: "flex-start" }}>
               <Text style={{ fontWeight: "800", color: muted }}>Ukupno:</Text>
               <Text style={{ fontWeight: "800", color: fg, fontSize: 18 }}>
                 {moneyRsd(incoming?.total)}
               </Text>
             </View>
           </View>
-        </View>
-
-        {/* 2) STAVKE */}
-        <View
-          style={{
-            paddingVertical: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: border,
-          }}
-        >
-          <Text style={{ fontWeight: "800", color: muted, marginBottom: 8 }}>
-            Stavke
-          </Text>
-
-          {items.length === 0 ? (
-            <Text style={{ color: muted, fontWeight: "700" }}>
-              Nema stavki u payload-u.
-            </Text>
-          ) : (
-            items.map((it: any, idx: number) => {
-              const name = safeText(it?.productName);
-              const size =
-                it?.variantSize === null || it?.variantSize === undefined
-                  ? ""
-                  : ` • ${it.variantSize}`;
-
-              const qty =
-                typeof it?.quantity === "number" && Number.isFinite(it.quantity)
-                  ? it.quantity
-                  : null;
-
-              const line =
-                typeof it?.lineTotal === "number" &&
-                Number.isFinite(it.lineTotal)
-                  ? it.lineTotal
-                  : null;
-
-              return (
-                <View
-                  key={it?.id ?? `${incoming?.id ?? "order"}:${idx}`}
-                  style={{
-                    paddingVertical: 10,
-                    borderBottomWidth: idx === items.length - 1 ? 0 : 1,
-                    borderBottomColor: border,
-                  }}
-                >
-                  <Text style={{ color: fg, fontWeight: "800" }}>
-                    {name}
-                    {size && `${size}cm`} {qty !== null ? `x${qty}` : "x-"}
-                  </Text>
-
-                  <Text style={{ color: fg, marginTop: 6, fontWeight: "800" }}>
-                    {line !== null ? moneyRsd(line) : "-"}
-                  </Text>
-                </View>
-              );
-            })
-          )}
         </View>
 
         {/* 3) KUPAC */}

@@ -102,8 +102,8 @@ export function OrderTrackingProvider({
           const next: ActiveOrder = {
             ...prev,
             status: p.status,
-            etaMinutes: p.etaMinutes ?? prev.etaMinutes ?? null,
-            reason: p.reason ?? null,
+            etaMinutes: p?.etaMinutes ?? prev.etaMinutes ?? null,
+            reason: (p as any)?.reason ?? prev.reason ?? null,
           };
 
           return next;
@@ -161,8 +161,8 @@ export function OrderTrackingProvider({
           token={activeOrder.token}
           apiBase={apiBase}
           initialStatus={activeOrder.status}
-          initialEta={activeOrder.etaMinutes ?? null}
-          initialReason={activeOrder.reason ?? null}
+          initialEta={activeOrder?.etaMinutes ?? null}
+          initialReason={activeOrder?.reason ?? null}
           onDone={() => {
             // kad user klikne "OK" na accepted/rejected
             clearOrder();
