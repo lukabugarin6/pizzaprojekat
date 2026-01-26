@@ -191,7 +191,7 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
 
           return `
             <div style="padding:10px 0;border-bottom:1px solid #eee;">
-              <span style="font-weight:900;color:#111;">${name}</span>${sizeHtml}cm ${qtyHtml}
+              <span style="font-weight:900;color:#111;">${name}</span>${sizeHtml} ${qtyHtml}
               ${lineTotalHtml}
             </div>
           `;
@@ -206,7 +206,7 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
       ? `<div style="padding:12px 0;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
            <div style="font-weight:800;color:#666;">${escapeHtml(
              label(language, 'total'),
-           )}</div>
+           )}: </div>
            <div style="font-weight:900;color:#111;font-size:18px;">${formatMoneyRSD(
              total,
            )}</div>

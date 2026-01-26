@@ -282,12 +282,12 @@ export class OrdersService {
   async adminAccept(orderId: string, dto: AcceptOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(Order);
 
       const order = await repo.findOne({
         where: { id: orderId } as any,
-        lock: { mode: 'pessimistic_write' }, // štiti od duplog accept-a
+        lock: { mode: 'pessimistic_write' },
       });
 
       if (!order) throw new NotFoundException('Order not found');
@@ -302,8 +302,8 @@ export class OrdersService {
 
       await repo.save(order);
 
-      // ✅ emit event (gateway listens and pushes to WS clients)
-      this.eventEmitter.emit('orders.update', {
+      // ✅ vrati payload koji želiš da emituješ
+      return {
         publicCode: order.publicCode,
         status: order.status,
         etaMinutes: order.etaMinutes,
@@ -314,22 +314,26 @@ export class OrdersService {
         language: order.language,
         email: order.email,
         fullName: order.fullName,
-      });
-
-      return {
-        ok: true,
         id: order.id,
-        publicCode: order.publicCode,
-        status: order.status,
-        etaMinutes: order.etaMinutes,
       };
     });
+
+    // ✅ emit AFTER COMMIT
+    this.eventEmitter.emit('orders.update', result);
+
+    return {
+      ok: true,
+      id: result.id,
+      publicCode: result.publicCode,
+      status: result.status,
+      etaMinutes: result.etaMinutes,
+    };
   }
 
   async adminReject(orderId: string, dto: RejectOrderDto, adminUserId: number) {
     if (!adminUserId) throw new UnauthorizedException();
 
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(Order);
 
       const order = await repo.findOne({
@@ -350,8 +354,7 @@ export class OrdersService {
 
       await repo.save(order);
 
-      // ✅ emit event (gateway listens and pushes to WS clients)
-      this.eventEmitter.emit('orders.update', {
+      return {
         publicCode: order.publicCode,
         status: order.status,
         etaMinutes: order.etaMinutes,
@@ -363,17 +366,20 @@ export class OrdersService {
         language: order.language,
         email: order.email,
         fullName: order.fullName,
-      });
-
-      return {
-        ok: true,
         id: order.id,
-        publicCode: order.publicCode,
-        status: order.status,
       };
     });
-  }
 
+    // ✅ emit AFTER COMMIT
+    this.eventEmitter.emit('orders.update', result);
+
+    return {
+      ok: true,
+      id: result.id,
+      publicCode: result.publicCode,
+      status: result.status,
+    };
+  }
   // ========= helpers =========
 
   private genPublicCode(len = 8) {
