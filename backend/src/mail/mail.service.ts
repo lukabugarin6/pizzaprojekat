@@ -148,8 +148,6 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
     note,
   } = params;
 
-  console.log('language', language);
-
   const statusText = statusLabel(language, status);
   const statusHex = statusColor(status);
 
@@ -270,57 +268,158 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
   `;
 
   return `
-  <div style="background:#f6f6f6;padding:20px 12px;">
-    <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #eee;">
-      <div style="padding:16px 16px 10px 16px;border-bottom:1px solid #eee;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div>
-            <div style="font-size:18px;font-weight:900;color:#111;">${escapeHtml(
-              label(language, 'orderDetails'),
-            )}</div>
-
-            <div style="margin-top:6px;color:#666;font-weight:700;">${escapeHtml(
-              typeLabel(language, type ?? undefined),
-            )}</div>
-
-            ${etaLine}
-            ${reasonLine}
+<div style="background:#f6f6f6;padding:26px 12px;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #eee;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.06);">
+    
+    <!-- Header -->
+    <div style="padding:18px 18px 14px 18px;border-bottom:1px solid #eee;">
+      <!-- Title + Status row -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="min-width:0;">
+          <div style="font-size:18px;font-weight:900;color:#111;line-height:1.2;">
+            ${escapeHtml(label(language, 'orderDetails'))}
           </div>
 
-          <div style="text-align:right;">
-            <div style="font-weight:800;color:#666;">${escapeHtml(
-              label(language, 'status'),
-            )}</div>
-            <div style="margin-top:4px;font-weight:900;color:${statusHex};">${escapeHtml(
-              statusText,
-            )}</div>
+          <div style="margin-top:6px;color:#666;font-weight:700;font-size:13px;">
+            ${escapeHtml(typeLabel(language, type ?? undefined))}
           </div>
+
+          ${etaLine}
+          ${reasonLine}
         </div>
 
-        <div style="margin-top:14px;color:#666;font-weight:800;">
-          ${escapeHtml(label(language, 'code'))}:
-          <span style="font-weight:900;color:#111;">${escapeHtml(publicCode)}</span>
+        <!-- Status on the right -->
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:12px;font-weight:800;color:#666;margin-bottom:6px;">
+            ${escapeHtml(label(language, 'status'))}
+          </div>
+
+          <div style="
+            display:inline-block;
+            padding:8px 12px;
+            border-radius:999px;
+            background:${status === 'ACCEPTED' ? 'rgba(39,174,96,0.12)' : 'rgba(235,87,87,0.12)'};
+            color:${statusHex};
+            font-weight:900;
+            font-size:13px;
+            letter-spacing:0.2px;
+            border:1px solid ${status === 'ACCEPTED' ? 'rgba(39,174,96,0.28)' : 'rgba(235,87,87,0.28)'};
+          ">
+            ${escapeHtml(statusText)}
+          </div>
         </div>
       </div>
 
-      <div style="padding:0 16px;">
-        <div style="padding:12px 0;">
-          <div style="font-weight:800;color:#666;margin-bottom:6px;">${escapeHtml(
-            label(language, 'items'),
-          )}</div>
-          ${itemsHtml}
-        </div>
-
-        ${totalHtml}
-        ${customerBlock}
-      </div>
-
-      <div style="padding:14px 16px;border-top:1px solid #eee;color:#999;font-weight:700;font-size:12px;">
-        ${escapeHtml(label(language, 'automated'))}
+      <!-- Code -->
+      <div style="margin-top:14px;color:#666;font-weight:800;font-size:13px;">
+        ${escapeHtml(label(language, 'code'))}:
+        <span style="font-weight:900;color:#111;">${escapeHtml(publicCode)}</span>
       </div>
     </div>
+
+    <!-- Body -->
+    <div style="padding:0 18px;">
+      <!-- Items -->
+      <div style="padding:14px 0;">
+        <div style="font-weight:900;color:#111;margin-bottom:8px;font-size:13px;">
+          ${escapeHtml(label(language, 'items'))}
+        </div>
+
+        <div style="border:1px solid #eee;border-radius:10px;padding:10px 12px;">
+          ${itemsHtml}
+        </div>
+      </div>
+
+      <!-- Total -->
+      ${
+        totalHtml
+          ? `
+      <div style="padding:14px 0;">
+        <div style="
+          border-top:1px solid #eee;
+          padding-top:14px;
+          display:flex;
+          justify-content:space-between;
+          align-items:baseline;
+          gap:18px;
+        ">
+          <div style="font-weight:900;color:#111;font-size:13px;">
+            ${escapeHtml(label(language, 'total'))}
+          </div>
+
+          <!-- ✅ razmak između labela i cene: gap + desno poravnanje -->
+          <div style="font-weight:900;color:#111;font-size:20px;white-space:nowrap;">
+            ${formatMoneyRSD(total)}
+          </div>
+        </div>
+      </div>
+      `
+          : ''
+      }
+
+      <!-- Customer -->
+      <div style="padding:14px 0;border-top:1px solid #eee;">
+        <div style="font-weight:900;color:#111;margin-bottom:10px;font-size:13px;">
+          ${escapeHtml(label(language, 'customer'))}
+        </div>
+
+        <div style="border:1px solid #eee;border-radius:10px;padding:12px;">
+          <div style="font-weight:900;color:#111;font-size:14px;">
+            ${escapeHtml(fullName)}
+          </div>
+
+          ${
+            phone
+              ? `<div style="margin-top:8px;font-weight:700;color:#111;font-size:13px;">📞 ${escapeHtml(phone)}</div>`
+              : ''
+          }
+
+          ${
+            (email ?? params.to)
+              ? `<div style="margin-top:6px;font-weight:700;color:#111;font-size:13px;">✉️ ${escapeHtml(email ?? params.to)}</div>`
+              : ''
+          }
+
+          ${
+            String(note ?? '').trim()
+              ? `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee;">
+              <div style="font-weight:800;color:#666;margin-bottom:6px;font-size:12px;">
+                ${escapeHtml(label(language, 'note'))}
+              </div>
+              <div style="font-weight:700;color:#111;font-size:13px;line-height:1.35;">
+                ${escapeHtml(note)}
+              </div>
+            </div>
+          `
+              : ''
+          }
+
+          ${
+            showDelivery
+              ? `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee;">
+              <div style="font-weight:800;color:#666;margin-bottom:6px;font-size:12px;">
+                ${escapeHtml(label(language, 'address'))}
+              </div>
+              <div style="font-weight:700;color:#111;font-size:13px;line-height:1.35;">
+                ${escapeHtml(addressText)}
+              </div>
+            </div>
+          `
+              : ''
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:14px 18px;border-top:1px solid #eee;color:#999;font-weight:700;font-size:12px;background:#fafafa;">
+      ${escapeHtml(label(language, 'automated'))}
+    </div>
   </div>
-  `;
+</div>
+`;
 }
 
 @Injectable()
