@@ -1,0 +1,322 @@
+// src/users/user.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
+import { Role } from '../common/enums/role.enum';
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  password: string;
+
+  @Column({
+    type: 'enum',
+    enum: Role,
+    default: Role.USER,
+  })
+  role: Role;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  // ✅ novo
+  @Column({ type: 'varchar', nullable: true })
+  refreshTokenHash: string | null;
+
+  @CreateDateColumn()
+  createdAt: Date;
+}
+
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  Index,
+} from 'typeorm';
+import { User } from '../users/user.entity';
+import { OrderStatus } from './order-status.enum';
+import { OrderType } from './order-type.enum';
+import { OrderItem } from './order-item.entity';
+
+@Entity('orders')
+export class Order {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  // kratak kod za web praćenje
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 12 })
+  publicCode: string;
+
+  @Index()
+  @Column({ type: 'varchar', length: 64 })
+  accessToken: string;
+
+  @Column({ type: 'varchar', length: 320 })
+  email: string;
+
+  @Column({ type: 'varchar', length: 120 })
+  fullName: string;
+
+  @Column({ type: 'varchar', length: 30 })
+  phone: string;
+
+  @Column({ type: 'text', nullable: true })
+  note: string | null;
+
+  @Column({ type: 'enum', enum: OrderType })
+  type: OrderType;
+
+  // najjednostavnije: jedan tekst
+  @Column({ type: 'text', nullable: true })
+  addressText: string | null;
+
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
+  status: OrderStatus;
+
+  // setuje se na accept
+  @Column({ type: 'int', nullable: true })
+  etaMinutes: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  reason: string | null;
+
+  // ko je obradio
+  @ManyToOne(() => User, { nullable: true })
+  handledBy: User | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  handledAt: Date | null;
+
+  @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
+  items: OrderItem[];
+
+  @Column({ type: 'int', default: 0 })
+  total: number;
+
+  @CreateDateColumn({ type: 'datetime' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'datetime' })
+  updatedAt: Date;
+}
+
+// src/products/product.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
+import { Category } from '../categories/category.entity';
+import { ProductTranslation } from './product-translation.entity';
+import { ProductVariant } from './product-variant.entity';
+
+@Entity('products')
+export class Product {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
+  slug: string;
+
+  @Column({ type: 'text', nullable: true })
+  image: string | null;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  // ✅ NEW
+  @Column({ default: 0 })
+  sortOrder: number;
+
+  @ManyToOne(() => Category, (c) => c.products)
+  category: Category;
+
+  @OneToMany(() => ProductTranslation, (t) => t.product, {
+    cascade: true,
+  })
+  translations: ProductTranslation[];
+
+  @OneToMany(() => ProductVariant, (v) => v.product, {
+    cascade: true,
+  })
+  variants: ProductVariant[];
+}
+
+// src/categories/category.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { CategoryTranslation } from './category-translation.entity';
+import { Product } from '../products/product.entity';
+
+@Entity('categories')
+export class Category {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
+  slug: string; // pizza, sandwich, drink
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column({ default: 0 })
+  sortOrder: number;
+
+  @OneToMany(() => CategoryTranslation, (t) => t.category, {
+    cascade: true,
+  })
+  translations: CategoryTranslation[];
+
+  @OneToMany(() => Product, (p) => p.category)
+  products: Product[];
+}
+
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Index,
+} from 'typeorm';
+import { Order } from './order.entity';
+
+@Entity('order_items')
+export class OrderItem {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => Order, (o) => o.items, { onDelete: 'CASCADE' })
+  order: Order;
+
+  // reference radi analitike (uuid kao string)
+  @Index()
+  @Column({ type: 'uuid' })
+  productId: string;
+
+  @Index()
+  @Column({ type: 'uuid' })
+  variantId: string;
+
+  // snapshot (da se ne menja retroaktivno)
+  @Column({ type: 'varchar', length: 200 })
+  productName: string;
+
+  @Column({ type: 'int', nullable: true })
+  variantSize: number | null;
+
+  @Column({ type: 'int' })
+  unitPrice: number;
+
+  @Column({ type: 'int' })
+  quantity: number;
+
+  @Column({ type: 'int' })
+  lineTotal: number;
+}
+
+// src/products/product-variant.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Product } from './product.entity';
+
+@Entity('product_variants')
+export class ProductVariant {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'int', nullable: true })
+  size: number | null; // 24, 32, 50 | null
+
+  @Column()
+  price: number;
+
+  @ManyToOne(() => Product, (p) => p.variants, {
+    onDelete: 'CASCADE',
+  })
+  product: Product;
+}
+
+// src/products/product-translation.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
+import { Product } from './product.entity';
+import { Language } from '../common/enums/language.enum';
+
+@Entity('product_translations')
+@Unique(['product', 'language'])
+export class ProductTranslation {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'enum', enum: Language })
+  language: Language;
+
+  @Column()
+  name: string;
+
+  @Column({ type: 'text' })
+  description: string;
+
+  @ManyToOne(() => Product, (p) => p.translations, {
+    onDelete: 'CASCADE',
+  })
+  product: Product;
+}
+
+// src/categories/category-translation.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
+import { Category } from './category.entity';
+import { Language } from '../common/enums/language.enum';
+
+@Entity('category_translations')
+@Unique(['category', 'language'])
+export class CategoryTranslation {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'enum', enum: Language })
+  language: Language;
+
+  @Column()
+  name: string;
+
+  @ManyToOne(() => Category, (c) => c.translations, {
+    onDelete: 'CASCADE',
+  })
+  category: Category;
+}
+
+zelim da dodam restaurant settings. ono sto mi prvenstveno tu treba je restaurant name i radno vreme.
+
+radno vreme moze da se setuje za bilo koji dan u nedelji, moze biti i neradni dan.
+
+trebao bi mi i endpoint koji vraca radno vreme.
+
+trebalo bi mi i polje iz working koje bi gazilo radno vreme na primer vlasnik ode na godisnji odmor i stavi da je zatvoreno iako mu regularno radno vreme stoji pon-sub 15:00-23:00.
+
+to mi treba da web korisnici ne bi slali upite za porudzbine kad restoran ne radi a i da vlasnik moze to da menja u aplikaciji
