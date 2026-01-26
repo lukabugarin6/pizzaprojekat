@@ -117,7 +117,7 @@ export default async function RootLayout({
 
         <CartProvider deliveryDict={dict.cart.delivery}>
           <OrderTrackingProvider
-            apiBase="/api_backend"
+            apiBase={process.env.NEXT_PUBLIC_API_URL || ''}
             t={dict.orderStatusModal}
           >
             <ThemeProvider>
