@@ -942,7 +942,9 @@ export default function ProductsScreen() {
           />
 
           <View style={{ marginTop: 10 }}>
-            <Text style={[styles.fieldLabel, { color: muted }]}>Slug</Text>
+            <Text style={[styles.fieldLabel, { color: muted }]}>
+              Jedinstveni naziv
+            </Text>
             <View style={[styles.inputWrap, { borderColor: border }]}>
               <TextInput
                 style={[styles.input, { color: fg }]}
@@ -1154,7 +1156,9 @@ export default function ProductsScreen() {
               />
 
               <View style={{ marginTop: 10 }}>
-                <Text style={[styles.fieldLabel, { color: muted }]}>Slug</Text>
+                <Text style={[styles.fieldLabel, { color: muted }]}>
+                  Jedinstveni naziv
+                </Text>
                 <View style={[styles.inputWrap, { borderColor: border }]}>
                   <TextInput
                     style={[styles.input, { color: fg }]}

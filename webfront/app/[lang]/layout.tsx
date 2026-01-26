@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import '../globals.css';
 import ThemeProvider from '../theme-provider';
 import Footer from '@/modules/global/footer';
@@ -9,6 +10,9 @@ import Preloader from '@/components/ui/preloader';
 import { CartProvider } from '@/context/cart/cart-provider';
 import Navbar from '@/components/ui/navbar';
 import { OrderTrackingProvider } from '@/context/order/order-tracking-context';
+import GoogleAnalytics from '@/components/analytics';
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const ptSans = localFont({
   src: [
@@ -85,20 +89,38 @@ export default async function RootLayout({
 
   return (
     <html lang={lang}>
+      <head>
+        {GA_ID ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}', { send_page_view: false });
+              `}
+            </Script>
+          </>
+        ) : null}
+      </head>
+
       <body
         data-preloader="true"
         className={`${ptSans.variable} ${robotoCondensed.variable} ${planet.variable} antialiased`}
       >
+        {/* GA route tracking (SPA) */}
+        {GA_ID ? <GoogleAnalytics /> : null}
+
         <CartProvider deliveryDict={dict.cart.delivery}>
           <OrderTrackingProvider
             apiBase="https://api.pizzaprojekat.com"
             t={dict.orderStatusModal}
           >
             <ThemeProvider>
-              {/* prosleđujemo samo deo za navbar */}
-              {/* <Navbar t={dict.navbar} lang={lang} /> */}
-              {/* <NavbarResponsive t={dict.navbar} lang={lang} /> */}
-
               <div
                 style={{
                   minHeight: '100vh',
