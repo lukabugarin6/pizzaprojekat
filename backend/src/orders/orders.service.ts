@@ -392,11 +392,16 @@ export class OrdersService {
   }
 
   private pickLanguage(acceptLanguage?: string): Language {
-    // tvoj enum je Language (sr-Latn, sr-Cyrl, en, ...).
-    // MVP: ako accept-language sadrži "sr" → sr-Latn, else en (ako postoji) ili sr-Latn.
     const raw = (acceptLanguage ?? '').toLowerCase();
-    if (raw.includes('sr'))
+
+    if (raw.includes('ru')) {
+      return (Language['RU' as any] ?? ('ru' as any)) as Language;
+    }
+
+    if (raw.includes('sr')) {
       return Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+    }
+
     return (Language['EN' as any] ?? ('en' as any as Language)) as Language;
   }
 
