@@ -615,7 +615,6 @@ export default function HomeTab() {
         styles.safe,
         {
           backgroundColor: bg,
-          paddingTop: Math.max(18, insets.top + 10),
         },
       ]}
     >
@@ -1159,7 +1158,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  safe: { flex: 1 },
+  safe: { flex: 1, paddingTop: 60 },
   container: { flex: 1, padding: 16, paddingTop: 24, paddingBottom: 0 },
 
   titleRow: {

@@ -14,9 +14,13 @@ export class OrdersMailListener {
     private mailService: MailService,
   ) {}
 
-  @OnEvent('orders.update', { suppressErrors: true })
+  @OnEvent(
+    'orders.update',
+    // , { suppressErrors: true }
+  )
   async handleOrderUpdate(payload: { publicCode: string }) {
     try {
+      this.logger.log(`orders.update received: ${payload.publicCode}`);
       const order = await this.ordersService.findByPublicCodeForMail(
         payload.publicCode,
       );

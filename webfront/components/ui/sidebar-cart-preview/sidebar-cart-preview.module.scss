@@ -412,7 +412,7 @@
       transition: transform 0.3s ease;
     }
 
-    &:hover {
+    &:hover:not(:disabled) {
       svg {
         transform: rotate(90deg) translateY(-8px);
       }

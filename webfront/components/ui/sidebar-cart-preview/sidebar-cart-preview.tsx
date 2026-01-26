@@ -655,7 +655,7 @@ export default function SidebarCartPreview({
                   disabled={
                     !hasItems ||
                     isSubmitting ||
-                    true ||
+                    isRestaurantClosed ||
                     (orderType === 'delivery' && !delivery.allowed)
                   }
                   aria-busy={isSubmitting}

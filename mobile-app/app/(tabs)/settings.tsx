@@ -369,7 +369,7 @@ export default function SettingsTab() {
               </Text>
             </View>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={onSaveWeekly}
               disabled={saving}
               activeOpacity={0.85}
@@ -391,7 +391,7 @@ export default function SettingsTab() {
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           <View style={{ marginTop: 8 }}>
@@ -424,13 +424,18 @@ export default function SettingsTab() {
         </View>
 
         {/* ===== Account ===== */}
-        <View style={[styles.card, { borderColor: border, marginTop: 14 }]}>
-          <Text style={[styles.cardTitle, { color: fg }]}>Nalog</Text>
-          <Text style={[styles.cardSub, { color: muted }]}>
-            Upravljanje nalogom
-          </Text>
-
-          <View style={styles.row}>
+        <View style={[styles.card, { borderColor: border, marginTop: 0 }]}>
+          <View
+            style={{
+              ...styles.row,
+            }}
+          >
+            <View>
+              <Text style={[styles.cardTitle, { color: fg }]}>Nalog</Text>
+              <Text style={[styles.cardSub, { color: muted }]}>
+                Upravljanje nalogom
+              </Text>
+            </View>
             <TouchableOpacity
               style={[
                 styles.outlineBtn,
@@ -598,7 +603,7 @@ export default function SettingsTab() {
                     ]}
                   >
                     <Text style={{ color: muted, fontWeight: "800" }}>
-                      Otvara
+                      Otvaranje
                     </Text>
                     <Text style={{ color: fg, fontWeight: "900" }}>
                       {editingDay.openTime}
@@ -616,7 +621,7 @@ export default function SettingsTab() {
                     ]}
                   >
                     <Text style={{ color: muted, fontWeight: "800" }}>
-                      Zatvara
+                      Zatvaranje
                     </Text>
                     <Text style={{ color: fg, fontWeight: "900" }}>
                       {editingDay.closeTime}
@@ -650,17 +655,6 @@ export default function SettingsTab() {
                       ) : null}
                     </View>
                   ) : null}
-
-                  <Text
-                    style={{
-                      color: muted,
-                      marginTop: 10,
-                      fontWeight: "700",
-                      fontSize: 12,
-                    }}
-                  >
-                    Tip: otvaranje mora biti pre zatvaranja.
-                  </Text>
                 </View>
               ) : (
                 <View style={{ marginTop: 12 }}>
@@ -687,7 +681,7 @@ const styles = StyleSheet.create({
   card: {
     borderTopWidth: 1,
     borderRadius: 0,
-    padding: 12,
+    paddingVertical: 12,
   },
 
   cardTitle: { fontSize: 16, fontWeight: "900" },
@@ -724,6 +718,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    justifyContent: "space-between",
   },
   dayName: { fontSize: 13, fontWeight: "900" },
   dayMeta: { marginTop: 3, fontSize: 11, fontWeight: "700" },
@@ -742,6 +737,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    width: "100%",
   },
   outlineBtn: {
     height: 46,
@@ -752,6 +748,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
+    marginLeft: "auto",
   },
   outlineText: { fontWeight: "900" },
 
@@ -788,7 +785,7 @@ const styles = StyleSheet.create({
   sheetInner: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 120,
+    paddingBottom: 160,
     paddingLeft: 0,
   },
 

@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 import styles from './products-grid.module.scss';
+import { useFadeInOnView } from '@/hooks/useFadeInOnView';
+import { TitleClient } from './title-client';
 // import type { BanksTableDict } from '@/app/[lang]/dictionaries';
 
 type ProductsGridProps = {
@@ -22,9 +24,7 @@ export default function ProductsGrid({
 
   return (
     <div className={clsx(styles.wrapper, smaller && styles.smaller)}>
-      {title ? (
-        <h2 className={clsx(styles.title, titleClassName)}>{title}</h2>
-      ) : null}
+      <TitleClient title={title} titleClassName={titleClassName} />
       <div className={clsx(styles.wrapper__inner)}>{children}</div>
     </div>
   );
