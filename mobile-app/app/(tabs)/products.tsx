@@ -441,7 +441,7 @@ export default function ProductsScreen() {
               setEditingId(null);
               setEditImageRemoved(false);
 
-              showToast("success", "Obrisano", "Proizvod je obrisan.");
+              showToast("success", "Obrisano", "Artikal je obrisan.");
             } catch (e: any) {
               showToast(
                 "error",

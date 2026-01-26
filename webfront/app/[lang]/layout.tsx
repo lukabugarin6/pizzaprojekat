@@ -117,7 +117,7 @@ export default async function RootLayout({
 
         <CartProvider deliveryDict={dict.cart.delivery}>
           <OrderTrackingProvider
-            apiBase="https://api.pizzaprojekat.com"
+            apiBase="/api_backend"
             t={dict.orderStatusModal}
           >
             <ThemeProvider>

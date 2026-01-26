@@ -1,0 +1,10 @@
+web front update cart preview/cart ✅
+improvement for app ui ux ✅
+check for hiding api url
+nova tabela restaurant settings
+working time moze da se setuje u settings a moze da se stavi i closed
+web prati te promene (dodati i u futer radno vreme!) pon-sub
+google analitike ✅
+backend dopuniti validaciju za porudzbine (working time, mala pica).
+zastititi spam
+napomena vidljivija u modalu pristigle porudzbine
