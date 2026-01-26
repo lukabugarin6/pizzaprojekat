@@ -32,6 +32,7 @@ import {
 } from "../../api/restaurant";
 
 import { GorhomSheetModal } from "../../components/products/bottom-sheet-modal";
+import Toast from "react-native-toast-message";
 
 const weekdayLabel: Record<Weekday, string> = {
   1: "Ponedeljak",
@@ -207,7 +208,12 @@ export default function SettingsTab() {
       });
 
       await load();
-      Alert.alert("Sačuvano", "Radno vreme je ažurirano.");
+      await load();
+      Toast.show({
+        type: "success",
+        text1: "Sačuvano",
+        text2: "Radno vreme je ažurirano.",
+      });
     } catch (e: any) {
       Alert.alert("Greška", e?.message ?? "Ažuriranje nije uspelo.");
     } finally {

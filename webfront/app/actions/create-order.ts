@@ -1,5 +1,7 @@
 'use server';
 
+import { Lang } from '../[lang]/dictionaries';
+
 type CreateOrderPayload = {
   fullName: string;
   email: string;
@@ -10,7 +12,10 @@ type CreateOrderPayload = {
   items: { variantId: string; quantity: number }[];
 };
 
-export async function createOrderAction(payload: CreateOrderPayload) {
+export async function createOrderAction(
+  payload: CreateOrderPayload,
+  lang?: Lang,
+) {
   const base = process.env.API_URL;
   if (!base) throw new Error('Missing ORDERS_API_BASE_URL');
 
@@ -19,7 +24,7 @@ export async function createOrderAction(payload: CreateOrderPayload) {
     headers: {
       'Content-Type': 'application/json',
       // prosledi jezik sa weba (opciono)
-      'Accept-Language': 'sr-Latn',
+      'Accept-Language': lang ? lang : 'sr-Latn',
     },
     body: JSON.stringify({
       fullName: payload.fullName,

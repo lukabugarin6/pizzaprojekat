@@ -10,3 +10,4 @@ zastititi spam
 napomena vidljivija u modalu pristigle porudzbine
 mail za potvrdu porudzbine
 pregledaj sve rute koje treba da su zasticene a koje ne
+cart items update translations on language change

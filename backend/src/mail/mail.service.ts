@@ -62,6 +62,7 @@ function isSr(lang: any) {
 }
 
 function isRu(lang: any) {
+  console.log('lang', lang);
   const s = langKey(lang);
   return s === 'ru' || s.startsWith('ru');
 }
@@ -146,6 +147,8 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
     addressText,
     note,
   } = params;
+
+  console.log('language', language);
 
   const statusText = statusLabel(language, status);
   const statusHex = statusColor(status);

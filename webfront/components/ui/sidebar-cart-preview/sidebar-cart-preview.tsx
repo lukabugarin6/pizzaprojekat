@@ -18,11 +18,12 @@ import styles from './sidebar-cart-preview.module.scss';
 import { useCart } from '@/context/cart/cart-context';
 import SidebarCartFormField from './sidebar-cart-form-field';
 import HandPointerSvg from '@/components/svg/hand-pointer-svg';
-import { Dictionary } from '@/app/[lang]/dictionaries';
+import { Dictionary, Lang } from '@/app/[lang]/dictionaries';
 import { DeliveryReason } from '@/context/cart/cart-provider';
 import { createOrderAction } from '@/app/actions/create-order';
 import { useOrderTracking } from '@/context/order/order-tracking-context';
 import { PublicRestaurantHoursResponse } from '@/lib/restaurant';
+import { useParams } from 'next/navigation';
 
 type SidebarCartPreviewProps = {
   isOpen: boolean;
@@ -52,6 +53,9 @@ export default function SidebarCartPreview({
   cartPageT,
   hours,
 }: SidebarCartPreviewProps) {
+  const params = useParams<{ lang: Lang }>();
+  const lang = params?.lang ?? 'sr-Latn';
+
   const {
     items = [],
     totalPrice,
@@ -229,7 +233,7 @@ export default function SidebarCartPreview({
     };
 
     try {
-      const res = await createOrderAction(payload);
+      const res = await createOrderAction(payload, lang);
 
       if (!res?.publicCode || !res?.token) {
         throw new Error('Order created but missing publicCode/token.');

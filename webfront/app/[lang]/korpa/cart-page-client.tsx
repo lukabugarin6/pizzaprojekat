@@ -19,11 +19,12 @@ import HandPointerSvg from '@/components/svg/hand-pointer-svg';
 import ClientLink from '@/components/ui/client-link';
 import clsx from 'clsx';
 import { DeliveryReason } from '@/context/cart/cart-provider';
-import { Dictionary } from '../dictionaries';
+import { Dictionary, Lang } from '../dictionaries';
 
 import { createOrderAction } from '@/app/actions/create-order';
 import { useOrderTracking } from '@/context/order/order-tracking-context';
 import { PublicRestaurantHoursResponse } from '@/lib/restaurant';
+import { useParams } from 'next/navigation';
 
 type Props = {
   title: string;
@@ -93,6 +94,9 @@ export default function CartPageClient({
   deliveryT,
   hours,
 }: Props) {
+  const params = useParams<{ lang: Lang }>();
+  const lang = params?.lang ?? 'sr-Latn';
+
   const {
     items = [],
     totalPrice,
@@ -276,7 +280,7 @@ export default function CartPageClient({
     };
 
     try {
-      const res = await createOrderAction(payload);
+      const res = await createOrderAction(payload, lang);
 
       // expected: { publicCode, token, status, total }
       if (!res?.publicCode || !res?.token) {
