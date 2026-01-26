@@ -291,6 +291,8 @@ export class OrdersService {
         total: order.total,
         createdAt: order.createdAt,
         language: order.language,
+        email: order.email,
+        fullName: order.fullName,
       });
 
       return {
@@ -338,6 +340,8 @@ export class OrdersService {
         createdAt: order.createdAt,
         reason: order.reason,
         language: order.language,
+        email: order.email,
+        fullName: order.fullName,
       });
 
       return {
