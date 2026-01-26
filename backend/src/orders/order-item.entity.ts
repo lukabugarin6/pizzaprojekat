@@ -20,6 +20,9 @@ export class OrderItem {
   @Column({ type: 'uuid' })
   productId: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  productNameCustomer: string | null;
+
   @Index()
   @Column({ type: 'uuid' })
   variantId: string;

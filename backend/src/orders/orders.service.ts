@@ -113,11 +113,26 @@ export class OrdersService {
     const items: OrderItem[] = [];
     let total = 0;
 
+    // admin uvek SR
+    const adminLang =
+      Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+
+    // customer (en/ru/sr...) iz headera
+    const customerLang = acceptedLang;
+
     for (const v of variants) {
       const qty = merged.get(v.id) ?? 0;
       if (qty <= 0) continue;
 
-      const productName = this.pickProductName(v.product?.translations, lang);
+      const productNameAdmin = this.pickProductName(
+        v.product?.translations,
+        adminLang,
+      );
+
+      const productNameCustomer = this.pickProductName(
+        v.product?.translations,
+        customerLang,
+      );
 
       const unitPrice = Number(v.price);
       const lineTotal = unitPrice * qty;
@@ -125,7 +140,13 @@ export class OrdersService {
       const oi = this.itemRepo.create({
         productId: v.product.id,
         variantId: v.id,
-        productName: productName ?? '',
+
+        // ✅ admin view
+        productName: productNameAdmin ?? productNameCustomer ?? '',
+
+        // ✅ mail / guest view
+        productNameCustomer: productNameCustomer ?? productNameAdmin ?? null,
+
         variantSize: v.size ?? null,
         unitPrice,
         quantity: qty,

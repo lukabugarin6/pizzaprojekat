@@ -52,13 +52,23 @@ function formatMoneyRSD(n: any) {
     .replace(/\B(?=(\d{3})+(?!\d))/g, '.')} RSD`;
 }
 
+function langKey(lang: any) {
+  return String(lang ?? '').toLowerCase();
+}
+
 function isSr(lang: any) {
-  const s = String(lang ?? '').toLowerCase();
+  const s = langKey(lang);
   return s === 'sr-latn' || s.startsWith('sr');
+}
+
+function isRu(lang: any) {
+  const s = langKey(lang);
+  return s === 'ru' || s.startsWith('ru');
 }
 
 function statusLabel(lang: any, status: OrderEmailStatus) {
   if (isSr(lang)) return status === 'ACCEPTED' ? 'Prihvaćeno' : 'Odbijeno';
+  if (isRu(lang)) return status === 'ACCEPTED' ? 'Принято' : 'Отклонено';
   return status === 'ACCEPTED' ? 'Accepted' : 'Rejected';
 }
 
@@ -69,8 +79,55 @@ function statusColor(status: OrderEmailStatus) {
 function typeLabel(lang: any, type?: string | null) {
   const t = String(type ?? '').toLowerCase();
   const delivery = t.includes('delivery');
+
   if (isSr(lang)) return delivery ? 'Dostava' : 'Preuzimanje';
+  if (isRu(lang)) return delivery ? 'Доставка' : 'Самовывоз';
   return delivery ? 'Delivery' : 'Pickup';
+}
+
+function label(lang: any, key: string) {
+  const sr = isSr(lang);
+  const ru = isRu(lang);
+
+  const dict: Record<string, { sr: string; en: string; ru: string }> = {
+    orderDetails: {
+      sr: 'Detalji porudžbine',
+      en: 'Order details',
+      ru: 'Детали заказа',
+    },
+    status: { sr: 'Status', en: 'Status', ru: 'Статус' },
+    code: { sr: 'Kod', en: 'Code', ru: 'Код' },
+    items: { sr: 'Stavke', en: 'Items', ru: 'Позиции' },
+    total: { sr: 'Ukupna cena', en: 'Total', ru: 'Итого' },
+    customer: { sr: 'Kupac', en: 'Customer', ru: 'Клиент' },
+    note: { sr: 'Napomena', en: 'Note', ru: 'Комментарий' },
+    address: { sr: 'Adresa', en: 'Address', ru: 'Адрес' },
+    reason: { sr: 'Razlog', en: 'Reason', ru: 'Причина' },
+    eta: { sr: 'Očekivano vreme', en: 'ETA', ru: 'Ожидаемое время' },
+    automated: {
+      sr: 'Ovo je automatska poruka.',
+      en: 'This is an automated message.',
+      ru: 'Это автоматическое сообщение.',
+    },
+    noItems: { sr: '-', en: '-', ru: '-' },
+  };
+
+  const bucket = dict[key];
+  if (!bucket) return key;
+  if (sr) return bucket.sr;
+  if (ru) return bucket.ru;
+  return bucket.en;
+}
+
+function normalizeSize(raw: any): string {
+  if (raw === null || raw === undefined) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+
+  // If it's a number, assume "cm" (pizza sizes). Otherwise keep as-is (e.g. "XL").
+  const n = Number(s);
+  if (Number.isFinite(n)) return `${n}cm`;
+  return s;
 }
 
 function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
@@ -90,9 +147,6 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
     note,
   } = params;
 
-  const sr = isSr(language);
-  const title = sr ? 'Detalji porudžbine' : 'Order details';
-
   const statusText = statusLabel(language, status);
   const statusHex = statusColor(status);
 
@@ -100,15 +154,15 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
     status === 'ACCEPTED' &&
     typeof etaMinutes === 'number' &&
     Number.isFinite(etaMinutes)
-      ? sr
-        ? `Očekivano vreme: <b>${etaMinutes} min</b>`
-        : `ETA: <b>${etaMinutes} min</b>`
+      ? `<div style="margin-top:6px;color:#666;font-weight:700;">
+           ${escapeHtml(label(language, 'eta'))}: <b>${escapeHtml(etaMinutes)} min</b>
+         </div>`
       : '';
 
   const reasonLine =
     status === 'REJECTED' && String(reason ?? '').trim()
       ? `<div style="margin-top:10px;color:#111;font-weight:700;">
-           ${sr ? 'Razlog' : 'Reason'}:
+           ${escapeHtml(label(language, 'reason'))}:
            <span style="font-weight:600;color:#333;">${escapeHtml(reason)}</span>
          </div>`
       : '';
@@ -118,73 +172,94 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
         .map((it) => {
           const name = escapeHtml(it?.productName ?? '-');
 
-          const rawSize = it?.variantSize;
-          const sizeStr =
-            rawSize === null || rawSize === undefined
-              ? ''
-              : String(rawSize).trim();
-          const size =
-            sizeStr !== ''
-              ? ` <span style="color:#666;font-weight:700;">• ${escapeHtml(sizeStr)}</span>`
-              : '';
+          const size = normalizeSize(it?.variantSize);
+          const sizeHtml = size
+            ? ` <span style="color:#666;font-weight:800;">• ${escapeHtml(size)}</span>`
+            : '';
 
           const qtyNum = Number(it?.quantity);
-          const qty = Number.isFinite(qtyNum)
-            ? ` <span style="color:#111;font-weight:800;">x${qtyNum}</span>`
+          const qtyHtml = Number.isFinite(qtyNum)
+            ? ` <span style="color:#111;font-weight:900;">x${qtyNum}</span>`
             : '';
 
           const ltNum = Number(it?.lineTotal);
-          const lineTotal = Number.isFinite(ltNum)
-            ? `<span style="float:right;font-weight:800;color:#111;">${formatMoneyRSD(
+          const lineTotalHtml = Number.isFinite(ltNum)
+            ? `<span style="float:right;font-weight:900;color:#111;">${formatMoneyRSD(
                 ltNum,
               )}</span>`
             : '';
 
           return `
             <div style="padding:10px 0;border-bottom:1px solid #eee;">
-              <span style="font-weight:900;color:#111;">${name}</span>${size}${qty}
-              ${lineTotal}
+              <span style="font-weight:900;color:#111;">${name}</span>${sizeHtml}cm ${qtyHtml}
+              ${lineTotalHtml}
             </div>
           `;
         })
         .join('')
-    : `<div style="padding:10px 0;color:#666;font-weight:700;">-</div>`;
+    : `<div style="padding:10px 0;color:#666;font-weight:700;">${escapeHtml(
+        label(language, 'noItems'),
+      )}</div>`;
 
   const totalHtml =
     total !== null && total !== undefined && Number.isFinite(Number(total))
       ? `<div style="padding:12px 0;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
-           <div style="font-weight:800;color:#666;">${sr ? 'Ukupna cena' : 'Total'}</div>
-           <div style="font-weight:900;color:#111;font-size:18px;">${formatMoneyRSD(total)}</div>
+           <div style="font-weight:800;color:#666;">${escapeHtml(
+             label(language, 'total'),
+           )}</div>
+           <div style="font-weight:900;color:#111;font-size:18px;">${formatMoneyRSD(
+             total,
+           )}</div>
          </div>`
       : '';
 
+  const showDelivery =
+    String(type ?? '')
+      .toLowerCase()
+      .includes('delivery') && String(addressText ?? '').trim();
+
   const customerBlock = `
     <div style="padding:12px 0;border-top:1px solid #eee;">
-      <div style="font-weight:800;color:#666;margin-bottom:6px;">${sr ? 'Kupac' : 'Customer'}</div>
+      <div style="font-weight:800;color:#666;margin-bottom:6px;">${escapeHtml(
+        label(language, 'customer'),
+      )}</div>
       <div style="font-weight:900;color:#111;">${escapeHtml(fullName)}</div>
-      ${phone ? `<div style="margin-top:6px;font-weight:700;color:#111;">📞 ${escapeHtml(phone)}</div>` : ''}
-      ${email ? `<div style="margin-top:6px;font-weight:700;color:#111;">✉️ ${escapeHtml(email)}</div>` : ''}
+
+      ${
+        phone
+          ? `<div style="margin-top:6px;font-weight:700;color:#111;">📞 ${escapeHtml(
+              phone,
+            )}</div>`
+          : ''
+      }
+      ${
+        (email ?? params.to)
+          ? `<div style="margin-top:6px;font-weight:700;color:#111;">✉️ ${escapeHtml(
+              email ?? params.to,
+            )}</div>`
+          : ''
+      }
 
       ${
         String(note ?? '').trim()
           ? `<div style="margin-top:10px;">
-               <div style="font-weight:800;color:#666;margin-bottom:6px;">${
-                 sr ? 'Napomena' : 'Note'
-               }</div>
+               <div style="font-weight:800;color:#666;margin-bottom:6px;">${escapeHtml(
+                 label(language, 'note'),
+               )}</div>
                <div style="font-weight:700;color:#111;">${escapeHtml(note)}</div>
              </div>`
           : ''
       }
 
       ${
-        String(type ?? '')
-          .toLowerCase()
-          .includes('delivery') && String(addressText ?? '').trim()
+        showDelivery
           ? `<div style="margin-top:10px;">
-               <div style="font-weight:800;color:#666;margin-bottom:6px;">${
-                 sr ? 'Adresa' : 'Address'
-               }</div>
-               <div style="font-weight:700;color:#111;">${escapeHtml(addressText)}</div>
+               <div style="font-weight:800;color:#666;margin-bottom:6px;">${escapeHtml(
+                 label(language, 'address'),
+               )}</div>
+               <div style="font-weight:700;color:#111;">${escapeHtml(
+                 addressText,
+               )}</div>
              </div>`
           : ''
       }
@@ -197,16 +272,22 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
       <div style="padding:16px 16px 10px 16px;border-bottom:1px solid #eee;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
           <div>
-            <div style="font-size:18px;font-weight:900;color:#111;">${escapeHtml(title)}</div>
+            <div style="font-size:18px;font-weight:900;color:#111;">${escapeHtml(
+              label(language, 'orderDetails'),
+            )}</div>
+
             <div style="margin-top:6px;color:#666;font-weight:700;">${escapeHtml(
               typeLabel(language, type ?? undefined),
             )}</div>
-            ${etaLine ? `<div style="margin-top:6px;color:#666;font-weight:700;">${etaLine}</div>` : ''}
+
+            ${etaLine}
             ${reasonLine}
           </div>
 
           <div style="text-align:right;">
-            <div style="font-weight:800;color:#666;">${sr ? 'Status' : 'Status'}</div>
+            <div style="font-weight:800;color:#666;">${escapeHtml(
+              label(language, 'status'),
+            )}</div>
             <div style="margin-top:4px;font-weight:900;color:${statusHex};">${escapeHtml(
               statusText,
             )}</div>
@@ -214,15 +295,16 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
         </div>
 
         <div style="margin-top:14px;color:#666;font-weight:800;">
-          ${sr ? 'Kod' : 'Code'}: <span style="font-weight:900;color:#111;">${escapeHtml(
-            publicCode,
-          )}</span>
+          ${escapeHtml(label(language, 'code'))}:
+          <span style="font-weight:900;color:#111;">${escapeHtml(publicCode)}</span>
         </div>
       </div>
 
       <div style="padding:0 16px;">
         <div style="padding:12px 0;">
-          <div style="font-weight:800;color:#666;margin-bottom:6px;">${sr ? 'Stavke' : 'Items'}</div>
+          <div style="font-weight:800;color:#666;margin-bottom:6px;">${escapeHtml(
+            label(language, 'items'),
+          )}</div>
           ${itemsHtml}
         </div>
 
@@ -231,7 +313,7 @@ function renderOrderEmailHtml(params: SendOrderStatusEmailParams) {
       </div>
 
       <div style="padding:14px 16px;border-top:1px solid #eee;color:#999;font-weight:700;font-size:12px;">
-        ${sr ? 'Ovo je automatska poruka.' : 'This is an automated message.'}
+        ${escapeHtml(label(language, 'automated'))}
       </div>
     </div>
   </div>
@@ -243,23 +325,8 @@ export class MailService {
   constructor(private mailer: MailerService) {}
 
   async sendOrderStatusEmail(params: SendOrderStatusEmailParams) {
-    const {
-      to,
-      fullName,
-      publicCode,
-      status,
-      language,
-      etaMinutes,
-      reason,
-      items,
-      total,
-      type,
-      phone,
-      email,
-      addressText,
-      note,
-      createdAt,
-    } = params;
+    const { to, fullName, publicCode, status, language, etaMinutes, reason } =
+      params;
 
     const subject =
       status === 'ACCEPTED'
@@ -272,21 +339,8 @@ export class MailService {
         : this.t(language, 'rejectedBody', { fullName, publicCode, reason });
 
     const html = renderOrderEmailHtml({
-      to,
-      fullName,
-      publicCode,
-      status,
-      language,
-      etaMinutes,
-      reason,
-      items,
-      total,
-      type,
-      phone,
-      email: email ?? to,
-      addressText,
-      note,
-      createdAt,
+      ...params,
+      email: params.email ?? params.to,
     });
 
     await this.mailer.sendMail({
@@ -319,9 +373,25 @@ export class MailService {
           vars.reason ? ` Reason: ${vars.reason}` : ''
         }\n\nThanks!`,
       },
+      ru: {
+        acceptedSubject: `Заказ ${vars.publicCode ?? ''} принят`,
+        rejectedSubject: `Заказ ${vars.publicCode ?? ''} отклонён`,
+        acceptedBody: `Здравствуйте, ${vars.fullName}.\n\nВаш заказ ${vars.publicCode} принят.${
+          vars.etaMinutes ? ` Ожидаемое время: ${vars.etaMinutes} мин.` : ''
+        }\n\nСпасибо!`,
+        rejectedBody: `Здравствуйте, ${vars.fullName}.\n\nВаш заказ ${vars.publicCode} отклонён.${
+          vars.reason ? ` Причина: ${vars.reason}` : ''
+        }\n\nСпасибо!`,
+      },
     };
 
-    const bucket = dict[String(lang)] ?? dict['sr-Latn'];
+    const k = String(lang);
+    const bucket =
+      dict[k] ??
+      (isRu(lang) ? dict.ru : null) ??
+      (isSr(lang) ? dict['sr-Latn'] : null) ??
+      dict.en;
+
     return bucket[key] ?? '';
   }
 }
