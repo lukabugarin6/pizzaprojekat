@@ -13,7 +13,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { RestaurantAdminService } from './restaurant-admin.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN) // or OWNER
+@Roles(Role.SUPERUSER, Role.ADMIN) // or OWNER
 @Controller('admin/restaurant')
 export class RestaurantAdminController {
   constructor(private readonly adminService: RestaurantAdminService) {}

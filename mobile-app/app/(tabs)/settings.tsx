@@ -262,64 +262,6 @@ export default function SettingsTab() {
 
         {/* ===== Restaurant settings ===== */}
         <View style={[styles.card, { borderColor: border }]}>
-          {/* <Text style={[styles.cardTitle, { color: fg }]}>Restoran</Text>
-          <Text style={[styles.cardSub, { color: muted }]}>
-            Naziv, zona i radno vreme
-          </Text> */}
-
-          {/* <View style={styles.field}>
-            <Text style={[styles.label, { color: muted }]}>Naziv</Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Naziv restorana"
-              placeholderTextColor={muted}
-              style={[
-                styles.input,
-                { color: fg, backgroundColor: inputBg, borderColor: border },
-              ]}
-            />
-          </View> */}
-
-          {/* <View style={styles.field}>
-            <Text style={[styles.label, { color: muted }]}>Timezone</Text>
-            <TextInput
-              value={timezone}
-              onChangeText={setTimezone}
-              placeholder="Europe/Belgrade"
-              placeholderTextColor={muted}
-              style={[
-                styles.input,
-                { color: fg, backgroundColor: inputBg, borderColor: border },
-              ]}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={[styles.hint, { color: muted }]}>
-              Primer: Europe/Belgrade, Europe/Berlin
-            </Text>
-          </View> */}
-
-          {/* <TouchableOpacity
-            style={[styles.primaryBtn, { borderColor: border }]}
-            onPress={onSaveSettings}
-            disabled={saving}
-            activeOpacity={0.85}
-          >
-            {saving ? (
-              <ActivityIndicator />
-            ) : (
-              <>
-                <Ionicons name="save-outline" size={18} color={accent} />
-                <Text style={[styles.primaryText, { color: fg }]}>
-                  Sačuvaj restoran
-                </Text>
-              </>
-            )}
-          </TouchableOpacity> */}
-
-          {/* <View style={[styles.divider, { borderColor: border }]} /> */}
-
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={[styles.rowTitle, { color: fg }]}>
@@ -450,13 +392,6 @@ export default function SettingsTab() {
           </Text>
 
           <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.rowTitle, { color: fg }]}>Odjava</Text>
-              <Text style={[styles.rowDesc, { color: muted }]}>
-                Odjavite se sa ovog uređaja
-              </Text>
-            </View>
-
             <TouchableOpacity
               style={[styles.logoutBtn, { backgroundColor: danger }]}
               onPress={onLogout}
@@ -471,14 +406,6 @@ export default function SettingsTab() {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* small footer */}
-        {server ? (
-          <Text style={[styles.footer, { color: muted }]}>
-            Status: {server.isOpenNow ? "Otvoreno" : "Zatvoreno"} • vreme:{" "}
-            {server.now} • datum: {server.date}
-          </Text>
-        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
