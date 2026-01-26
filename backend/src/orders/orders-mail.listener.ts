@@ -24,7 +24,11 @@ export class OrdersMailListener {
       const order = await this.ordersService.findByPublicCodeForMail(
         payload.publicCode,
       );
+
       if (!order) return;
+      this.logger.log(
+        `mail-db code=${order.publicCode} type=${(order as any).type} phone="${(order as any).phone}" addr="${(order as any).addressText}" note="${(order as any).note}" total=${(order as any).total} items=${(order as any).items?.length ?? 0}`,
+      );
 
       // ✅ zajednički “details” koji idu u template
       const common = {
@@ -43,7 +47,7 @@ export class OrdersMailListener {
         createdAt: (order as any).createdAt ?? null,
         items: Array.isArray((order as any).items)
           ? (order as any).items.map((i: any) => ({
-              productName: i.productName,
+              productName: i.productNameCustomer ?? i.productName ?? '-',
               variantSize: i.variantSize ?? null,
               quantity: i.quantity ?? null,
               lineTotal: i.lineTotal ?? null,

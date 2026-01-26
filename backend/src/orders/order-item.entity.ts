@@ -6,6 +6,7 @@ import {
   Index,
 } from 'typeorm';
 import { Order } from './order.entity';
+import { JoinColumn } from 'typeorm';
 
 @Entity('order_items')
 export class OrderItem {
@@ -13,7 +14,12 @@ export class OrderItem {
   id: string;
 
   @ManyToOne(() => Order, (o) => o.items, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
   order: Order;
+
+  @Index()
+  @Column({ type: 'uuid' })
+  orderId: string;
 
   // reference radi analitike (uuid kao string)
   @Index()
