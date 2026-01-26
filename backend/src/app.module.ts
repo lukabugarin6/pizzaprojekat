@@ -18,6 +18,9 @@ import { OrderItem } from './orders/order-item.entity';
 import { OrdersModule } from './orders/orders.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { RestaurantModule } from './restaurant/restaurant.module';
+import { RestaurantSettings } from './restaurant/restaurant-settings.entity';
+import { RestaurantWorkingHours } from './restaurant/restaurant-working-hours.entity';
+import { RestaurantOverride } from './restaurant/restaurant-override.entity';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { RestaurantModule } from './restaurant/restaurant.module';
           ProductVariant,
           Order,
           OrderItem,
+          RestaurantSettings,
+          RestaurantWorkingHours,
+          RestaurantOverride,
         ],
         synchronize: false,
       }),

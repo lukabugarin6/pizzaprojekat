@@ -262,12 +262,12 @@ export default function SettingsTab() {
 
         {/* ===== Restaurant settings ===== */}
         <View style={[styles.card, { borderColor: border }]}>
-          <Text style={[styles.cardTitle, { color: fg }]}>Restoran</Text>
+          {/* <Text style={[styles.cardTitle, { color: fg }]}>Restoran</Text>
           <Text style={[styles.cardSub, { color: muted }]}>
             Naziv, zona i radno vreme
-          </Text>
+          </Text> */}
 
-          <View style={styles.field}>
+          {/* <View style={styles.field}>
             <Text style={[styles.label, { color: muted }]}>Naziv</Text>
             <TextInput
               value={name}
@@ -279,9 +279,9 @@ export default function SettingsTab() {
                 { color: fg, backgroundColor: inputBg, borderColor: border },
               ]}
             />
-          </View>
+          </View> */}
 
-          <View style={styles.field}>
+          {/* <View style={styles.field}>
             <Text style={[styles.label, { color: muted }]}>Timezone</Text>
             <TextInput
               value={timezone}
@@ -298,9 +298,9 @@ export default function SettingsTab() {
             <Text style={[styles.hint, { color: muted }]}>
               Primer: Europe/Belgrade, Europe/Berlin
             </Text>
-          </View>
+          </View> */}
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.primaryBtn, { borderColor: border }]}
             onPress={onSaveSettings}
             disabled={saving}
@@ -316,10 +316,9 @@ export default function SettingsTab() {
                 </Text>
               </>
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          {/* Quick toggle */}
-          <View style={[styles.divider, { borderColor: border }]} />
+          {/* <View style={[styles.divider, { borderColor: border }]} /> */}
 
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 10 }}>
