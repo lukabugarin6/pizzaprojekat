@@ -13,11 +13,13 @@ import { ProductVariant } from '../products/product-variant.entity';
 import { OrdersGateway } from './orders.gateway';
 import { AuthModule } from 'src/auth/auth.module';
 import { OrdersMailListener } from './orders-mail.listener';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, ProductVariant]),
     AuthModule,
+    MailModule,
   ],
   controllers: [OrdersController, OrdersAdminController],
   providers: [OrdersService, OrdersGateway, OrdersMailListener],
