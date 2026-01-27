@@ -915,7 +915,37 @@ export default function HomeTab() {
                 </View>
 
                 {/* 3) KUPAC (click-to-call) */}
-                <View style={{ paddingVertical: 10 }}>
+                {customerNote(detailsOrder as any) ? (
+                  <View style={{ marginTop: 10 }}>
+                    <Text
+                      style={{
+                        fontWeight: "800",
+                        color: muted,
+                        marginBottom: 6,
+                        // fontSize: 40,
+                      }}
+                    >
+                      Napomena
+                    </Text>
+                    <Text
+                      style={{
+                        color: fg,
+                        fontWeight: "500",
+                        paddingBottom: 10,
+                        fontSize: 36,
+                      }}
+                    >
+                      {safeText(customerNote(detailsOrder as any))}
+                    </Text>
+                  </View>
+                ) : null}
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    borderTopWidth: 1,
+                    borderTopColor: border,
+                  }}
+                >
                   <Text
                     style={{ fontWeight: "800", color: muted, marginBottom: 6 }}
                   >
@@ -945,23 +975,6 @@ export default function HomeTab() {
                   <Text style={{ color: fg, marginTop: 4, fontWeight: "700" }}>
                     ✉️ {customerEmail(detailsOrder as any)}
                   </Text>
-
-                  {customerNote(detailsOrder as any) ? (
-                    <View style={{ marginTop: 10 }}>
-                      <Text
-                        style={{
-                          fontWeight: "800",
-                          color: muted,
-                          marginBottom: 6,
-                        }}
-                      >
-                        Napomena
-                      </Text>
-                      <Text style={{ color: fg, fontWeight: "700" }}>
-                        {safeText(customerNote(detailsOrder as any))}
-                      </Text>
-                    </View>
-                  ) : null}
 
                   {showAddress ? (
                     <View style={{ marginTop: 10 }}>

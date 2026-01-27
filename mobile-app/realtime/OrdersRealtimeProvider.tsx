@@ -157,9 +157,9 @@ export function OrdersRealtimeProvider({
   const [etaByKey, setEtaByKey] = useState<Record<string, number>>({});
 
   const etaMinutes = useMemo(() => {
-    if (!incoming) return 35;
+    if (!incoming) return 15;
     const k = handledKey(incoming);
-    return etaByKey[k] ?? 35;
+    return etaByKey[k] ?? 15;
   }, [incoming, etaByKey]);
 
   const setEtaMinutes = useCallback(
@@ -168,7 +168,7 @@ export function OrdersRealtimeProvider({
         const ev = incoming;
         if (!ev) return prev;
         const k = handledKey(ev);
-        const cur = prev[k] ?? 35;
+        const cur = prev[k] ?? 15;
         return { ...prev, [k]: updater(cur) };
       });
     },
@@ -850,9 +850,31 @@ export function OrdersRealtimeProvider({
             </View>
           </View>
         </View>
-
+        {(incoming as any)?.note ? (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontWeight: "800", color: muted, marginBottom: 6 }}>
+              Napomena
+            </Text>
+            <Text
+              style={{
+                color: fg,
+                fontWeight: "500",
+                paddingBottom: 10,
+                fontSize: 36,
+              }}
+            >
+              {safeText((incoming as any)?.note)}
+            </Text>
+          </View>
+        ) : null}
         {/* 3) KUPAC */}
-        <View style={{ paddingVertical: 10 }}>
+        <View
+          style={{
+            paddingVertical: 10,
+            borderTopWidth: 1,
+            borderTopColor: border,
+          }}
+        >
           <Text style={{ fontWeight: "800", color: muted, marginBottom: 6 }}>
             Kupac
           </Text>
@@ -868,19 +890,6 @@ export function OrdersRealtimeProvider({
           <Text style={{ color: fg, marginTop: 4, fontWeight: "700" }}>
             ✉️ {safeText((incoming as any)?.email)}
           </Text>
-
-          {(incoming as any)?.note ? (
-            <View style={{ marginTop: 10 }}>
-              <Text
-                style={{ fontWeight: "800", color: muted, marginBottom: 6 }}
-              >
-                Napomena
-              </Text>
-              <Text style={{ color: fg, fontWeight: "700" }}>
-                {safeText((incoming as any)?.note)}
-              </Text>
-            </View>
-          ) : null}
 
           {showAddress ? (
             <View style={{ marginTop: 10 }}>

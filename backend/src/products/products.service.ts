@@ -210,6 +210,21 @@ export class ProductsService {
       return undefined; // ✅ nema fallback-a
     };
 
+    const toTranslationsMap = (list: any[] | undefined) => {
+      const out: Record<string, { name: string; description?: string | null }> =
+        {};
+      for (const t of list ?? []) {
+        const key = String(t.language ?? '').trim(); // npr "sr-Latn" / "en" / "ru"
+        if (!key) continue;
+
+        out[key] = {
+          name: t.name ?? '',
+          description: t.description ?? null,
+        };
+      }
+      return out;
+    };
+
     const products = await this.productRepo
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.category', 'c')

@@ -43,6 +43,7 @@ export class UsersController {
    * GET /users/me
    */
   @Get('me')
+  @Roles(Role.SUPERUSER, Role.ADMIN)
   getMe(@Request() req) {
     return this.usersService.findById(req.user.id);
   }

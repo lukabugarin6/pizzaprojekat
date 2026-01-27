@@ -1,3 +1,4 @@
+// src/orders/orders.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -9,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource, In, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
+import { DateTime } from 'luxon';
 
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
@@ -23,14 +25,34 @@ import { ProductVariant } from '../products/product-variant.entity';
 import { Language } from '../common/enums/language.enum';
 import { AdminListOrdersDto } from './dto/admin-list.dto';
 
+import { RestaurantSettings } from '../restaurant/restaurant-settings.entity';
+import { RestaurantWorkingHours } from '../restaurant/restaurant-working-hours.entity';
+import { RestaurantOverride } from '../restaurant/restaurant-override.entity';
+
+type DeliveryReason =
+  | 'empty'
+  | 'onlyDrinks'
+  | 'needLargePizza'
+  | 'forbiddenItems'
+  | null;
+
 @Injectable()
 export class OrdersService {
   constructor(
     private dataSource: DataSource,
+
     @InjectRepository(Order) private orderRepo: Repository<Order>,
     @InjectRepository(OrderItem) private itemRepo: Repository<OrderItem>,
     @InjectRepository(ProductVariant)
     private variantRepo: Repository<ProductVariant>,
+
+    @InjectRepository(RestaurantSettings)
+    private settingsRepo: Repository<RestaurantSettings>,
+    @InjectRepository(RestaurantWorkingHours)
+    private whRepo: Repository<RestaurantWorkingHours>,
+    @InjectRepository(RestaurantOverride)
+    private overrideRepo: Repository<RestaurantOverride>,
+
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -65,6 +87,9 @@ export class OrdersService {
   // ========= PUBLIC (GUEST) =========
 
   async create(dto: CreateOrderDto, acceptLanguage?: string) {
+    // ✅ MUST be open now
+    await this.assertRestaurantOpenNow();
+
     if (dto.type === OrderType.DELIVERY) {
       if (!dto.addressText?.trim()) {
         throw new BadRequestException('Address is required for delivery.');
@@ -84,12 +109,10 @@ export class OrdersService {
       throw new BadRequestException('Items are required.');
     }
 
-    // učitaj varijante + product + translations (snapshot name)
+    // load variants + product + translations (snapshot name)
     const variants = await this.variantRepo.find({
       where: { id: In(variantIds) },
-      relations: {
-        product: { translations: true },
-      } as any,
+      relations: { product: { translations: true } } as any,
     });
 
     if (variants.length !== variantIds.length) {
@@ -100,14 +123,44 @@ export class OrdersService {
       );
     }
 
-    // (optional) validacija da je product aktivan
+    // validate active products
     for (const v of variants) {
       if (!v.product?.isActive) {
         throw new BadRequestException(`Product inactive for variant: ${v.id}`);
       }
     }
 
-    const lang = Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
+    // ✅ DELIVERY rules (1:1 with frontend getDeliveryEligibility)
+    if (dto.type === OrderType.DELIVERY) {
+      const delivery = this.getDeliveryEligibilityFromVariants(
+        variants,
+        merged,
+      );
+
+      if (!delivery.allowed) {
+        // map reason -> message (keep simple; you can localize later)
+        if (delivery.reason === 'empty') {
+          throw new BadRequestException('Cart is empty.');
+        }
+        if (delivery.reason === 'onlyDrinks') {
+          throw new BadRequestException(
+            'Delivery is not available for drinks only.',
+          );
+        }
+        if (delivery.reason === 'needLargePizza') {
+          throw new BadRequestException(
+            'Delivery requires at least one large pizza (32cm or 50cm).',
+          );
+        }
+        if (delivery.reason === 'forbiddenItems') {
+          throw new BadRequestException(
+            'Delivery is not available for sandwiches or small pizzas (24cm).',
+          );
+        }
+        throw new BadRequestException('Delivery is not allowed.');
+      }
+    }
+
     const acceptedLang = this.pickLanguage(acceptLanguage);
 
     const items: OrderItem[] = [];
@@ -248,7 +301,7 @@ export class OrdersService {
       where,
       relations: { items: true, handledBy: true } as any,
       order: { createdAt: 'DESC' as any } as any,
-      take: 200, // ili ostavi 50; za "sve" često je bolje 200 + pagination kasnije
+      take: 200,
     });
 
     return orders.map((o) => ({
@@ -302,7 +355,6 @@ export class OrdersService {
 
       await repo.save(order);
 
-      // ✅ vrati payload koji želiš da emituješ
       return {
         publicCode: order.publicCode,
         status: order.status,
@@ -380,6 +432,7 @@ export class OrdersService {
       status: result.status,
     };
   }
+
   // ========= helpers =========
 
   private genPublicCode(len = 8) {
@@ -417,7 +470,6 @@ export class OrdersService {
     );
     if (exact?.name) return exact.name;
 
-    // fallback: prvi koji ima name
     const anyTr = translations.find((t) => t?.name);
     return anyTr?.name ?? null;
   }
@@ -428,5 +480,154 @@ export class OrdersService {
       .leftJoinAndSelect('o.items', 'i')
       .where('o.publicCode = :publicCode', { publicCode })
       .getOne();
+  }
+
+  // ===== Restaurant open-now logic (timezone + overrides + weekly hours) =====
+
+  private async getRestaurantTimezone(): Promise<string> {
+    // single-restaurant assumption: take first settings row if exists
+    const [settings] = await this.settingsRepo.find({ take: 1 });
+    return settings?.timezone || 'Europe/Belgrade';
+  }
+
+  private isTimeWithinWindow(
+    nowHHmm: string,
+    openHHmm: string,
+    closeHHmm: string,
+  ) {
+    const toMin = (s: string) => {
+      const [h, m] = s.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const now = toMin(nowHHmm);
+    const open = toMin(openHHmm);
+    const close = toMin(closeHHmm);
+
+    if (open === close) return false;
+
+    // same-day window
+    if (close > open) return now >= open && now < close;
+
+    // overnight window (e.g. 18:00 -> 02:00)
+    return now >= open || now < close;
+  }
+
+  private async assertRestaurantOpenNow() {
+    const tz = await this.getRestaurantTimezone();
+
+    const now = DateTime.now().setZone(tz);
+    const today = now.toISODate(); // "YYYY-MM-DD"
+    const weekday = now.weekday; // 1..7 (MON..SUN)
+    const nowHHmm = now.toFormat('HH:mm');
+
+    // 1) overrides imaju prioritet
+    const ov = await this.overrideRepo
+      .createQueryBuilder('o')
+      .where('o.dateFrom <= :d AND o.dateTo >= :d', { d: today })
+      .orderBy('o.createdAt', 'DESC')
+      .getOne();
+
+    if (ov) {
+      if (ov.isClosed) {
+        throw new BadRequestException(
+          ov.reason
+            ? `Restaurant is closed: ${ov.reason}`
+            : 'Restaurant is closed.',
+        );
+      }
+
+      // open by override hours (ako su definisani)
+      if (ov.openTime && ov.closeTime) {
+        if (!this.isTimeWithinWindow(nowHHmm, ov.openTime, ov.closeTime)) {
+          throw new BadRequestException('Restaurant is currently closed.');
+        }
+        return;
+      }
+      // if override says open but no hours, fallback to weekly
+    }
+
+    // 2) weekly hours
+    const wh = await this.whRepo.findOne({
+      where: { weekday: weekday as any },
+    });
+
+    if (!wh || wh.isClosed || !wh.openTime || !wh.closeTime) {
+      throw new BadRequestException('Restaurant is currently closed.');
+    }
+
+    if (!this.isTimeWithinWindow(nowHHmm, wh.openTime, wh.closeTime)) {
+      throw new BadRequestException('Restaurant is currently closed.');
+    }
+  }
+
+  // ===== Delivery eligibility (1:1 with frontend) =====
+
+  private isPizzaSlug(slug: string) {
+    return slug.startsWith('pizza-');
+  }
+  private isSandwichSlug(slug: string) {
+    return slug.startsWith('sandwich-');
+  }
+  private isDrinkSlug(slug: string) {
+    return slug.startsWith('drink-');
+  }
+
+  private isPizzaSmall(slug: string, size?: number | null) {
+    return this.isPizzaSlug(slug) && Number(size) === 24;
+  }
+
+  private isPizzaDeliveryAllowed(slug: string, size?: number | null) {
+    return (
+      this.isPizzaSlug(slug) && (Number(size) === 32 || Number(size) === 50)
+    );
+  }
+
+  private getDeliveryEligibilityFromVariants(
+    variants: ProductVariant[],
+    mergedQty: Map<string, number>,
+  ): {
+    allowed: boolean;
+    reason: DeliveryReason;
+    flags: {
+      hasAllowedPizza: boolean;
+      hasForbiddenItems: boolean;
+      hasOnlyDrinks: boolean;
+    };
+  } {
+    const items = variants
+      .map((v) => ({
+        slug: String((v as any).product?.slug ?? ''),
+        size: (v as any).size ?? null,
+        quantity: mergedQty.get(v.id) ?? 0,
+      }))
+      .filter((i) => i.quantity > 0);
+
+    const hasAnyItems = items.length > 0;
+
+    const hasAllowedPizza = items.some((i) =>
+      this.isPizzaDeliveryAllowed(i.slug, i.size),
+    );
+
+    const hasForbiddenItems = items.some((i) => {
+      return this.isPizzaSmall(i.slug, i.size) || this.isSandwichSlug(i.slug);
+    });
+
+    const hasOnlyDrinks =
+      hasAnyItems && items.every((i) => this.isDrinkSlug(i.slug));
+
+    const allowed = hasAllowedPizza && !hasForbiddenItems && !hasOnlyDrinks;
+
+    let reason: DeliveryReason = null;
+    if (!hasAnyItems) reason = 'empty';
+    else if (hasOnlyDrinks) reason = 'onlyDrinks';
+    else if (!hasAllowedPizza) reason = 'needLargePizza';
+    else if (hasForbiddenItems) reason = 'forbiddenItems';
+
+    return {
+      allowed,
+      reason,
+      flags: { hasAllowedPizza, hasForbiddenItems, hasOnlyDrinks },
+    };
   }
 }
