@@ -103,4 +103,11 @@ export class AuthService {
     await this.usersService.updateRefreshTokenHash(userId, null);
     return { ok: true };
   }
+
+  async savePushToken(userId: number, token: string) {
+    if (!token) return;
+
+    // delegiramo UsersService-u (čistoća koda)
+    await this.usersService.savePushToken(userId, token);
+  }
 }

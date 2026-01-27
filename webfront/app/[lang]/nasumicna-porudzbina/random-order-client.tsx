@@ -176,9 +176,7 @@ export default function RandomOrderClient({
       addToCart({
         productId: pizza.slug, // ✅ kao u ProductCard
         variantId: selectedVariant?.id, // ✅ kao u ProductCard
-        name: pizza.name,
         image: pizza.image,
-        description: pizza.description,
         size: selectedVariant?.size, // ✅ ako postoji
         price: unitPrice, // ✅ unit price
         quantity: pizza.rowQty ?? 1,

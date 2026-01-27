@@ -26,6 +26,30 @@ export type ProductsGroupedResponseDto = {
   categories: ProductsCategoryDto[];
 };
 
+export interface Product {
+  id: string;
+  slug: string;
+  image: string;
+  isActive: boolean;
+  sortOrder: number;
+  category: Category;
+  translations: ProductTranslation[];
+}
+
+export interface Category {
+  id: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface ProductTranslation {
+  id: string;
+  language: string; // npr. "sr-Latn"
+  name: string;
+  description: string;
+}
+
 function getApiBaseUrl() {
   // Server-side (recommended): API_URL in .env (without NEXT_PUBLIC)
   const base = process.env.API_URL;
@@ -68,6 +92,42 @@ export async function getProductsGrouped(
     }
 
     return (await res.json()) as ProductsGroupedResponseDto;
+  } catch (err) {
+    console.error('products/grouped fetch error', err);
+    return null;
+  }
+}
+
+export async function getAllProducts(): Promise<Array<Product> | null> {
+  const base = getApiBaseUrl();
+
+  try {
+    const res = await fetch(`${base}/products`, {
+      cache: 'no-store',
+      // or: next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      console.error(
+        'products/grouped failed',
+        res.status,
+        await res.text().catch(() => ''),
+      );
+      return null;
+    }
+
+    // dodatna zaštita: ponekad proxy/NGINX vrati HTML
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      console.error(
+        'products/grouped non-json',
+        ct,
+        await res.text().catch(() => ''),
+      );
+      return null;
+    }
+
+    return (await res.json()) as Array<Product>;
   } catch (err) {
     console.error('products/grouped fetch error', err);
     return null;

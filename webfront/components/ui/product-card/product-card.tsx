@@ -85,9 +85,7 @@ export default function ProductCard({
     addToCart({
       productId: item.slug,
       variantId: selectedVariant.id,
-      name: item.name,
       image: item.image,
-      description: item.description,
       size: selectedVariant.size,
       price: unitPrice,
       quantity,

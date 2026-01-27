@@ -9,9 +9,9 @@ import { createContext, useContext, useMemo, useState, ReactNode } from 'react';
 export type CartItem = {
   productId: string; // slug proizvoda
   variantId: string; // ⬅️ JEDINSTVENO
-  name: string;
+  // name: string;
   image?: string;
-  description?: string;
+  // description?: string;
   size?: number; // samo za prikaz (pizza)
   price: number;
   quantity: number;

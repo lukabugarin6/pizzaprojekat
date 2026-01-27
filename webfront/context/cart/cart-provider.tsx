@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CartContext } from './cart-context';
 import { CartItem } from '@/types/cart';
 import { CartDeliveryDict } from '@/app/[lang]/dictionaries';
+import { Product } from '@/lib/products';
 
 const STORAGE_KEY = 'cart';
 
@@ -24,6 +25,8 @@ export type DeliveryReason =
   | 'forbiddenItems'
   | null;
 
+/* -------------------------------- helpers -------------------------------- */
+
 function getDeliveryEligibility(items: CartItem[]) {
   const isPizza = (id: string) => id?.startsWith('pizza-');
   const isSandwich = (id: string) => id?.startsWith('sandwich-');
@@ -31,6 +34,7 @@ function getDeliveryEligibility(items: CartItem[]) {
 
   const isPizzaSmall = (item: CartItem) =>
     isPizza(item.productId) && item.size === 24;
+
   const isPizzaDeliveryAllowed = (item: CartItem) =>
     isPizza(item.productId) && (item.size === 32 || item.size === 50);
 
@@ -64,12 +68,34 @@ function getDeliveryEligibility(items: CartItem[]) {
   };
 }
 
+function getProductTranslation(
+  products: Array<Product | null>,
+  productId: string,
+  lang: string,
+) {
+  const product = products.find((p) => p && p.slug === productId);
+
+  if (!product) return null;
+
+  return (
+    product.translations.find((t) => t.language === lang) ??
+    product.translations[0] ??
+    null
+  );
+}
+
+/* ------------------------------- component -------------------------------- */
+
 export function CartProvider({
   children,
   deliveryDict,
+  products,
+  lang,
 }: {
   children: React.ReactNode;
   deliveryDict: CartDeliveryDict;
+  products: Array<Product | null>;
+  lang: string;
 }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -84,7 +110,8 @@ export function CartProvider({
 
   const [hydrated, setHydrated] = useState(false);
 
-  // ✅ load once
+  /* ------------------------------ hydration ------------------------------ */
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -99,23 +126,28 @@ export function CartProvider({
     }
   }, []);
 
-  // ✅ sync only AFTER hydration
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  // ✅ STABILNE akcije (useCallback) -> nema promene reference svaki render
+  /* ------------------------------- actions -------------------------------- */
+
   const addToCart = useCallback((item: CartItem) => {
     setItems((prev) => {
       const existing = prev.find((p) => p.variantId === item.variantId);
+
       if (existing) {
         return prev.map((p) =>
           p.variantId === item.variantId
-            ? { ...p, quantity: Math.min(p.quantity + item.quantity, 10) }
+            ? {
+                ...p,
+                quantity: Math.min(p.quantity + item.quantity, 10),
+              }
             : p,
         );
       }
+
       return [...prev, { ...item, quantity: Math.min(item.quantity, 10) }];
     });
   }, []);
@@ -130,7 +162,10 @@ export function CartProvider({
         prev
           .map((p) =>
             p.variantId === variantId
-              ? { ...p, quantity: Math.min(Math.max(quantity, 1), 10) }
+              ? {
+                  ...p,
+                  quantity: Math.min(Math.max(quantity, 1), 10),
+                }
               : p,
           )
           .filter((p) => p.quantity > 0),
@@ -143,20 +178,37 @@ export function CartProvider({
     setItems([]);
   }, []);
 
+  /* --------------------------- derived values ----------------------------- */
+
   const totalItems = useMemo(
     () => items.reduce((s, i) => s + i.quantity, 0),
     [items],
   );
+
   const totalPrice = useMemo(
     () => items.reduce((s, i) => s + i.price * i.quantity, 0),
     [items],
   );
+
   const delivery = useMemo(() => getDeliveryEligibility(items), [items]);
 
-  // ✅ memoized value da kontekst ne pravi nove reference bespotrebno
+  const itemsWithProductData = useMemo(() => {
+    return items.map((item) => {
+      const translation = getProductTranslation(products, item.productId, lang);
+
+      return {
+        ...item,
+        name: translation?.name ?? '',
+        description: translation?.description ?? '',
+      };
+    });
+  }, [items, products, lang]);
+
+  /* ------------------------------- context -------------------------------- */
+
   const value = useMemo(
     () => ({
-      items,
+      items: itemsWithProductData,
       addToCart,
       removeFromCart,
       clearCart,
@@ -166,7 +218,7 @@ export function CartProvider({
       delivery,
     }),
     [
-      items,
+      itemsWithProductData,
       addToCart,
       removeFromCart,
       clearCart,

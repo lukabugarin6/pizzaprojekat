@@ -11,17 +11,31 @@ import * as bcrypt from 'bcrypt';
 
 import { User } from './user.entity';
 import { Role } from '../common/enums/role.enum';
-
+import { PushToken } from '../push-tokens/push-token.entity';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PushToken)
+    private readonly pushTokenRepository: Repository<PushToken>,
   ) {}
 
   /**
    * ===== READ =====
    */
+
+  async savePushToken(userId: number, token: string) {
+    if (!token) return;
+
+    await this.pushTokenRepository.upsert(
+      {
+        token,
+        user: { id: userId } as any,
+      },
+      ['token', 'user'],
+    );
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });

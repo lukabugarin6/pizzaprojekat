@@ -25,4 +25,11 @@ export class AuthController {
   async logout(@Request() req) {
     return this.authService.logout(req.user.sub); // sub je iz JWT payload-a
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('me/push-token')
+  async savePushToken(@Request() req, @Body('token') token: string) {
+    await this.authService.savePushToken(req.user.sub, token);
+    return { ok: true };
+  }
 }

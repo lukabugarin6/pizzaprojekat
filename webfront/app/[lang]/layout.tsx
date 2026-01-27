@@ -12,6 +12,7 @@ import Navbar from '@/components/ui/navbar';
 import { OrderTrackingProvider } from '@/context/order/order-tracking-context';
 import GoogleAnalytics from '@/components/analytics';
 import { getPublicRestaurantHours } from '@/lib/restaurant';
+import { getAllProducts } from '@/lib/products';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
@@ -88,6 +89,7 @@ export default async function RootLayout({
   const { lang } = await params;
   const dict = await getDictionary(lang);
   const hours = await getPublicRestaurantHours();
+  const products = await getAllProducts();
 
   return (
     <html lang={lang}>
@@ -117,7 +119,11 @@ export default async function RootLayout({
         {/* GA route tracking (SPA) */}
         {GA_ID ? <GoogleAnalytics /> : null}
 
-        <CartProvider deliveryDict={dict.cart.delivery}>
+        <CartProvider
+          deliveryDict={dict.cart.delivery}
+          products={products || []}
+          lang={lang}
+        >
           <OrderTrackingProvider
             apiBase={process.env.NEXT_PUBLIC_API_URL || ''}
             t={dict.orderStatusModal}
