@@ -28,6 +28,8 @@ import { AdminListOrdersDto } from './dto/admin-list.dto';
 import { RestaurantSettings } from '../restaurant/restaurant-settings.entity';
 import { RestaurantWorkingHours } from '../restaurant/restaurant-working-hours.entity';
 import { RestaurantOverride } from '../restaurant/restaurant-override.entity';
+import { ExpoPushService } from 'src/notifications/expo-push.service';
+import { UsersService } from 'src/users/users.service';
 
 type DeliveryReason =
   | 'empty'
@@ -40,7 +42,8 @@ type DeliveryReason =
 export class OrdersService {
   constructor(
     private dataSource: DataSource,
-
+    private expoPushService: ExpoPushService,
+    private usersService: UsersService,
     @InjectRepository(Order) private orderRepo: Repository<Order>,
     @InjectRepository(OrderItem) private itemRepo: Repository<OrderItem>,
     @InjectRepository(ProductVariant)
@@ -116,7 +119,7 @@ export class OrdersService {
       throw new BadRequestException('Items are required.');
     }
 
-    // load variants + product + translations (snapshot name)
+    // load variants + product + translations
     const variants = await this.variantRepo.find({
       where: { id: In(variantIds) },
       relations: { product: { translations: true } } as any,
@@ -137,7 +140,7 @@ export class OrdersService {
       }
     }
 
-    // ✅ DELIVERY rules (1:1 with frontend getDeliveryEligibility)
+    // ✅ DELIVERY rules
     if (dto.type === OrderType.DELIVERY) {
       const delivery = this.getDeliveryEligibilityFromVariants(
         variants,
@@ -172,11 +175,8 @@ export class OrdersService {
     const items: OrderItem[] = [];
     let total = 0;
 
-    // admin uvek SR
     const adminLang =
       Language['SR_LATN' as any] ?? ('sr-Latn' as any as Language);
-
-    // customer (en/ru/sr...) iz headera
     const customerLang = acceptedLang;
 
     for (const v of variants) {
@@ -199,13 +199,8 @@ export class OrdersService {
       const oi = this.itemRepo.create({
         productId: v.product.id,
         variantId: v.id,
-
-        // ✅ admin view
         productName: productNameAdmin ?? productNameCustomer ?? '',
-
-        // ✅ mail / guest view
         productNameCustomer: productNameCustomer ?? productNameAdmin ?? null,
-
         variantSize: v.size ?? null,
         unitPrice,
         quantity: qty,
@@ -219,7 +214,7 @@ export class OrdersService {
     if (!items.length) throw new BadRequestException('Items are invalid.');
 
     const publicCode = this.genPublicCode(8);
-    const accessToken = randomBytes(24).toString('hex'); // 48 chars
+    const accessToken = randomBytes(24).toString('hex');
 
     const order = this.orderRepo.create({
       publicCode,
@@ -239,24 +234,36 @@ export class OrdersService {
 
     const saved = await this.orderRepo.save(order);
 
-    // ✅ emit event (gateway listens and pushes to WS clients)
+    // reload with items for admin payload
     const full = await this.orderRepo.findOne({
       where: { id: saved.id } as any,
       relations: { items: true } as any,
     });
 
-    if (full) {
-      this.eventEmitter.emit('orders.new', this.toAdminNewOrderPayload(full));
-    } else {
-      // fallback (shouldn't happen)
-      this.eventEmitter.emit('orders.new', {
-        id: saved.id,
-        publicCode: saved.publicCode,
-        type: saved.type,
-        status: saved.status,
-        total: saved.total,
-        createdAt: saved.createdAt,
-      });
+    // ---- ADMIN PAYLOAD (shared for WS + PUSH)
+    const payload = full
+      ? this.toAdminNewOrderPayload(full)
+      : {
+          id: saved.id,
+          publicCode: saved.publicCode,
+          type: saved.type,
+          status: saved.status,
+          total: saved.total,
+          createdAt: saved.createdAt,
+        };
+
+    // ✅ WebSocket event
+    this.eventEmitter.emit('orders.new', payload);
+
+    // ✅ REMOTE PUSH (background / killed app)
+    try {
+      const tokens = await this.usersService.getAdminPushTokens();
+
+      if (tokens.length) {
+        await this.expoPushService.sendNewOrder(tokens, payload);
+      }
+    } catch {
+      // push failure must NOT break order creation
     }
 
     return {

@@ -18,6 +18,9 @@ import { MailModule } from 'src/mail/mail.module';
 import { RestaurantSettings } from '../restaurant/restaurant-settings.entity';
 import { RestaurantWorkingHours } from '../restaurant/restaurant-working-hours.entity';
 import { RestaurantOverride } from '../restaurant/restaurant-override.entity';
+import { ExpoPushService } from 'src/notifications/expo-push.service';
+import { UsersService } from 'src/users/users.service';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -31,8 +34,15 @@ import { RestaurantOverride } from '../restaurant/restaurant-override.entity';
     ]),
     AuthModule,
     MailModule,
+    UsersModule,
   ],
   controllers: [OrdersController, OrdersAdminController],
-  providers: [OrdersService, OrdersGateway, OrdersMailListener],
+  providers: [
+    OrdersService,
+    OrdersGateway,
+    OrdersMailListener,
+    ExpoPushService,
+    UsersService,
+  ],
 })
 export class OrdersModule {}

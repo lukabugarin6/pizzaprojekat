@@ -37,6 +37,17 @@ export class UsersService {
     );
   }
 
+  async getAdminPushTokens(): Promise<string[]> {
+    const admins = await this.userRepository.find({
+      where: [{ role: 'admin' as any }, { role: 'superuser' as any }],
+      select: ['pushToken'] as any, // prilagodi naziv kolone
+    });
+
+    return admins
+      .map((u: any) => String(u.pushToken ?? '').trim())
+      .filter(Boolean);
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
