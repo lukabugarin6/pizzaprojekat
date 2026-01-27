@@ -87,7 +87,7 @@ function normalizeNewOrderEvent(payload: any): NewOrderEvent | null {
   };
 }
 
-// ✅ Local notification fallback
+// ✅ Local notification fallback (for socket-based events while app is open)
 async function scheduleLocalOrderNotification(ev: NewOrderEvent) {
   try {
     const bodyParts: string[] = [`Kod: ${ev.publicCode}`];
@@ -103,7 +103,7 @@ async function scheduleLocalOrderNotification(ev: NewOrderEvent) {
         // ✅ important on Android (must match setNotificationChannelAsync)
         ...(Platform.OS === "android" ? { channelId: "orders" as any } : {}),
 
-        // ✅ store FULL event in data so a tap/receive can re-open with details
+        // ✅ store FULL event in data so a tap can re-open with details
         data: {
           orderId: ev.id,
           id: ev.id,
@@ -224,11 +224,11 @@ export async function connectOrdersSocket(opts?: {
 
   socket.on("orders:new", async (payload: any) => {
     const ev = normalizeNewOrderEvent(payload);
-
     if (!ev) return;
 
     emitNewOrder(ev);
 
+    // Local notification only when app is active (socket events)
     if (localNotifyOnSocket) {
       await scheduleLocalOrderNotification(ev);
     }
@@ -257,8 +257,7 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
   }
 
   const buildFromNotif = (data: any) => {
-    // data can contain either minimal or full fields; we try full first
-    const ev = normalizeNewOrderEvent({
+    return normalizeNewOrderEvent({
       id: data?.orderId ?? data?.id,
       publicCode: data?.publicCode ?? data?.code,
 
@@ -275,16 +274,15 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
 
       items: data?.items,
     });
-
-    return ev;
   };
 
-  pushSubReceived = Notifications.addNotificationReceivedListener((n) => {
-    const data: any = n.request.content.data ?? {};
-    const ev = buildFromNotif(data);
-    if (ev) onOpenOrder(ev);
+  // ✅ When a push arrives while app is running, DON'T auto-open modal
+  // (prevents duplicates with socket/local notifications)
+  pushSubReceived = Notifications.addNotificationReceivedListener((_n) => {
+    // no-op on purpose
   });
 
+  // ✅ Only open when the user taps the notification
   pushSubResponse = Notifications.addNotificationResponseReceivedListener(
     (resp) => {
       const data: any = resp.notification.request.content.data ?? {};

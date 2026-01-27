@@ -25,7 +25,6 @@ import {
   disconnectOrdersSocket,
   onNewOrder,
   attachPushListeners,
-  registerForPushAsync,
   type NewOrderEvent,
 } from "./ordersRealtime";
 
@@ -34,6 +33,7 @@ import { GorhomSheetModal } from "../components/products/bottom-sheet-modal";
 import { productsStyles as styles } from "../styles/products.styles";
 
 import ReactContext from "react";
+import { registerAndSyncPushToken } from "./pushSync";
 
 type OrdersRealtimeCtx = {
   lastNewOrderKey: number;
@@ -285,14 +285,13 @@ export function OrdersRealtimeProvider({
   useEffect(() => {
     if (!isAdmin) return;
 
+    registerAndSyncPushToken().catch((e) => {
+      if (__DEV__) console.log("[push-sync] failed", e);
+    });
+
     connectOrdersSocket({ localNotifyOnSocket: true }).catch(() => {});
     const unsub = onNewOrder((ev) => openIncoming(ev));
     const detachPush = attachPushListeners((ev) => openIncoming(ev));
-
-    registerForPushAsync().then((token) => {
-      if (!token) return;
-      // TODO: POST /me/push-token
-    });
 
     return () => {
       unsub();

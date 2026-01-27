@@ -42,7 +42,6 @@ import { UsersModule } from 'src/users/users.module';
     OrdersGateway,
     OrdersMailListener,
     ExpoPushService,
-    UsersService,
   ],
 })
 export class OrdersModule {}

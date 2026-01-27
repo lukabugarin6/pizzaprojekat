@@ -24,6 +24,7 @@ import { RestaurantOverride } from './restaurant/restaurant-override.entity';
 import { MailModule } from './mail/mail.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { PushToken } from './push-tokens/push-token.entity';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { APP_GUARD } from '@nestjs/core';
           RestaurantSettings,
           RestaurantWorkingHours,
           RestaurantOverride,
+          PushToken,
         ],
         synchronize: false,
       }),
