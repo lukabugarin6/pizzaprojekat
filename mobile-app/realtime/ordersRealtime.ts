@@ -174,6 +174,8 @@ export async function registerForPushAsync(): Promise<string | null> {
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
+  console.log("[push-sync] got expo push token:", token);
+
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("orders", {
       name: "Orders",

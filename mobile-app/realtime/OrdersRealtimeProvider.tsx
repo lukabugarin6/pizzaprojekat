@@ -310,6 +310,8 @@ export function OrdersRealtimeProvider({
 
   // ✅ COLD START: if user tapped notification to open the app (killed -> open)
   useEffect(() => {
+    console.log("[push-sync] isAdmin?", isAdmin, "role=", role);
+
     if (!isAdmin) return;
 
     let cancelled = false;
@@ -336,6 +338,7 @@ export function OrdersRealtimeProvider({
   }, [isAdmin, openIncoming]);
 
   useEffect(() => {
+    console.log("[push-sync] isAdmin?", isAdmin, "role=", role);
     if (!isAdmin) return;
 
     registerAndSyncPushToken().catch((e) => {

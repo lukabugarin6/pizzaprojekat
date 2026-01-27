@@ -6,28 +6,36 @@ import { getTokens } from "../api/auth";
 const STORAGE_KEY = "expoPushToken";
 
 export async function registerAndSyncPushToken() {
-  // 1) Moraš biti ulogovan (JWT)
+  console.log("[push-sync] start");
+
   const { accessToken } = await getTokens();
+  console.log("[push-sync] has access?", !!accessToken);
   if (!accessToken) return;
 
-  // 2) Uzmemo Expo push token
   const expoToken = await registerForPushAsync();
+  console.log("[push-sync] expoToken:", expoToken);
   if (!expoToken) return;
 
-  // 3) Ne šalji opet isti token
   const saved = await AsyncStorage.getItem(STORAGE_KEY);
+  console.log("[push-sync] saved token same?", saved === expoToken);
   if (saved === expoToken) return;
 
-  // 4) Sync na backend
-  await apiFetch("/auth/me/push-token", {
+  const res = await apiFetch("/auth/me/push-token", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`, // ✅ JWT
+      Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ token: expoToken }), // ✅ Expo push token
+    body: JSON.stringify({ token: expoToken }),
   });
 
-  // 5) Zapamti lokalno
+  if (!res.ok) {
+    console.log("[push-sync] backend failed", res.status);
+    return; // <-- NE snimaj lokalno
+  }
+
+  console.log("[push-sync] apiFetch done:", res?.status ?? "no status");
+
   await AsyncStorage.setItem(STORAGE_KEY, expoToken);
+  console.log("[push-sync] stored locally");
 }
