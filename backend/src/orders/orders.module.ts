@@ -1,6 +1,6 @@
+// src/orders/orders.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
 
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
@@ -14,14 +14,23 @@ import { OrdersGateway } from './orders.gateway';
 import { AuthModule } from 'src/auth/auth.module';
 import { OrdersMailListener } from './orders-mail.listener';
 import { MailModule } from 'src/mail/mail.module';
-import { RestaurantModule } from 'src/restaurant/restaurant.module';
+
+import { RestaurantSettings } from '../restaurant/restaurant-settings.entity';
+import { RestaurantWorkingHours } from '../restaurant/restaurant-working-hours.entity';
+import { RestaurantOverride } from '../restaurant/restaurant-override.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, ProductVariant]),
+    TypeOrmModule.forFeature([
+      Order,
+      OrderItem,
+      ProductVariant,
+      RestaurantSettings,
+      RestaurantWorkingHours,
+      RestaurantOverride,
+    ]),
     AuthModule,
     MailModule,
-    RestaurantModule,
   ],
   controllers: [OrdersController, OrdersAdminController],
   providers: [OrdersService, OrdersGateway, OrdersMailListener],

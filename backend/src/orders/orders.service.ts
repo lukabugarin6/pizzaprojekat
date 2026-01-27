@@ -46,6 +46,13 @@ export class OrdersService {
     @InjectRepository(ProductVariant)
     private variantRepo: Repository<ProductVariant>,
 
+    // ✅ NOTE:
+    // If you IMPORT RestaurantModule but still inject repositories here,
+    // DI will STILL FAIL unless these entities are also included in
+    // TypeOrmModule.forFeature(...) of THIS OrdersModule.
+    //
+    // So for THIS version (repo injection), OrdersModule MUST forFeature(...)
+    // RestaurantSettings/RestaurantWorkingHours/RestaurantOverride as well.
     @InjectRepository(RestaurantSettings)
     private settingsRepo: Repository<RestaurantSettings>,
     @InjectRepository(RestaurantWorkingHours)
@@ -138,7 +145,6 @@ export class OrdersService {
       );
 
       if (!delivery.allowed) {
-        // map reason -> message (keep simple; you can localize later)
         if (delivery.reason === 'empty') {
           throw new BadRequestException('Cart is empty.');
         }
@@ -485,7 +491,6 @@ export class OrdersService {
   // ===== Restaurant open-now logic (timezone + overrides + weekly hours) =====
 
   private async getRestaurantTimezone(): Promise<string> {
-    // single-restaurant assumption: take first settings row if exists
     const [settings] = await this.settingsRepo.find({ take: 1 });
     return settings?.timezone || 'Europe/Belgrade';
   }
@@ -506,11 +511,9 @@ export class OrdersService {
 
     if (open === close) return false;
 
-    // same-day window
-    if (close > open) return now >= open && now < close;
+    if (close > open) return now >= open && now < close; // same-day
 
-    // overnight window (e.g. 18:00 -> 02:00)
-    return now >= open || now < close;
+    return now >= open || now < close; // overnight
   }
 
   private async assertRestaurantOpenNow() {
@@ -521,7 +524,7 @@ export class OrdersService {
     const weekday = now.weekday; // 1..7 (MON..SUN)
     const nowHHmm = now.toFormat('HH:mm');
 
-    // 1) overrides imaju prioritet
+    // 1) overrides have priority
     const ov = await this.overrideRepo
       .createQueryBuilder('o')
       .where('o.dateFrom <= :d AND o.dateTo >= :d', { d: today })
@@ -537,17 +540,15 @@ export class OrdersService {
         );
       }
 
-      // open by override hours (ako su definisani)
       if (ov.openTime && ov.closeTime) {
         if (!this.isTimeWithinWindow(nowHHmm, ov.openTime, ov.closeTime)) {
           throw new BadRequestException('Restaurant is currently closed.');
         }
         return;
       }
-      // if override says open but no hours, fallback to weekly
     }
 
-    // 2) weekly hours
+    // 2) weekly hours fallback
     const wh = await this.whRepo.findOne({
       where: { weekday: weekday as any },
     });
