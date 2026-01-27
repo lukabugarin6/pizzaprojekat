@@ -22,12 +22,13 @@ import { RestaurantSettings } from './restaurant/restaurant-settings.entity';
 import { RestaurantWorkingHours } from './restaurant/restaurant-working-hours.entity';
 import { RestaurantOverride } from './restaurant/restaurant-override.entity';
 import { MailModule } from './mail/mail.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
-
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({

@@ -7,9 +7,10 @@ import { seedCategories } from './database/seed/category.seed';
 import * as express from 'express';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const uploadsDir = join(process.cwd(), 'uploads', 'images');
   if (!existsSync(uploadsDir)) {
@@ -39,6 +40,8 @@ async function bootstrap() {
     ],
     credentials: true,
   });
+
+  app.set('trust proxy', 1);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
