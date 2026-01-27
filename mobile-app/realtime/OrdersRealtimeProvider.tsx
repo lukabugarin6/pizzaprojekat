@@ -18,6 +18,7 @@ import {
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 
 import { useAuth } from "../context/authContext";
 import {
@@ -121,6 +122,31 @@ function isThinOrEmpty(ev: NewOrderEvent | null) {
     !!String(ev.note ?? "").trim();
 
   return !hasAnyMeaningfulField && !hasItems;
+}
+
+// ✅ Build event from push notification data
+function buildEventFromNotifData(data: any): NewOrderEvent | null {
+  const id = String(data?.orderId ?? data?.id ?? "").trim();
+  const publicCode = String(data?.publicCode ?? data?.code ?? "").trim();
+  if (!id || !publicCode) return null;
+
+  return {
+    id,
+    publicCode,
+
+    type: data?.type,
+    status: data?.status,
+    total: typeof data?.total === "number" ? data.total : undefined,
+    createdAt: data?.createdAt,
+
+    fullName: data?.fullName,
+    phone: data?.phone,
+    email: data?.email,
+    addressText: data?.addressText ?? null,
+    note: data?.note ?? null,
+
+    items: Array.isArray(data?.items) ? data.items : undefined,
+  };
 }
 
 export function OrdersRealtimeProvider({
@@ -281,6 +307,33 @@ export function OrdersRealtimeProvider({
     },
     [bumpOrdersChanged, upsertIntoQueue],
   );
+
+  // ✅ COLD START: if user tapped notification to open the app (killed -> open)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const last = await Notifications.getLastNotificationResponseAsync();
+        const data: any = last?.notification?.request?.content?.data ?? null;
+        if (cancelled || !data) return;
+
+        const ev = buildEventFromNotifData(data);
+        if (!ev) return;
+
+        // This will be safely deduped by openedRef/handledRef anyway
+        await openIncoming(ev);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, openIncoming]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -849,6 +902,7 @@ export function OrdersRealtimeProvider({
             </View>
           </View>
         </View>
+
         {(incoming as any)?.note ? (
           <View style={{ marginTop: 10 }}>
             <Text style={{ fontWeight: "800", color: muted, marginBottom: 6 }}>
@@ -866,6 +920,7 @@ export function OrdersRealtimeProvider({
             </Text>
           </View>
         ) : null}
+
         {/* 3) KUPAC */}
         <View
           style={{

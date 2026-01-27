@@ -30,6 +30,7 @@ export default {
     },
 
     android: {
+      googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -57,6 +58,14 @@ export default {
 
     plugins: [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          // optional, ali preporuka (ikonica za android notif)
+          icon: "./assets/adaptive-icon.png",
+          color: "#ffffff",
+        },
+      ],
       [
         "expo-splash-screen",
         {

@@ -28,8 +28,8 @@ export class UsersService {
     if (!token) return;
 
     await this.pushTokenRepository.upsert(
-      { token, user: { id: userId } as any },
-      ['token'], // ✅ token must be UNIQUE in DB
+      { token, userId },
+      ['token', 'userId'], // ili samo ['token'] ako token unique globalno
     );
   }
 
