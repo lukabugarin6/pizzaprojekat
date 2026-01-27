@@ -22,13 +22,14 @@ import { RestaurantSettings } from './restaurant/restaurant-settings.entity';
 import { RestaurantWorkingHours } from './restaurant/restaurant-working-hours.entity';
 import { RestaurantOverride } from './restaurant/restaurant-override.entity';
 import { MailModule } from './mail/mail.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60, limit: 120 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
@@ -64,6 +65,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     MailModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

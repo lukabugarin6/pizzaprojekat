@@ -13,7 +13,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { Throttle } from '@nestjs/throttler';
 
 @Controller('orders')
-@Throttle({ default: { ttl: 60_000, limit: 5 } })
+@Throttle({ default: { ttl: 60, limit: 5 } })
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
