@@ -62,7 +62,6 @@ function isSr(lang: any) {
 }
 
 function isRu(lang: any) {
-  console.log('lang', lang);
   const s = langKey(lang);
   return s === 'ru' || s.startsWith('ru');
 }

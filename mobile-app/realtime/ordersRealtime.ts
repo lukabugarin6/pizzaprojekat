@@ -178,7 +178,6 @@ export async function registerForPushAsync(): Promise<string | null> {
     });
   }
 
-  console.log("[push] expo token:", token);
   return token;
 }
 
