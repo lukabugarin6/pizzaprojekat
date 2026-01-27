@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { io, Socket } from "socket.io-client";
+import Constants from "expo-constants";
 
 import { getTokens, refreshAccessToken } from "../api/auth";
 
@@ -159,15 +160,15 @@ export async function registerForPushAsync(): Promise<string | null> {
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
-
-  if (status !== "granted") {
-    const req = await Notifications.requestPermissionsAsync();
-    status = req.status;
-  }
-
+  if (status !== "granted")
+    status = (await Notifications.requestPermissionsAsync()).status;
   if (status !== "granted") return null;
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  const projectId =
+    Constants.easConfig?.projectId ??
+    Constants.expoConfig?.extra?.eas?.projectId;
+
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("orders", {

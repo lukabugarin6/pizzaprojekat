@@ -24,28 +24,24 @@ export class UsersService {
   /**
    * ===== READ =====
    */
-
   async savePushToken(userId: number, token: string) {
     if (!token) return;
 
     await this.pushTokenRepository.upsert(
-      {
-        token,
-        user: { id: userId } as any,
-      },
-      ['token', 'user'],
+      { token, user: { id: userId } as any },
+      ['token'], // ✅ token must be UNIQUE in DB
     );
   }
 
   async getAdminPushTokens(): Promise<string[]> {
-    const admins = await this.userRepository.find({
-      where: [{ role: 'admin' as any }, { role: 'superuser' as any }],
-      select: ['pushToken'] as any, // prilagodi naziv kolone
-    });
+    const rows = await this.pushTokenRepository
+      .createQueryBuilder('pt')
+      .innerJoin('pt.user', 'u')
+      .where('u.role IN (:...roles)', { roles: ['admin', 'superuser'] })
+      .select(['pt.token'])
+      .getMany();
 
-    return admins
-      .map((u: any) => String(u.pushToken ?? '').trim())
-      .filter(Boolean);
+    return rows.map((r) => String(r.token).trim()).filter(Boolean);
   }
 
   async findByEmail(email: string): Promise<User | null> {
