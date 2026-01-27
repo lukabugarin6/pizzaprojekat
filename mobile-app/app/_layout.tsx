@@ -9,6 +9,23 @@ import { RootSiblingParent } from "react-native-root-siblings";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { OrdersRealtimeProvider } from "../realtime/OrdersRealtimeProvider";
+import * as Notifications from "expo-notifications";
+
+let notifHandlerSet = false;
+
+function ensureNotificationsHandler() {
+  if (notifHandlerSet) return;
+  notifHandlerSet = true;
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true, // iOS
+      shouldShowList: true, // iOS
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -18,6 +35,7 @@ export default function RootLayout() {
     scheme === "dark",
   );
 
+  ensureNotificationsHandler();
   return (
     <GestureHandlerRootView style={styles.flex}>
       <RootSiblingParent>

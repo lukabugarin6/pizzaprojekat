@@ -1,11 +1,12 @@
 // src/realtime/ordersRealtime.ts
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { io, Socket } from "socket.io-client";
 import Constants from "expo-constants";
 
 import { getTokens, refreshAccessToken } from "../api/auth";
+let notifHandlerSet = false;
 
 // --- Types ---
 export type NewOrderEvent = {
@@ -146,14 +147,17 @@ function emitNewOrder(ev: NewOrderEvent) {
 // -----------------------
 // PUSH
 // -----------------------
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true, // iOS
-    shouldShowList: true, // iOS
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (!notifHandlerSet) {
+  notifHandlerSet = true;
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function registerForPushAsync(): Promise<string | null> {
   if (!Device.isDevice) return null;
@@ -230,7 +234,7 @@ export async function connectOrdersSocket(opts?: {
     emitNewOrder(ev);
 
     // Local notification only when app is active (socket events)
-    if (localNotifyOnSocket) {
+    if (localNotifyOnSocket && AppState.currentState === "active") {
       await scheduleLocalOrderNotification(ev);
     }
   });
