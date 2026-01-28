@@ -29,9 +29,6 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('me/push-token')
   async savePushToken(@Request() req, @Body('token') token: string) {
-    console.log('[push-token] user payload:', req.user);
-    console.log('[push-token] sub:', req.user?.sub, 'token?', !!token);
-
     await this.authService.savePushToken(req.user.sub, token);
     return { ok: true };
   }

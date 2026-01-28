@@ -39,6 +39,7 @@
     "apk": {
       "autoIncrement": true,
       "distribution": "internal",
+      "channel": "apk",
       "android": {
         "buildType": "apk"
       },

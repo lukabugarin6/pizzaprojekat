@@ -76,16 +76,23 @@ function safeText(v: any) {
   const s = String(v ?? "").trim();
   return s ? s : "-";
 }
-function formatDateDMY(iso?: string) {
+function formatDateDMYHM(iso?: string) {
   const s = String(iso ?? "").trim();
   if (!s) return "";
+
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "";
+
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = String(d.getFullYear());
-  return `${dd}.${mm}.${yyyy}.`;
+
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+
+  return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
 }
+
 function clampEtaMinutes(v: any) {
   const n = Number(String(v ?? "").trim());
   if (!Number.isFinite(n)) return null;
@@ -335,18 +342,25 @@ export function OrdersRealtimeProvider({
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, openIncoming]);
+  }, [isAdmin, openIncoming, role]);
 
   useEffect(() => {
     console.log("[push-sync] isAdmin?", isAdmin, "role=", role);
     if (!isAdmin) return;
 
+    // push token sync
     registerAndSyncPushToken().catch((e) => {
       if (__DEV__) console.log("[push-sync] failed", e);
     });
 
+    // connect socket + subscribe to events
     connectOrdersSocket({ localNotifyOnSocket: true }).catch(() => {});
     const unsub = onNewOrder((ev) => openIncoming(ev));
+
+    // ✅ IMPORTANT:
+    // attachPushListeners now:
+    // - opens on TAP always
+    // - opens on RECEIVED only when app is active AND socket is NOT connected
     const detachPush = attachPushListeners((ev) => openIncoming(ev));
 
     return () => {
@@ -354,7 +368,7 @@ export function OrdersRealtimeProvider({
       detachPush();
       disconnectOrdersSocket();
     };
-  }, [isAdmin, openIncoming]);
+  }, [isAdmin, openIncoming, role]);
 
   // ✅ remove a specific order (by index) and keep index stable
   const removeAt = useCallback((idx: number) => {
@@ -418,7 +432,7 @@ export function OrdersRealtimeProvider({
     const currentId = incoming.id;
     const idx = activeIndex;
 
-    // ✅ move UI forward immediately (do not force close everything)
+    // ✅ move UI forward immediately
     removeAt(idx);
 
     setBusy(true);
@@ -436,7 +450,6 @@ export function OrdersRealtimeProvider({
 
     const reason = rejectReason.trim();
     if (!reason) {
-      // keep modal open + focus
       requestAnimationFrame(() => rejectInputRef.current?.focus());
       return;
     }
@@ -453,7 +466,6 @@ export function OrdersRealtimeProvider({
 
     setBusy(true);
     try {
-      // send reason (API can ignore if it doesn't support it yet)
       await rejectAdminOrder(currentId, { reason });
       bumpOrdersChanged();
     } finally {
@@ -484,7 +496,7 @@ export function OrdersRealtimeProvider({
   const showAddress =
     isDelivery(incoming?.type) && !!(incoming as any)?.addressText;
 
-  const createdLabel = formatDateDMY(incoming?.createdAt);
+  const createdLabel = formatDateDMYHM(incoming?.createdAt);
 
   return (
     <OrdersRealtimeContext.Provider
@@ -679,7 +691,7 @@ export function OrdersRealtimeProvider({
                 </TouchableOpacity>
               </View>
 
-              {/* ETA +/- + tap-to-edit (fixed 36px height, fixed middle width) */}
+              {/* ETA +/- + tap-to-edit */}
               <View
                 style={{
                   flexDirection: "row",
@@ -837,7 +849,7 @@ export function OrdersRealtimeProvider({
           </View>
         }
       >
-        {/* 1) KOD + UKUPNO */}
+        {/* 1) STAVKE + UKUPNO */}
         <View
           style={{
             paddingVertical: 10,

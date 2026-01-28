@@ -6,6 +6,7 @@ import { io, Socket } from "socket.io-client";
 import Constants from "expo-constants";
 
 import { getTokens, refreshAccessToken } from "../api/auth";
+
 let notifHandlerSet = false;
 
 // --- Types ---
@@ -191,6 +192,10 @@ export async function registerForPushAsync(): Promise<string | null> {
 // -----------------------
 // SOCKET
 // -----------------------
+export function isOrdersSocketConnected() {
+  return !!socket?.connected;
+}
+
 export async function connectOrdersSocket(opts?: {
   /**
    * If true, create a local notification on socket "orders:new" too.
@@ -283,10 +288,20 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
     });
   };
 
-  // ✅ When a push arrives while app is running, DON'T auto-open modal
-  // (prevents duplicates with socket/local notifications)
-  pushSubReceived = Notifications.addNotificationReceivedListener((_n) => {
-    // no-op on purpose
+  /**
+   * ✅ When a push arrives while app is running:
+   * - If socket is connected, do NOT auto-open (avoid duplicates with socket events)
+   * - If socket is NOT connected and app is active, open the modal (this fixes your issue)
+   */
+  pushSubReceived = Notifications.addNotificationReceivedListener((n) => {
+    if (AppState.currentState !== "active") return;
+
+    // if socket still alive, ignore push-received to avoid duplicate modal
+    if (isOrdersSocketConnected()) return;
+
+    const data: any = n.request.content.data ?? {};
+    const ev = buildFromNotif(data);
+    if (ev) onOpenOrder(ev);
   });
 
   // ✅ Only open when the user taps the notification

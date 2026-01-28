@@ -4,7 +4,7 @@ export default {
     jsEngine: "hermes",
     name: "Pizza Project",
     slug: "pizzaproject",
-    version: "1.0.4",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/adaptive-icon.png",
     scheme: "com.pizzaproject",
@@ -12,7 +12,10 @@ export default {
 
     reactNativeNewArchitectureIos: true,
     reactNativeNewArchitectureAndroid: true,
-
+    updates: {
+      url: "https://u.expo.dev/79579be3-55dd-4cda-8f50-cc19723fd493",
+    },
+    runtimeVersion: "1.0.1",
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.pizzaproject",
