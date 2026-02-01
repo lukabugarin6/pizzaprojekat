@@ -213,6 +213,8 @@ export default function SettingsTab() {
         type: "success",
         text1: "Sačuvano",
         text2: "Radno vreme je ažurirano.",
+        position: "bottom",
+        visibilityTime: 2200,
       });
     } catch (e: any) {
       Alert.alert("Greška", e?.message ?? "Ažuriranje nije uspelo.");

@@ -124,7 +124,7 @@
       "address": "Adresa (ulica, broj, sprat...)",
       "deliveryOk": "Dostava je dostupna za sadržaj korpe.",
       "deliveryNotOkFallback": "Dostava nije dostupna za sadržaj korpe.",
-      "cashOnly": "Plaćanje prihvatamo samo u gotovini.",
+      "cashOnly": "Plaćanje za dostavu prihvatamo samo u gotovini.",
       "submit": "Poruči",
       "consent": "Slanjem porudžbine potvrđujete tačnost podataka i dajete saglasnost za obradu ličnih podataka.",
       "restaurantClosed": "Restoran je trenutno zatvoren. Poručivanje nije dostupno."
