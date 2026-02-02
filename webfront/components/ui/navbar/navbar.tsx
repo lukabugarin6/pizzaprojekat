@@ -192,40 +192,22 @@ export default function Navbar({ t, lang, hours }: Props) {
 
   const { hoursLabel, daysLabel } = useMemo(() => {
     if (!hours?.weekly?.length) {
-      return {
-        hoursLabel: t.workingHours,
-        daysLabel: '',
-      };
+      return { hoursLabel: t.workingHours, daysLabel: '' };
     }
 
     const best = findBestContinuousRange(hours.weekly);
-    const days = best ? formatDayRange(best.start, best.end, langKey) : '';
 
-    const effective = hours.effective;
-    const time = effective?.isClosed
-      ? ''
-      : fmtTimeRange(effective?.openTime, effective?.closeTime);
-
-    if (effective?.isClosed) {
-      return {
-        hoursLabel:
-          langKey === 'en-Us'
-            ? 'Closed'
-            : langKey === 'ru'
-              ? 'Закрыто'
-              : 'Zatvoreno',
-        daysLabel: days,
-      };
+    // Ako je najbolji blok CLOSED (npr. svi dani closed), fallback na default
+    if (!best || best.key === 'CLOSED') {
+      return { hoursLabel: t.workingHours, daysLabel: '' };
     }
 
-    if (time) return { hoursLabel: time, daysLabel: days };
+    const days = formatDayRange(best.start, best.end, langKey);
 
-    if (best && best.key !== 'CLOSED') {
-      const [openTime, closeTime] = best.key.split('-');
-      return { hoursLabel: fmtTimeRange(openTime, closeTime), daysLabel: days };
-    }
+    const [openTime, closeTime] = best.key.split('-');
+    const time = fmtTimeRange(openTime, closeTime);
 
-    return { hoursLabel: t.workingHours, daysLabel: '' };
+    return { hoursLabel: time || t.workingHours, daysLabel: days };
   }, [hours, t.workingHours, langKey]);
 
   // ✅ close menu on route change

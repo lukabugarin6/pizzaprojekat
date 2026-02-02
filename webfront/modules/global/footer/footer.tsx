@@ -148,30 +148,21 @@ export default function Footer({ t, hours }: Props) {
       return { hoursLabel: '', daysLabel: '', isClosedNow: false };
     }
 
+    // ✅ styling info: "da li je sad otvoreno"
+    const isClosedNow = !hours.isOpenNow || !!hours.effective?.isClosed;
+
+    // ✅ display info: uvek iz weekly (opšti raspored)
     const best = findBestContinuousRange(hours.weekly);
-    const days = best ? formatDayRange(best.start, best.end, langKey) : '';
 
-    const effective = hours.effective;
-
-    const isClosedNow = !!effective?.isClosed || !hours.isOpenNow;
-
-    if (effective?.isClosed) {
-      return { hoursLabel: closedLabel(langKey), daysLabel: days, isClosedNow };
+    if (!best || best.key === 'CLOSED') {
+      return { hoursLabel: '', daysLabel: '', isClosedNow };
     }
 
-    const time = fmtTimeRange(effective?.openTime, effective?.closeTime);
-    if (time) return { hoursLabel: time, daysLabel: days, isClosedNow };
+    const daysLabel = formatDayRange(best.start, best.end, langKey);
+    const [openTime, closeTime] = best.key.split('-');
+    const hoursLabel = fmtTimeRange(openTime, closeTime);
 
-    if (best && best.key !== 'CLOSED') {
-      const [openTime, closeTime] = best.key.split('-');
-      return {
-        hoursLabel: fmtTimeRange(openTime, closeTime),
-        daysLabel: days,
-        isClosedNow,
-      };
-    }
-
-    return { hoursLabel: '', daysLabel: '', isClosedNow };
+    return { hoursLabel, daysLabel, isClosedNow };
   })();
 
   return (
