@@ -127,7 +127,7 @@
       "cashOnly": "Plaćanje za dostavu prihvatamo samo u gotovini.",
       "submit": "Poruči",
       "consent": "Slanjem porudžbine potvrđujete tačnost podataka i dajete saglasnost za obradu ličnih podataka.",
-      "restaurantClosed": "Restoran je trenutno zatvoren. Poručivanje nije dostupno."
+      "restaurantClosed": "Picerija je trenutno zatvorena. Poručivanje nije dostupno."
     }
   },
   "deliveryPricing": {
@@ -190,7 +190,7 @@
 
     "pending": {
       "title": "Čekamo potvrdu…",
-      "text": "Restoran treba da prihvati ili odbije porudžbinu. Ovo obično traje kratko.",
+      "text": "Picerija treba da prihvati ili odbije porudžbinu. Ovo obično traje kratko.",
       "trackingLabel": "Pratimo status…",
       "trackingHint": "Možeš zatvoriti ovaj prozor i nastaviti da pretražuješ — status ostaje aktivan."
     },
