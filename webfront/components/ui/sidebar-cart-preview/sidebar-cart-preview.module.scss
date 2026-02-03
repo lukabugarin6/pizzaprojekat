@@ -444,6 +444,10 @@
     cursor: pointer;
     color: #9a9a9a;
     // nema hover efekta
+    &:hover {
+      color: #111;
+      background: rgba(0, 0, 0, 0.04);
+    }
   }
 
   &__saved {
