@@ -8,7 +8,7 @@ export async function generateMetadata({
 }: {
   params: { lang: Lang };
 }): Promise<Metadata> {
-  const { lang } = params; // nema await
+  const { lang } = await params; // nema await
   const dict = await getDictionary(lang);
 
   return {
