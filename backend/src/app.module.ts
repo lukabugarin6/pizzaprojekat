@@ -61,7 +61,7 @@ import { PushToken } from './push-tokens/push-token.entity';
           RestaurantOverride,
           PushToken,
         ],
-        synchronize: true,
+        synchronize: false,
       }),
     }),
 
