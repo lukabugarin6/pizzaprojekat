@@ -16,6 +16,7 @@ export class ExpoPushService {
         title: 'Nova porudžbina',
         body: `Kod: ${data.publicCode} ${Math.round(data.total ?? 0)} RSD`,
         data, // ⚠️ bitno: ide ceo payload
+        priority: 'high' as const,
       }));
 
     const chunks = this.expo.chunkPushNotifications(messages);

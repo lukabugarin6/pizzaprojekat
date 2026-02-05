@@ -31,5 +31,5 @@ async function apiGet(path: string) {
 
 // You return PENDING with items. Your backend already returns items in adminList.
 export async function fetchPendingOrders(): Promise<any[] | null> {
-  return apiGet(`/orders/admin?status=PENDING`) as any; // adjust route if different
+  return apiGet(`/admin/orders?status=pending`) as any; // adjust route if different
 }

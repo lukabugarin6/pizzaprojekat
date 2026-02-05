@@ -4,8 +4,10 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { io, Socket } from "socket.io-client";
 import Constants from "expo-constants";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getTokens, refreshAccessToken } from "../api/auth";
+
+const PENDING_NOTIFS_KEY = "@pending_order_notifications";
 
 let notifHandlerSet = false;
 
@@ -301,11 +303,42 @@ export function disconnectOrdersSocket() {
   socket = null;
 }
 
+async function cachePendingNotification(ev: NewOrderEvent) {
+  try {
+    const existing = await AsyncStorage.getItem(PENDING_NOTIFS_KEY);
+    const list: NewOrderEvent[] = existing ? JSON.parse(existing) : [];
+
+    // Избегни дупликате
+    const exists = list.some(
+      (item) => item.id === ev.id && item.publicCode === ev.publicCode,
+    );
+    if (!exists) {
+      list.push(ev);
+      await AsyncStorage.setItem(PENDING_NOTIFS_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.log("[cache-notif] failed:", e);
+  }
+}
+
+async function consumePendingNotifications(): Promise<NewOrderEvent[]> {
+  try {
+    const existing = await AsyncStorage.getItem(PENDING_NOTIFS_KEY);
+    if (!existing) return [];
+
+    await AsyncStorage.removeItem(PENDING_NOTIFS_KEY);
+    return JSON.parse(existing);
+  } catch {
+    return [];
+  }
+}
+
+export { consumePendingNotifications };
+
 // -----------------------
 // APP-LEVEL PUSH LISTENERS
 // -----------------------
 export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
-  // prevent duplicate subscriptions if called multiple times
   if (pushSubReceived || pushSubResponse) {
     return () => {
       pushSubReceived?.remove();
@@ -319,41 +352,38 @@ export function attachPushListeners(onOpenOrder: (ev: NewOrderEvent) => void) {
     return normalizeNewOrderEvent({
       id: data?.orderId ?? data?.id,
       publicCode: data?.publicCode ?? data?.code,
-
       type: data?.type,
       status: data?.status,
       total: data?.total,
       createdAt: data?.createdAt,
-
       fullName: data?.fullName,
       phone: data?.phone,
       email: data?.email,
       addressText: data?.addressText,
       note: data?.note,
-
       items: data?.items,
     });
   };
 
-  /**
-   * ✅ When a push arrives while app is running:
-   * - If socket is connected, do NOT auto-open (avoid duplicates with socket events)
-   * - If socket is NOT connected and app is active, open the modal (this fixes your issue)
-   */
-  pushSubReceived = Notifications.addNotificationReceivedListener((n) => {
-    if (AppState.currentState !== "active") return;
-
-    // if socket still alive, ignore push-received to avoid duplicate modal
-    if (isOrdersSocketConnected()) return;
-
+  pushSubReceived = Notifications.addNotificationReceivedListener(async (n) => {
     const data: any = n.request.content.data ?? {};
     const ev = buildFromNotif(data);
-    if (ev) onOpenOrder(ev);
+    if (!ev) return;
+
+    // ✅ КЉУЧНА ИЗМЕНА: Кеширај ако апп није активан
+    if (AppState.currentState !== "active") {
+      await cachePendingNotification(ev);
+      return;
+    }
+
+    // Ако је socket живи и апп активан, игнориши (избегни дупликате)
+    if (isOrdersSocketConnected()) return;
+
+    onOpenOrder(ev);
   });
 
-  // ✅ Only open when the user taps the notification
   pushSubResponse = Notifications.addNotificationResponseReceivedListener(
-    (resp) => {
+    async (resp) => {
       const data: any = resp.notification.request.content.data ?? {};
       const ev = buildFromNotif(data);
       if (ev) onOpenOrder(ev);

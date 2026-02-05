@@ -38,6 +38,7 @@ import { productsStyles as styles } from "../styles/products.styles";
 import ReactContext from "react";
 import { registerAndSyncPushToken } from "./pushSync";
 import { getTokens, refreshAccessToken } from "../api/auth";
+import { consumePendingNotifications } from "./ordersRealtime";
 
 // -----------------------
 // TYPES
@@ -67,6 +68,29 @@ export function useOrdersRealtime() {
 // -----------------------
 // HELPERS
 // -----------------------
+
+async function checkPendingNotifications(
+  onOpenOrder: (ev: NewOrderEvent) => void,
+) {
+  try {
+    // Узми све непрочитане нотификације
+    const notifications = await Notifications.getPresentedNotificationsAsync();
+
+    for (const notif of notifications) {
+      const data: any = notif.request.content.data ?? {};
+      const ev = buildEventFromNotifData(data);
+      if (ev) {
+        await onOpenOrder(ev);
+      }
+    }
+
+    // Очисти badge и нотификације након обраде
+    await Notifications.setBadgeCountAsync(0);
+    await Notifications.dismissAllNotificationsAsync();
+  } catch (e) {
+    console.log("[pending-notifs] check failed:", e);
+  }
+}
 function apiBaseNoSlash() {
   return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 }
@@ -107,7 +131,7 @@ async function fetchJsonWithAuth(path: string) {
 async function fetchPendingOrdersFromBackend() {
   // ✅ adjust if your route differs
   // Your Nest service supports status filter: /orders/admin?status=PENDING (example)
-  return (await fetchJsonWithAuth(`/orders/admin?status=PENDING`)) as
+  return (await fetchJsonWithAuth(`/admin/orders?status=pending`)) as
     | any[]
     | null;
 }
@@ -304,7 +328,9 @@ export function OrdersRealtimeProvider({
 
   const markHandled = useCallback(
     (ev: Pick<NewOrderEvent, "id" | "publicCode">) => {
-      handledRef.current.add(handledKey(ev));
+      const key = handledKey(ev);
+      handledRef.current.add(key);
+      openedRef.current.delete(key);
     },
     [],
   );
@@ -352,30 +378,50 @@ export function OrdersRealtimeProvider({
 
   const openIncoming = useCallback(
     async (ev: NewOrderEvent) => {
-      if (!ev?.id && !ev?.publicCode) return;
+      console.log("📥 [openIncoming] called with:", {
+        id: ev.id,
+        publicCode: ev.publicCode,
+        total: ev.total,
+        itemsCount: (ev as any)?.items?.length ?? 0,
+      });
+
+      if (!ev?.id && !ev?.publicCode) {
+        console.log("❌ [openIncoming] REJECTED: no id/code");
+        return;
+      }
 
       const key = handledKey(ev);
+      console.log("📥 [openIncoming] key:", key);
 
-      // already handled -> ignore
-      if (handledRef.current.has(key)) return;
+      if (handledRef.current.has(key)) {
+        console.log("❌ [openIncoming] REJECTED: already handled");
+        return;
+      }
 
-      // ignore empty/ghost payload
-      if (isThinOrEmpty(ev)) return;
+      if (isThinOrEmpty(ev)) {
+        console.log("❌ [openIncoming] REJECTED: thin/empty", {
+          id: ev.id,
+          publicCode: ev.publicCode,
+          total: ev.total,
+          fullName: ev.fullName,
+          items: (ev as any)?.items,
+        });
+        return;
+      }
 
-      // first time we ever saw this exact order -> signal + opened
+      console.log("✅ [openIncoming] ACCEPTED");
+
       const firstTime = !openedRef.current.has(key);
       if (firstTime) {
         openedRef.current.add(key);
-
         setLastNewOrder(ev);
         setLastNewOrderKey((x) => x + 1);
-
-        // new order means list changed
         bumpOrdersChanged();
+        console.log("✅ [openIncoming] first time - signals sent");
       }
 
-      // push/upgrade into queue
       upsertIntoQueue(ev);
+      console.log("✅ [openIncoming] upserted to queue");
     },
     [bumpOrdersChanged, upsertIntoQueue],
   );
@@ -390,11 +436,21 @@ export function OrdersRealtimeProvider({
     if (syncingRef.current) return;
     syncingRef.current = true;
 
+    console.log("🔍 [syncPending] START");
+    console.log("🔍 [syncPending] handledRef size:", handledRef.current.size);
+
     try {
       const rows = await fetchPendingOrdersFromBackend();
-      if (!rows?.length) return;
+      console.log("🔍 [syncPending] fetched rows:", rows?.length ?? 0, rows);
+
+      if (!rows?.length) {
+        console.log("🔍 [syncPending] no rows, returning");
+        return;
+      }
 
       for (const o of rows) {
+        console.log("🔍 [syncPending] processing order:", o.id, o.publicCode);
+
         const ev: NewOrderEvent = {
           id: String(o?.id ?? "").trim(),
           publicCode: String(o?.publicCode ?? "").trim(),
@@ -412,11 +468,21 @@ export function OrdersRealtimeProvider({
           items: Array.isArray(o?.items) ? o.items : [],
         };
 
-        if (!ev.id || !ev.publicCode) continue;
+        console.log("🔍 [syncPending] built event:", ev);
+        console.log("🔍 [syncPending] isThinOrEmpty?", isThinOrEmpty(ev));
+
+        if (!ev.id || !ev.publicCode) {
+          console.log("❌ [syncPending] skipping - no id/code");
+          continue;
+        }
+
         await openIncoming(ev);
       }
+
+      console.log("🔍 [syncPending] queue after sync:", incomingQueue.length);
     } finally {
       syncingRef.current = false;
+      console.log("🔍 [syncPending] END");
     }
   }, [isAdmin, openIncoming]);
 
@@ -427,17 +493,19 @@ export function OrdersRealtimeProvider({
   }, [isAdmin, syncPending]);
 
   // ✅ run sync whenever app becomes active (ICON OPEN CASE)
-  useEffect(() => {
-    if (!isAdmin) return;
+  // useEffect(() => {
+  //   if (!isAdmin) return;
 
-    const sub = AppState.addEventListener("change", (s) => {
-      if (s === "active") {
-        syncPending().catch(() => {});
-      }
-    });
+  //   const sub = AppState.addEventListener("change", async (s) => {
+  //     if (s === "active") {
+  //       await checkPendingNotifications(openIncoming);
 
-    return () => sub.remove();
-  }, [isAdmin, syncPending]);
+  //       syncPending().catch(() => {});
+  //     }
+  //   });
+
+  //   return () => sub.remove();
+  // }, [isAdmin, syncPending, openIncoming]);
 
   // ✅ COLD START: if user tapped notification to open the app (killed -> open)
   useEffect(() => {
@@ -480,8 +548,19 @@ export function OrdersRealtimeProvider({
     const detachFg = ensureOrdersSocketForegroundReconnect();
 
     // whenever app becomes active, sync pending too (covers missed socket events)
-    const fgSync = AppState.addEventListener("change", (s) => {
+    const fgSync = AppState.addEventListener("change", async (s) => {
       if (s === "active") {
+        console.log("🔄 App became active");
+
+        // 1️⃣ Провери кеширане нотификације
+        const cached = await consumePendingNotifications();
+        console.log("📦 Cached notifications:", cached.length);
+
+        for (const ev of cached) {
+          await openIncoming(ev);
+        }
+
+        // 2️⃣ Sync backend (fallback)
         syncPending().catch(() => {});
       }
     });
@@ -627,6 +706,21 @@ export function OrdersRealtimeProvider({
     if (!incoming) return;
     if (isThinOrEmpty(incoming)) removeAt(activeIndex);
   }, [incoming, activeIndex, removeAt]);
+
+  useEffect(() => {
+    console.log(
+      "📊 [queue-check] queue length:",
+      incomingQueue.length,
+      "activeIndex:",
+      activeIndex,
+    );
+
+    // Ako ima pending narudžbina ali modal nije otvoren, resetuj index
+    if (incomingQueue.length > 0 && activeIndex >= incomingQueue.length) {
+      console.log("🔧 [queue-check] fixing activeIndex to 0");
+      setActiveIndex(0);
+    }
+  }, [incomingQueue.length, activeIndex]);
 
   const disabledStyle = isDark ? { opacity: 0.65 } : { opacity: 0.45 };
 
