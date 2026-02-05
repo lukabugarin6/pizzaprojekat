@@ -55,7 +55,7 @@ const planet = localFont({
 });
 
 export async function generateStaticParams() {
-  return [{ lang: 'sr-Latn' }];
+  return [{ lang: 'sr-Latn' }, { lang: 'en' }, { lang: 'ru' }];
 }
 
 export async function generateMetadata({
@@ -66,14 +66,17 @@ export async function generateMetadata({
   const { lang } = await params;
   const dict = await getDictionary(lang);
 
+  const baseUrl = 'https://pizzaprojekat.com';
+
   return {
     title: dict.meta.home.title,
     description: dict.meta.home.description,
     alternates: {
+      canonical: `${baseUrl}/${lang}`,
       languages: {
-        'sr-Latn': '/sr-Latn',
-        en: '/en',
-        ru: '/ru',
+        'sr-Latn': `${baseUrl}/sr-Latn`,
+        en: `${baseUrl}/en`,
+        ru: `${baseUrl}/ru`,
       },
     },
   };
