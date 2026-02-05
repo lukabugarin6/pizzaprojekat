@@ -53,6 +53,35 @@ function apiBaseNoSlash() {
   return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 }
 
+let appStateSub: any = null;
+
+export function ensureOrdersSocketForegroundReconnect() {
+  if (appStateSub) return () => appStateSub.remove?.();
+
+  appStateSub = AppState.addEventListener("change", async (state) => {
+    if (state !== "active") return;
+
+    // If we already have a socket instance, just connect it.
+    if (socket && !socket.connected) {
+      // update token before reconnect (see Fix 2 below)
+      const { accessToken } = await getTokens();
+      socket.auth = { token: accessToken || "" };
+      socket.connect();
+      return;
+    }
+
+    // Or if socket is null, recreate it
+    if (!socket) {
+      await connectOrdersSocket({ localNotifyOnSocket: true });
+    }
+  });
+
+  return () => {
+    appStateSub?.remove?.();
+    appStateSub = null;
+  };
+}
+
 /**
  * Normalize event from any source (socket payload OR push notification data).
  * Requires BOTH id and publicCode (admin needs id for accept/reject).
@@ -218,6 +247,24 @@ export async function connectOrdersSocket(opts?: {
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 800,
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("[orders] disconnected:", reason);
+  });
+
+  socket.on("reconnect", (attempt) => {
+    console.log("[orders] reconnected after attempts:", attempt);
+  });
+
+  socket.on("reconnect_error", (err) => {
+    console.log("[orders] reconnect_error:", err?.message ?? err);
+  });
+
+  socket.on("reconnect_attempt", async () => {
+    // ensure latest token is used for the next attempt
+    const { accessToken: t } = await getTokens();
+    socket!.auth = { token: t || "" };
   });
 
   socket.on("connect_error", async (err: any) => {

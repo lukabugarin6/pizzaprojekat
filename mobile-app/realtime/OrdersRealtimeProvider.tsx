@@ -26,6 +26,7 @@ import {
   disconnectOrdersSocket,
   onNewOrder,
   attachPushListeners,
+  ensureOrdersSocketForegroundReconnect,
   type NewOrderEvent,
 } from "./ordersRealtime";
 
@@ -355,6 +356,8 @@ export function OrdersRealtimeProvider({
 
     // connect socket + subscribe to events
     connectOrdersSocket({ localNotifyOnSocket: true }).catch(() => {});
+    const detachFg = ensureOrdersSocketForegroundReconnect(); // ✅ OVO
+
     const unsub = onNewOrder((ev) => openIncoming(ev));
 
     // ✅ IMPORTANT:
@@ -366,6 +369,7 @@ export function OrdersRealtimeProvider({
     return () => {
       unsub();
       detachPush();
+      detachFg?.();
       disconnectOrdersSocket();
     };
   }, [isAdmin, openIncoming, role]);

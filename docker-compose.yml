@@ -18,14 +18,14 @@ services:
       context: ./webfront
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL}"
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL_STAGE}"
     ports:
       - "127.0.0.1:3001:3000"
     restart: unless-stopped
     env_file:
-      - ./webfront/.env
+      - ./webfront/.env.stage
     depends_on:
-      - backend
+      - backend_stage
 
   backend:
     build:
@@ -40,6 +40,20 @@ services:
       - db
     volumes:
       - ./uploads:/app/uploads
+
+  backend_stage:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:4001:3000"
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.stage
+    depends_on:
+      - db_stage
+    volumes:
+      - ./uploads_stage:/app/uploads
 
   db:
     image: mysql:8.0
@@ -59,5 +73,24 @@ services:
       retries: 30
       start_period: 20s
 
+  db_stage:
+    image: mysql:8.0
+    restart: unless-stopped
+    env_file:
+      - ./db/.env.stage
+    volumes:
+      - db_stage_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
 volumes:
   db_data:
+  db_stage_data:
