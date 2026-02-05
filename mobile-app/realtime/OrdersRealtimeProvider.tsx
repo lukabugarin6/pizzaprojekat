@@ -16,6 +16,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Keyboard,
+  AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
@@ -36,7 +37,11 @@ import { productsStyles as styles } from "../styles/products.styles";
 
 import ReactContext from "react";
 import { registerAndSyncPushToken } from "./pushSync";
+import { getTokens, refreshAccessToken } from "../api/auth";
 
+// -----------------------
+// TYPES
+// -----------------------
 type OrdersRealtimeCtx = {
   lastNewOrderKey: number;
   lastNewOrder?: NewOrderEvent | null;
@@ -57,6 +62,54 @@ const OrdersRealtimeContext = ReactContext.createContext<OrdersRealtimeCtx>({
 
 export function useOrdersRealtime() {
   return React.useContext(OrdersRealtimeContext);
+}
+
+// -----------------------
+// HELPERS
+// -----------------------
+function apiBaseNoSlash() {
+  return (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+}
+
+async function fetchJsonWithAuth(path: string) {
+  const base = apiBaseNoSlash();
+  if (!base) return null;
+
+  let { accessToken } = await getTokens();
+  if (!accessToken) return null;
+
+  const doFetch = async (token: string) => {
+    return fetch(`${base}${path}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  };
+
+  let res = await doFetch(accessToken);
+
+  // refresh once on 401
+  if (res.status === 401) {
+    const ok = await refreshAccessToken();
+    if (!ok) return null;
+    ({ accessToken } = await getTokens());
+    if (!accessToken) return null;
+    res = await doFetch(accessToken);
+  }
+
+  if (!res.ok) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPendingOrdersFromBackend() {
+  // ✅ adjust if your route differs
+  // Your Nest service supports status filter: /orders/admin?status=PENDING (example)
+  return (await fetchJsonWithAuth(`/orders/admin?status=PENDING`)) as
+    | any[]
+    | null;
 }
 
 function isDelivery(type?: string) {
@@ -157,6 +210,9 @@ function buildEventFromNotifData(data: any): NewOrderEvent | null {
   };
 }
 
+// -----------------------
+// PROVIDER
+// -----------------------
 export function OrdersRealtimeProvider({
   children,
 }: {
@@ -276,7 +332,15 @@ export function OrdersRealtimeProvider({
         ? (ev as any).items
         : [];
 
+      // upgrade empty->full
       if (curItems.length === 0 && nextItems.length > 0) {
+        const copy = [...prev];
+        copy[idx] = ev;
+        return copy;
+      }
+
+      // or if current is thin and next has meaningful fields, upgrade too
+      if (isThinOrEmpty(cur) && !isThinOrEmpty(ev)) {
         const copy = [...prev];
         copy[idx] = ev;
         return copy;
@@ -316,10 +380,67 @@ export function OrdersRealtimeProvider({
     [bumpOrdersChanged, upsertIntoQueue],
   );
 
+  // -----------------------
+  // ✅ BACKEND FALLBACK SYNC
+  // -----------------------
+  const syncingRef = useRef(false);
+
+  const syncPending = useCallback(async () => {
+    if (!isAdmin) return;
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+
+    try {
+      const rows = await fetchPendingOrdersFromBackend();
+      if (!rows?.length) return;
+
+      for (const o of rows) {
+        const ev: NewOrderEvent = {
+          id: String(o?.id ?? "").trim(),
+          publicCode: String(o?.publicCode ?? "").trim(),
+          type: o?.type,
+          status: o?.status,
+          total: typeof o?.total === "number" ? o.total : undefined,
+          createdAt: o?.createdAt,
+
+          fullName: o?.fullName,
+          phone: o?.phone,
+          email: o?.email,
+          addressText: o?.addressText ?? null,
+          note: o?.note ?? null,
+
+          items: Array.isArray(o?.items) ? o.items : [],
+        };
+
+        if (!ev.id || !ev.publicCode) continue;
+        await openIncoming(ev);
+      }
+    } finally {
+      syncingRef.current = false;
+    }
+  }, [isAdmin, openIncoming]);
+
+  // ✅ run sync on mount (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    syncPending().catch(() => {});
+  }, [isAdmin, syncPending]);
+
+  // ✅ run sync whenever app becomes active (ICON OPEN CASE)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") {
+        syncPending().catch(() => {});
+      }
+    });
+
+    return () => sub.remove();
+  }, [isAdmin, syncPending]);
+
   // ✅ COLD START: if user tapped notification to open the app (killed -> open)
   useEffect(() => {
-    console.log("[push-sync] isAdmin?", isAdmin, "role=", role);
-
     if (!isAdmin) return;
 
     let cancelled = false;
@@ -333,7 +454,7 @@ export function OrdersRealtimeProvider({
         const ev = buildEventFromNotifData(data);
         if (!ev) return;
 
-        // This will be safely deduped by openedRef/handledRef anyway
+        // safely deduped by openedRef/handledRef
         await openIncoming(ev);
       } catch {
         // ignore
@@ -343,10 +464,10 @@ export function OrdersRealtimeProvider({
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, openIncoming, role]);
+  }, [isAdmin, openIncoming]);
 
+  // ✅ SOCKET + PUSH + FOREGROUND RECONNECT
   useEffect(() => {
-    console.log("[push-sync] isAdmin?", isAdmin, "role=", role);
     if (!isAdmin) return;
 
     // push token sync
@@ -356,23 +477,34 @@ export function OrdersRealtimeProvider({
 
     // connect socket + subscribe to events
     connectOrdersSocket({ localNotifyOnSocket: true }).catch(() => {});
-    const detachFg = ensureOrdersSocketForegroundReconnect(); // ✅ OVO
+    const detachFg = ensureOrdersSocketForegroundReconnect();
 
-    const unsub = onNewOrder((ev) => openIncoming(ev));
+    // whenever app becomes active, sync pending too (covers missed socket events)
+    const fgSync = AppState.addEventListener("change", (s) => {
+      if (s === "active") {
+        syncPending().catch(() => {});
+      }
+    });
 
-    // ✅ IMPORTANT:
-    // attachPushListeners now:
+    const unsub = onNewOrder(async (ev) => {
+      await openIncoming(ev);
+    });
+
+    // attachPushListeners:
     // - opens on TAP always
     // - opens on RECEIVED only when app is active AND socket is NOT connected
-    const detachPush = attachPushListeners((ev) => openIncoming(ev));
+    const detachPush = attachPushListeners(async (ev) => {
+      await openIncoming(ev);
+    });
 
     return () => {
       unsub();
       detachPush();
       detachFg?.();
+      fgSync.remove();
       disconnectOrdersSocket();
     };
-  }, [isAdmin, openIncoming, role]);
+  }, [isAdmin, openIncoming, syncPending]);
 
   // ✅ remove a specific order (by index) and keep index stable
   const removeAt = useCallback((idx: number) => {
@@ -383,7 +515,7 @@ export function OrdersRealtimeProvider({
 
     setActiveIndex((i) => {
       if (idx < i) return Math.max(0, i - 1);
-      if (idx === i) return Math.max(0, i); // will be clamped by effect if needed
+      if (idx === i) return Math.max(0, i); // clamped by effect if needed
       return i;
     });
   }, []);
@@ -443,6 +575,9 @@ export function OrdersRealtimeProvider({
     try {
       await acceptAdminOrder(currentId, { etaMinutes: eta });
       bumpOrdersChanged();
+
+      // ✅ ensure queue matches backend (optional but nice)
+      syncPending().catch(() => {});
     } finally {
       setBusy(false);
     }
@@ -472,6 +607,9 @@ export function OrdersRealtimeProvider({
     try {
       await rejectAdminOrder(currentId, { reason });
       bumpOrdersChanged();
+
+      // ✅ ensure queue matches backend (optional)
+      syncPending().catch(() => {});
     } finally {
       setBusy(false);
       setRejectReason("");

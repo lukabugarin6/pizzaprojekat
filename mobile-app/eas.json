@@ -25,6 +25,7 @@
     },
     "development": {
       "developmentClient": true,
+      "channel": "development",
       "distribution": "internal",
       "ios": {
         "simulator": false
@@ -33,7 +34,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.pizzaprojekat.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-stage.pizzaprojekat.com"
       }
     },
     "apk": {

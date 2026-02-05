@@ -23,6 +23,8 @@ type SubscribeOrderPayload = {
 @WebSocketGateway({
   namespace: '/orders',
   cors: { origin: true, credentials: true },
+  pingInterval: 25000,
+  pingTimeout: 20000,
 })
 @Injectable()
 export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
