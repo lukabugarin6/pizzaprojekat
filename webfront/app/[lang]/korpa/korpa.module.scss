@@ -141,6 +141,15 @@
     width: 100%;
   }
 
+  &__submit-error {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    color: #d10000;
+    font-weight: 700;
+    width: 100%;
+  }
+
   /* Poruka o gotovini (ispod warning poruke) */
   &__cash-message {
     color: var(--black);
