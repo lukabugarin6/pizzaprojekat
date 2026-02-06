@@ -129,8 +129,8 @@ function closedLabel(langKey: string) {
 }
 
 export default function Footer({ t, hours }: Props) {
-  const lat = 45.26072;
-  const lon = 19.79931;
+  const lat = 45.26076;
+  const lon = 19.79915;
 
   const dLat = 0.00025;
   const dLon = 0.00035;
