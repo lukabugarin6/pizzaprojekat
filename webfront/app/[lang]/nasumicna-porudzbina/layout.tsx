@@ -15,11 +15,12 @@ export async function generateMetadata({
     title: dict.meta.randomOrder.title,
     description: dict.meta.randomOrder.description,
     alternates: {
-      canonical: `${baseUrl}/${lang}/random-order`,
+      canonical: `${baseUrl}/${lang}/nasumicna-porudzbina`,
       languages: {
-        'sr-Latn': `${baseUrl}/sr-Latn/random-order`,
-        en: `${baseUrl}/en/random-order`,
-        ru: `${baseUrl}/ru/random-order`,
+        'sr-Latn': `${baseUrl}/sr-Latn/nasumicna-porudzbina`,
+        en: `${baseUrl}/en/nasumicna-porudzbina`,
+        ru: `${baseUrl}/ru/nasumicna-porudzbina`,
+        'x-default': `${baseUrl}/sr-Latn/nasumicna-porudzbina`,
       },
     },
   };

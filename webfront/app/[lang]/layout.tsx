@@ -79,6 +79,7 @@ export async function generateMetadata({
         'sr-Latn': `${baseUrl}/sr-Latn`,
         en: `${baseUrl}/en`,
         ru: `${baseUrl}/ru`,
+        'x-default': `${baseUrl}/sr-Latn`,
       },
     },
   };

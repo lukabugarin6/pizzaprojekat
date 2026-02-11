@@ -15,11 +15,12 @@ export async function generateMetadata({
     title: dict.meta.cart.title,
     description: dict.meta.cart.description,
     alternates: {
-      canonical: `${baseUrl}/${lang}/cart`,
+      canonical: `${baseUrl}/${lang}/korpa`,
       languages: {
-        'sr-Latn': `${baseUrl}/sr-Latn/cart`,
-        en: `${baseUrl}/en/cart`,
-        ru: `${baseUrl}/ru/cart`,
+        'sr-Latn': `${baseUrl}/sr-Latn/korpa`,
+        en: `${baseUrl}/en/korpa`,
+        ru: `${baseUrl}/ru/korpa`,
+        'x-default': `${baseUrl}/sr-Latn/korpa`,
       },
     },
   };

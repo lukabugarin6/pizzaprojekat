@@ -15,11 +15,12 @@ export async function generateMetadata({
     title: dict.meta.deliveryPricing.title,
     description: dict.meta.deliveryPricing.description,
     alternates: {
-      canonical: `${baseUrl}/${lang}/delivery-pricing`,
+      canonical: `${baseUrl}/${lang}/cenovnik-dostave`,
       languages: {
-        'sr-Latn': `${baseUrl}/sr-Latn/delivery-pricing`,
-        en: `${baseUrl}/en/delivery-pricing`,
-        ru: `${baseUrl}/ru/delivery-pricing`,
+        'sr-Latn': `${baseUrl}/sr-Latn/cenovnik-dostave`,
+        en: `${baseUrl}/en/cenovnik-dostave`,
+        ru: `${baseUrl}/ru/cenovnik-dostave`,
+        'x-default': `${baseUrl}/sr-Latn/cenovnik-dostave`,
       },
     },
   };
